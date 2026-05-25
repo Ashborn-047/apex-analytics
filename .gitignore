@@ -1,0 +1,13 @@
+node_modules/
+.turbo/
+dist/
+.env
+.env.local
+.env.production
+*.log
+.bun/
+.vscode/
+
+# Project Custom Ignores
+archive/
+docs/

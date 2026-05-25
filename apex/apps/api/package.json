@@ -1,0 +1,28 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "ingest": "bun run src/pipeline/ingest.ts"
+  },
+  "dependencies": {
+    "@apex/db": "*",
+    "@apex/types": "*",
+    "@apex/track-utils": "*",
+    "hono": "^4.2.4",
+    "zod": "^3.22.4",
+    "pino": "^8.20.0",
+    "pino-pretty": "^11.0.0",
+    "bullmq": "^5.7.8",
+    "ioredis": "^5.4.1",
+    "@hono/zod-openapi": "^0.12.0",
+    "@scalar/hono-api-reference": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,604 @@
+{
+  "id": "8a41f414-7369-4337-838e-31f2b7e78f06",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "6",
+  "dialect": "postgresql",
+  "tables": {
+    "public.circuits": {
+      "name": "circuits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_gp": {
+          "name": "first_gp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "length_km": {
+          "name": "length_km",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corners": {
+          "name": "corners",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.constructors": {
+      "name": "constructors",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nationality": {
+          "name": "nationality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.drivers": {
+      "name": "drivers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dob": {
+          "name": "dob",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nationality": {
+          "name": "nationality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.lap_times": {
+      "name": "lap_times",
+      "schema": "",
+      "columns": {
+        "race_id": {
+          "name": "race_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "driver_id": {
+          "name": "driver_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lap": {
+          "name": "lap",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_ms": {
+          "name": "time_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lap_times_race_id_races_id_fk": {
+          "name": "lap_times_race_id_races_id_fk",
+          "tableFrom": "lap_times",
+          "tableTo": "races",
+          "columnsFrom": [
+            "race_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "lap_times_driver_id_drivers_id_fk": {
+          "name": "lap_times_driver_id_drivers_id_fk",
+          "tableFrom": "lap_times",
+          "tableTo": "drivers",
+          "columnsFrom": [
+            "driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lap_times_race_id_driver_id_lap_pk": {
+          "name": "lap_times_race_id_driver_id_lap_pk",
+          "columns": [
+            "race_id",
+            "driver_id",
+            "lap"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.pit_stops": {
+      "name": "pit_stops",
+      "schema": "",
+      "columns": {
+        "race_id": {
+          "name": "race_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "driver_id": {
+          "name": "driver_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lap": {
+          "name": "lap",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stop_number": {
+          "name": "stop_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pit_stops_race_id_races_id_fk": {
+          "name": "pit_stops_race_id_races_id_fk",
+          "tableFrom": "pit_stops",
+          "tableTo": "races",
+          "columnsFrom": [
+            "race_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "pit_stops_driver_id_drivers_id_fk": {
+          "name": "pit_stops_driver_id_drivers_id_fk",
+          "tableFrom": "pit_stops",
+          "tableTo": "drivers",
+          "columnsFrom": [
+            "driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pit_stops_race_id_driver_id_stop_number_pk": {
+          "name": "pit_stops_race_id_driver_id_stop_number_pk",
+          "columns": [
+            "race_id",
+            "driver_id",
+            "stop_number"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.qualifying": {
+      "name": "qualifying",
+      "schema": "",
+      "columns": {
+        "race_id": {
+          "name": "race_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "driver_id": {
+          "name": "driver_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "constructor_id": {
+          "name": "constructor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q1_ms": {
+          "name": "q1_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "q2_ms": {
+          "name": "q2_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "q3_ms": {
+          "name": "q3_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "qualifying_race_id_races_id_fk": {
+          "name": "qualifying_race_id_races_id_fk",
+          "tableFrom": "qualifying",
+          "tableTo": "races",
+          "columnsFrom": [
+            "race_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "qualifying_driver_id_drivers_id_fk": {
+          "name": "qualifying_driver_id_drivers_id_fk",
+          "tableFrom": "qualifying",
+          "tableTo": "drivers",
+          "columnsFrom": [
+            "driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "qualifying_constructor_id_constructors_id_fk": {
+          "name": "qualifying_constructor_id_constructors_id_fk",
+          "tableFrom": "qualifying",
+          "tableTo": "constructors",
+          "columnsFrom": [
+            "constructor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "qualifying_race_id_driver_id_pk": {
+          "name": "qualifying_race_id_driver_id_pk",
+          "columns": [
+            "race_id",
+            "driver_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.races": {
+      "name": "races",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "season": {
+          "name": "season",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "round": {
+          "name": "round",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "circuit_id": {
+          "name": "circuit_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "races_season_seasons_year_fk": {
+          "name": "races_season_seasons_year_fk",
+          "tableFrom": "races",
+          "tableTo": "seasons",
+          "columnsFrom": [
+            "season"
+          ],
+          "columnsTo": [
+            "year"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "races_circuit_id_circuits_id_fk": {
+          "name": "races_circuit_id_circuits_id_fk",
+          "tableFrom": "races",
+          "tableTo": "circuits",
+          "columnsFrom": [
+            "circuit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "races_season_round_pk": {
+          "name": "races_season_round_pk",
+          "columns": [
+            "season",
+            "round"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "races_id_unique": {
+          "name": "races_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      }
+    },
+    "public.results": {
+      "name": "results",
+      "schema": "",
+      "columns": {
+        "race_id": {
+          "name": "race_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "driver_id": {
+          "name": "driver_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "constructor_id": {
+          "name": "constructor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grid": {
+          "name": "grid",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "points": {
+          "name": "points",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fastest_lap": {
+          "name": "fastest_lap",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "results_race_id_races_id_fk": {
+          "name": "results_race_id_races_id_fk",
+          "tableFrom": "results",
+          "tableTo": "races",
+          "columnsFrom": [
+            "race_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "results_driver_id_drivers_id_fk": {
+          "name": "results_driver_id_drivers_id_fk",
+          "tableFrom": "results",
+          "tableTo": "drivers",
+          "columnsFrom": [
+            "driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "results_constructor_id_constructors_id_fk": {
+          "name": "results_constructor_id_constructors_id_fk",
+          "tableFrom": "results",
+          "tableTo": "constructors",
+          "columnsFrom": [
+            "constructor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "results_race_id_driver_id_pk": {
+          "name": "results_race_id_driver_id_pk",
+          "columns": [
+            "race_id",
+            "driver_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.seasons": {
+      "name": "seasons",
+      "schema": "",
+      "columns": {
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "rounds": {
+          "name": "rounds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
