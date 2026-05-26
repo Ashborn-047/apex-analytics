@@ -1,5 +1,8 @@
 import { Queue, Worker } from 'bullmq';
 import { redis } from '../redis';
+import { db } from '../db';
+import { eq, sql } from 'drizzle-orm';
+import { results, qualifying, lapTimes, pitStops } from '@apex/db';
 import { logger } from '../config';
 import { JolpicaFetcher } from './fetcher';
 import {
@@ -146,6 +149,14 @@ const worker = new Worker(
 
       case 'ingest-race-results': {
         const { season, round, raceId } = data;
+
+        // Skip if already ingested
+        const existing = await db.select({ count: sql<number>`count(*)` }).from(results).where(eq(results.raceId, raceId));
+        if (existing[0]?.count > 0) {
+          logger.info(`Race results already exist for Race ${raceId}. Skipping API fetch.`);
+          break;
+        }
+
         const res = await fetcher.fetchResults(season, round);
         const races = res.MRData.RaceTable.Races || [];
         if (races.length === 0) return;
@@ -194,6 +205,14 @@ const worker = new Worker(
 
       case 'ingest-race-qualifying': {
         const { season, round, raceId } = data;
+
+        // Skip if already ingested
+        const existing = await db.select({ count: sql<number>`count(*)` }).from(qualifying).where(eq(qualifying.raceId, raceId));
+        if (existing[0]?.count > 0) {
+          logger.info(`Race qualifying already exist for Race ${raceId}. Skipping API fetch.`);
+          break;
+        }
+
         const res = await fetcher.fetchQualifying(season, round);
         const races = res.MRData.RaceTable.Races || [];
         if (races.length === 0) return;
@@ -237,6 +256,13 @@ const worker = new Worker(
 
       case 'ingest-race-laps': {
         const { season, round, raceId } = data;
+
+        // Skip if already ingested
+        const existing = await db.select({ count: sql<number>`count(*)` }).from(lapTimes).where(eq(lapTimes.raceId, raceId));
+        if (existing[0]?.count > 0) {
+          logger.info(`Race lap times already exist for Race ${raceId}. Skipping API fetch.`);
+          break;
+        }
         
         let offset = 0;
         const limit = 100;
@@ -281,6 +307,14 @@ const worker = new Worker(
 
       case 'ingest-race-pitstops': {
         const { season, round, raceId } = data;
+
+        // Skip if already ingested
+        const existing = await db.select({ count: sql<number>`count(*)` }).from(pitStops).where(eq(pitStops.raceId, raceId));
+        if (existing[0]?.count > 0) {
+          logger.info(`Race pit stops already exist for Race ${raceId}. Skipping API fetch.`);
+          break;
+        }
+
         const res = await fetcher.fetchPitStops(season, round);
         const races = res.MRData.RaceTable.Races || [];
         if (races.length === 0) return;
