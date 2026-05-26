@@ -9,6 +9,9 @@ export class JolpicaFetcher {
       url.searchParams.append(key, String(val));
     });
 
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    await sleep(1500); // 1.5 second throttling delay
+
     const response = await fetch(url.toString(), {
       headers: {
         'Accept': 'application/json',

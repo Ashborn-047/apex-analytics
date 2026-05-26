@@ -6,7 +6,9 @@
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
-    "ingest": "bun run src/pipeline/ingest.ts"
+    "ingest": "bun run src/pipeline/ingest.ts",
+    "reset-pipeline": "bun run src/pipeline/reset-pipeline.ts",
+    "check-queue": "bun run src/pipeline/check-queue.ts"
   },
   "dependencies": {
     "@apex/db": "*",
