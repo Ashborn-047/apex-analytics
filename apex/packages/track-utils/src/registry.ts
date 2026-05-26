@@ -24,7 +24,7 @@ import zandvoortData from './data/zandvoort.json';
 import shanghaiData from './data/shanghai.json';
 import sochiData from './data/sochi.json';
 
-import { TrackPoint3D } from '../index';
+import { TrackPoint3D } from './index';
 
 export const circuitGeometries: Record<string, TrackPoint3D[]> = {
   albert_park: albert_parkData as TrackPoint3D[],
