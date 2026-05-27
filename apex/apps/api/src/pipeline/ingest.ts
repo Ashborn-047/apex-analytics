@@ -138,11 +138,16 @@ const worker = new Worker(
             name: race.raceName,
           });
 
-          // 3. Queue sub-tasks
-          await ingestQueue.add('ingest-race-results', { season, round, raceId }, jobOptions);
-          await ingestQueue.add('ingest-race-qualifying', { season, round, raceId }, jobOptions);
-          await ingestQueue.add('ingest-race-laps', { season, round, raceId }, jobOptions);
-          await ingestQueue.add('ingest-race-pitstops', { season, round, raceId }, jobOptions);
+          // 3. Queue sub-tasks only if the race has already occurred
+          const todayStr = new Date().toISOString().split('T')[0];
+          if (race.date && race.date <= todayStr) {
+            await ingestQueue.add('ingest-race-results', { season, round, raceId }, jobOptions);
+            await ingestQueue.add('ingest-race-qualifying', { season, round, raceId }, jobOptions);
+            await ingestQueue.add('ingest-race-laps', { season, round, raceId }, jobOptions);
+            await ingestQueue.add('ingest-race-pitstops', { season, round, raceId }, jobOptions);
+          } else {
+            logger.info(`Skipping ingest sub-tasks for future race ${raceId} (${race.raceName} on ${race.date})`);
+          }
         }
         break;
       }
