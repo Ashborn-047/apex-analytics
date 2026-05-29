@@ -11,7 +11,10 @@ circuitsRouter.get('/', async (c) => {
 });
 
 circuitsRouter.get('/:id/geometry', async (c) => {
-  const id = c.req.param('id');
+  let id = c.req.param('id');
+  if (id === 'gilles_villeneuve') {
+    id = 'villeneuve';
+  }
   const circuit = await circuitRepo.findById(id);
 
   if (!circuit) {

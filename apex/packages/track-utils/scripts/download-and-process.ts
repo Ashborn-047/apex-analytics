@@ -32,6 +32,9 @@ const CIRCUIT_MAPPING: Record<string, { filename: string; rotate: number }> = {
   zandvoort: { filename: 'nl-1948.geojson', rotate: 0 },
   shanghai: { filename: 'cn-2004.geojson', rotate: 0 },
   sochi: { filename: 'ru-2014.geojson', rotate: 0 },
+  gilles_villeneuve: { filename: 'ca-1978.geojson', rotate: 0 },
+  villeneuve: { filename: 'ca-1978.geojson', rotate: 0 },
+  rodriguez: { filename: 'mx-1962.geojson', rotate: 0 },
 };
 
 const BASE_URL = 'https://raw.githubusercontent.com/bacinger/f1-circuits/master/circuits';
@@ -95,7 +98,7 @@ async function run() {
   const indexContent = `// Auto-generated registry of circuit geometries
 ${results.map(id => `import ${id}Data from './data/${id}.json';`).join('\n')}
 
-import { TrackPoint3D } from '../index';
+import { TrackPoint3D } from './index';
 
 export const circuitGeometries: Record<string, TrackPoint3D[]> = {
 ${results.map(id => `  ${id}: ${id}Data as TrackPoint3D[],`).join('\n')}
