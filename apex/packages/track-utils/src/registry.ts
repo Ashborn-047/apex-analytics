@@ -23,6 +23,7 @@ import vegasData from './data/vegas.json';
 import zandvoortData from './data/zandvoort.json';
 import shanghaiData from './data/shanghai.json';
 import sochiData from './data/sochi.json';
+import montrealData from './data/montreal.json';
 
 import { TrackPoint3D } from './index';
 
@@ -51,6 +52,7 @@ export const circuitGeometries: Record<string, TrackPoint3D[]> = {
   zandvoort: zandvoortData as TrackPoint3D[],
   shanghai: shanghaiData as TrackPoint3D[],
   sochi: sochiData as TrackPoint3D[],
+  gilles_villeneuve: montrealData as TrackPoint3D[],
 };
 
 export function getCircuitGeometry(id: string): TrackPoint3D[] | null {
