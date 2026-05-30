@@ -21,5 +21,39 @@ services:
       - "6379:6379"
     restart: always
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: apex-api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/apex
+      - REDIS_URL=redis://redis:6379
+      - DEFAULT_API_KEY=f1_apex_super_secret_dev_key
+      - INGEST_SEASONS_LIMIT=3
+      - PORT=3000
+      - ENV=development
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  ml:
+    build:
+      context: ./apps/ml
+      dockerfile: Dockerfile
+    container_name: apex-ml
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - ENV=development
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
 volumes:
   pgdata:

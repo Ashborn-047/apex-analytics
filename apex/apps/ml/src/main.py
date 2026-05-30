@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # Register routes
-app.include_router(prediction_router)
+app.include_router(prediction_router, prefix="/api")
 
 @app.get("/health")
 def health_check():
