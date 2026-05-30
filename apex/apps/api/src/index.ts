@@ -11,7 +11,21 @@ import { apiRouter } from './routes';
 import { openapiRouter } from './routes/openapi';
 import { sql } from 'drizzle-orm';
 
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import * as path from 'path';
+
 const app = new Hono();
+
+// Run migrations on startup
+try {
+  logger.info('Database migrations: Checking/running...');
+  await migrate(db, {
+    migrationsFolder: path.resolve(import.meta.dir, '../../../packages/db/drizzle'),
+  });
+  logger.info('✅ Database migrations completed successfully');
+} catch (err) {
+  logger.error('❌ Failed to run database migrations:', err);
+}
 
 // Global Middlewares
 app.use('*', cors());

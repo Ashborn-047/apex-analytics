@@ -25,4 +25,4 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["bun", "workspace", "api", "run", "start"]
+CMD ["bun", "run", "--cwd", "apps/api", "start"]

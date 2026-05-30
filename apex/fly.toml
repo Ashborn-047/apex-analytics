@@ -2,7 +2,7 @@ app = "apex-f1-api"
 primary_region = "bom"
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "apps/api/Dockerfile"
 
 [http_service]
   internal_port = 3000
