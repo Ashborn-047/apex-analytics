@@ -11,3 +11,12 @@ dist/
 # Project Custom Ignores
 archive/
 docs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
