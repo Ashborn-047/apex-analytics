@@ -10,7 +10,6 @@ dist/
 
 # Project Custom Ignores
 archive/
-docs/
 
 # Python
 __pycache__/
