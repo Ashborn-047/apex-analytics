@@ -9,7 +9,6 @@ APEX is the analytical and historical brain that sits alongside Silverwall (the 
   <img src="https://img.shields.io/badge/Hono-E36002?style=for-the-badge&logo=hono&logoColor=white" alt="Hono" />
   <img src="https://img.shields.io/badge/Drizzle_ORM-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black" alt="Drizzle ORM" />
   <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/TimescaleDB-F15A24?style=for-the-badge&logo=timescaledb&logoColor=white" alt="TimescaleDB" />
   <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
   <br />
   <img src="https://img.shields.io/badge/Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
@@ -24,6 +23,56 @@ APEX is the analytical and historical brain that sits alongside Silverwall (the 
 
 ---
 
+## Final System Architecture
+
+The diagram below details the integration between **Silverwall** (Real-Time Pitwall) and **APEX** (Analytical Platform & ML Engine), demonstrating how data flows from external APIs through our ingestion pipeline into our cloud databases and out to the client browser:
+
+```mermaid
+graph TD
+    subgraph Client [Client / Browser]
+        UI[Silverwall Web App - React/Vite]
+    end
+
+    subgraph Live_Pipeline [Real-Time Streaming Engine]
+        Ingestor[Silverwall Ingestor - TS/Node]
+        SDB[(SpacetimeDB - Cloud)]
+    end
+
+    subgraph Analytical_Engine [APEX Core Platform]
+        API[APEX API - Bun/Hono]
+        DB[(Neon PostgreSQL Database)]
+        Cache[(Upstash Redis Cache)]
+        Queue[BullMQ Job Queue]
+        ML[APEX ML Service - Python FastAPI]
+    end
+
+    subgraph Data_Sources [External APIs]
+        OpenF1[OpenF1 API - Live Telemetry]
+        Ergast[Jolpica/Ergast API - Historical Stats]
+        ApexAPI[Apex F1 API - Fly.io Track Geometry]
+    end
+
+    %% Data Flow Connections
+    OpenF1 -->|Telemetry / Weather / Location| Ingestor
+    Ergast -->|Historical Stats / Standings| Ingestor
+    ApexAPI -->|High-Fidelity SVG Geometry| Ingestor
+
+    Ingestor -->|Seed / Write Real-Time State| SDB
+    Ingestor -->|Sync Standings / Schedules| API
+
+    SDB -->|WebSocket Subscription / Live Telemetry| UI
+    API -->|REST Queries / Circuit Data / History| UI
+
+    API -->|Write metadata / schema migration| DB
+    API -->|Job Scheduling| Queue
+    Queue -->|State store| Cache
+
+    ML -->|Read session statistics / lap times| DB
+    ML -->|Predictive models / Elo / Strategy| API
+```
+
+---
+
 ## Monorepo Architecture
 
 The project is structured as a **Turborepo** monorepo:
@@ -31,12 +80,12 @@ The project is structured as a **Turborepo** monorepo:
 ```
 apex/
 ├── apps/
-│   ├── api/          → Bun + Hono (Main REST API)
+│   ├── api/          → Bun + Hono (Main REST API & Ingest Pipeline)
 │   ├── ml/           → Python FastAPI (Machine Learning microservice)
 │   ├── web/          → React + Vite (Dashboard app)
 │   └── embed/        → Vanilla Three.js (Embeddable 3D track widget)
 ├── packages/
-│   ├── db/           → Drizzle schema & TimescaleDB migrations
+│   ├── db/           → Drizzle schema & PostgreSQL migrations
 │   ├── types/        → Shared TypeScript type definitions
 │   └── track-utils/  → Geometry processing & elevation loading
 ```
@@ -48,12 +97,12 @@ apex/
 *   **Monorepo Tooling:** Turborepo
 *   **Main REST API:** Bun + Hono
 *   **Database ORM:** Drizzle
-*   **Database:** Neon Serverless PostgreSQL (ap-south-1 Mumbai region) + TimescaleDB Extension
+*   **Database:** Neon Serverless PostgreSQL (ap-south-1 Mumbai region)
 *   **Cache & Queue:** Upstash Redis + BullMQ
-*   **ML Microservice:** Python 3.12 + FastAPI + scikit-learn + XGBoost + pandas
+*   **ML Microservice:** Python 3.12 + FastAPI + scikit-learn + XGBoost + pandas + statsmodels
 *   **3D Geometry Renderer:** Three.js (vanilla ES module embed)
 *   **Dashboard Web App:** React + Vite + Tailwind CSS + Recharts + D3 + Zustand
-*   **Hosting:** Fly.io (blr Bangalore region) for API/ML, Vercel for Dashboard, Upstash / Neon for databases.
+*   **Hosting:** Fly.io (bom Mumbai region) for API/ML, Vercel for Dashboard, Upstash / Neon for databases.
 
 ---
 
@@ -66,7 +115,7 @@ Defined in `packages/db/src/schema.ts` and managed via Drizzle Kit:
 *   `races`: Compounded primary key (`season` + `round`) with a unique serial index `id`.
 *   `drivers` & `constructors`: Bio and team entries.
 *   `results`: Driver placements, points, and final status.
-*   `lap_times`: Partitioned as a TimescaleDB hypertable by `race_id`.
+*   `lap_times`: Lap performance metrics and sector breakdowns.
 *   `qualifying` & `pit_stops`: Quali timings and pit lane stops.
 
 ### 2. Ingestion Pipeline
@@ -74,8 +123,7 @@ Standalone ingestion pipeline located in `apps/api/src/pipeline/ingest.ts` (trig
 *   Pulls historical datasets from the **Jolpica Ergast API**.
 *   Leverages **BullMQ** for job processing and rate-limit queuing.
 *   Uses a **1.5-second request throttling delay** to comply with Jolpica API rate limits.
-*   Includes built-in exponential backoffs to handle occasional network errors.
-*   Supports an optional `INGEST_SEASONS_LIMIT` environment variable for faster database seeding during local testing.
+*   Includes database caching checks to prevent redundant API hits and avoid rate-limiting.
 
 ### 3. REST API Core Endpoints
 Exposes structured endpoints validated via Hono and documented interactively via **Scalar OpenAPI**:
@@ -107,11 +155,11 @@ docker compose -f apex/docker-compose.yml up -d
 ```
 
 ### 3. Database Migrations
-Generate and execute migrations to initialize database tables and create the TimescaleDB hypertable partition:
+Database schema migrations run **automatically on container startup** via the Hono app initializer.
+To generate migrations manually after schema modifications:
 ```bash
 # Inside apex/packages/db
 bun run db:generate
-bun run db:migrate
 ```
 
 ### 4. Running the API Dev Server
@@ -127,7 +175,6 @@ Run the data ingestion pipeline to seed the local database:
 # Inside apex/apps/api
 bun run ingest
 ```
-This will queue jobs to populate circuits, seasons, races, qualifying results, pit stops, and lap times from Jolpica.
 
 ### 6. Pipeline Utility Scripts
 To help manage the ingestion queue and local database state during development, the following commands are available under `apps/api`:
@@ -136,9 +183,33 @@ To help manage the ingestion queue and local database state during development, 
 
 ---
 
-## SpacetimeDB Real-time Bridge
+## Cloud Deployment (Fly.io)
 
-In Phase 3, a shared SpacetimeDB instance establishes real-time telemetry streaming from Silverwall to APEX:
+### 1. Runtime Boot Crash Fix
+To prevent Bun workspace boot issues on Fly.io, the API deployment utilizes a working-directory context-switching command structure:
+```toml
+# fly.toml
+[build]
+  dockerfile = "apps/api/Dockerfile"
+```
+```dockerfile
+# apps/api/Dockerfile
+CMD ["bun", "run", "--cwd", "apps/api", "start"]
+```
+
+### 2. PostgreSQL Compatibility
+The database migration configuration is compatible with vanilla PostgreSQL (as hosted on Fly.io Postgres or Neon), removing requirements for the TimescaleDB hypertable extensions while retaining performance indexing for F1 lap/telemetry data.
+
+---
+
+## SpacetimeDB Real-time Bridge & ML Roadmap
+
+APEX establishes a real-time predictive bridge using streamed session telemetry from Silverwall:
 *   **Silverwall writes to:** `live_positions`, `live_gaps`, `session_state`, `live_timing`.
 *   **APEX ML writes to:** `strategy_recommendation`, `championship_probability`, `predicted_laptime`.
-*   Interfaces are pre-configured in `packages/types/src/spacetime.ts` to ensure compatibility.
+
+### Python ML Microservice Roadmap
+The FastAPI prediction microservice (`apps/ml`) executes data science computations:
+1.  **Elo rating system:** Predict driver form based on teammate head-to-head race and qualifying metrics.
+2.  **Lap time predictor:** Predict target lap times based on tyre compound, tyre life, and track temperature.
+3.  **Optimal pit strategy:** Formulate recommendations for when to execute pit stops to minimize time lost in traffic.

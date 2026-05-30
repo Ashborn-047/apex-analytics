@@ -151,7 +151,7 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
-CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+-- CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 --> statement-breakpoint
-SELECT create_hypertable('lap_times', 'race_id', chunk_time_interval => 1, if_not_exists => true);
+-- SELECT create_hypertable('lap_times', 'race_id', chunk_time_interval => 1, if_not_exists => true);
 

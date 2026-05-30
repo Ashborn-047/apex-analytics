@@ -24,7 +24,7 @@ try {
   });
   logger.info('✅ Database migrations completed successfully');
 } catch (err) {
-  logger.error('❌ Failed to run database migrations:', err);
+  logger.error(err, '❌ Failed to run database migrations');
 }
 
 // Global Middlewares
