@@ -200,6 +200,20 @@ class EloRatingSystem:
             ...
         ]
         """
+        # Auto-initialize any unknown drivers in the ratings system
+        for r in results:
+            d_id = r["driver_id"]
+            if d_id not in self.ratings:
+                self.ratings[d_id] = self.base_rating
+            if d_id not in self.uncertainties:
+                self.uncertainties[d_id] = 20.0
+            if d_id not in self.recent_deltas:
+                self.recent_deltas[d_id] = []
+            if d_id not in self.driver_names:
+                self.driver_names[d_id] = r.get("driver_name", d_id)
+            if d_id not in self.teams:
+                self.teams[d_id] = r.get("constructor_name", "Unknown")
+
         df = pd.DataFrame(results)
         if len(df) < 2:
             return self.ratings

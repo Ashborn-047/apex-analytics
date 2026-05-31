@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { MOCK_PIT_RECOMMENDATIONS, MOCK_DRIVER_STATE } from "../data/mockData";
 import type { PitRecommendation, Compound } from "../types";
 
@@ -106,7 +107,22 @@ function RecommendationCard({ rec, rank }: { rec: PitRecommendation; rank: numbe
 }
 
 export default function PitWallPlanner() {
+  const [recommendations, setRecommendations] = useState<PitRecommendation[]>(MOCK_PIT_RECOMMENDATIONS);
   const state = MOCK_DRIVER_STATE;
+
+  useEffect(() => {
+    fetch(`/api/predict/strategy/pit-window/2025_R12/${state.driver_id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load strategy pit windows");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.recommendations && data.recommendations.length > 0) {
+          setRecommendations(data.recommendations);
+        }
+      })
+      .catch((err) => console.error("Error loading pit strategy from microservice:", err));
+  }, [state.driver_id]);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "1.25rem" }}>
@@ -165,7 +181,7 @@ export default function PitWallPlanner() {
               </div>
             </div>
             {/* Pit window markers */}
-            {MOCK_PIT_RECOMMENDATIONS.map((rec, i) => (
+            {recommendations.map((rec, i) => (
               <div key={i} style={{
                 position: "absolute", top: "50%", width: "2px", height: "16px",
                 background: i === 0 ? "var(--accent-success)" : "var(--text-muted)",
@@ -194,12 +210,12 @@ export default function PitWallPlanner() {
             </p>
           </div>
           <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
-            {MOCK_PIT_RECOMMENDATIONS.length} CANDIDATES RANKED
+            {recommendations.length} CANDIDATES RANKED
           </span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {MOCK_PIT_RECOMMENDATIONS.map((rec, i) => (
+          {recommendations.map((rec, i) => (
             <RecommendationCard key={i} rec={rec} rank={i} />
           ))}
         </div>
