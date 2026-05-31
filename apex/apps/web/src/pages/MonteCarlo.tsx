@@ -107,6 +107,7 @@ function PointsScenarioBar({ scenarios, color }: { scenarios: Record<string, num
 }
 
 export default function MonteCarlo({ season }: { season: number }) {
+  const isCompletedSeason = season < 2026;
   const [sim, setSim] = useState<ExtendedSimulationResult>(MOCK_SIMULATION);
   const [activeView, setActiveView] = useState<"wdc" | "wcc">("wdc");
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
@@ -180,7 +181,14 @@ export default function MonteCarlo({ season }: { season: number }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {[
           { label: "MONTE CARLO LOOPS", value: sim.simulations_run.toLocaleString(), accent: true },
-          { label: "STANDINGS ROUND", value: `Round ${sim.as_of_round} / ${sim.total_rounds}` },
+          {
+            label: isCompletedSeason && sim.as_of_round < sim.total_rounds
+              ? `STANDINGS (R${sim.as_of_round} CUTOFF)`
+              : "STANDINGS ROUND",
+            value: isCompletedSeason
+              ? `Round ${sim.total_rounds} / ${sim.total_rounds}`
+              : `Round ${sim.as_of_round} / ${sim.total_rounds}`
+          },
           { label: "LEADER PROBABILITY", value: sim.wdc && sim.wdc.length > 0 ? `${(sim.wdc[0].championship_probability * 100).toFixed(1)}%` : "0.0%" },
           { label: "LEADER POINTS", value: sim.wdc && sim.wdc.length > 0 ? `${sim.wdc[0].current_points} PTS` : "0 PTS" },
         ].map((s) => (
