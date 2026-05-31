@@ -505,7 +505,7 @@ async function main() {
         const errorText = await simResponse.text();
         logger.error(`❌ Failed to run championship simulation for season ${season}: ${errorText}`);
       } else {
-        const simResults = await simResponse.json();
+        const simResults = (await simResponse.json()) as any;
         logger.info(`✅ Season ${season} championship simulation completed.`);
         const top3Wdc = simResults.wdc?.slice(0, 3) || [];
         logger.info(`📊 Top 3 Driver Probabilities for ${season}:`);
