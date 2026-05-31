@@ -39,11 +39,15 @@ async function main() {
       }
       
       // 3. Format payload matching the EloUpdateInput model in prediction.py
+      // Cap at 20 — exclude reserve/DNQ entries with position > 20
+      const top20 = raceResults.filter(res => (res.position ?? 99) <= 20);
+
       const payload = {
-        results: raceResults.map((res, index) => ({
+        results: top20.map((res, index) => ({
+          driver_id: res.driverCode?.toUpperCase() ?? undefined,
           driver_name: res.driverName,
           constructor_name: res.constructorName,
-          position: res.position || (index + 1), // fallback if null
+          position: res.position || (index + 1),
           status: res.status || 'CLASSIFIED',
           lap_time: 0.0,
           is_rookie: false

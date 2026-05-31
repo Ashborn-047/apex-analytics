@@ -22,9 +22,10 @@ sim_engine = ChampionshipSimulation()
 # ============================================================================
 
 class DriverResultInput(BaseModel):
+    driver_id: Optional[str] = Field(None, examples=["VER"])
     driver_name: str = Field(..., examples=["Max Verstappen"])
     constructor_name: str = Field(..., examples=["Red Bull Racing"])
-    position: int = Field(..., ge=1, le=20, examples=[1])
+    position: int = Field(..., ge=1, le=22, examples=[1])
     status: str = Field("CLASSIFIED", examples=["CLASSIFIED", "Collision", "Engine"])
     lap_time: float = Field(0.0, ge=0.0, examples=[82.1])
     is_rookie: bool = Field(False)
@@ -71,7 +72,7 @@ def update_driver_elo(data: EloUpdateInput):
     # Format inputs for model
     results_list = [
         {
-            "driver_id": r.driver_name[:3].upper(), # Use acronym shorthand
+            "driver_id": r.driver_id if r.driver_id else r.driver_name[:3].upper(),
             "driver_name": r.driver_name,
             "constructor_name": r.constructor_name,
             "position": r.position,
