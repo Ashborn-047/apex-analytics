@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MOCK_ELO_RANKINGS } from "../data/mockData";
 import type { EloRanking } from "../types";
 
@@ -105,7 +105,7 @@ function DriverRow({
       {/* Quali % */}
       <div style={{ textAlign: "right" }}>
         <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
-          {driver.quali_dominance_pct}%
+          {driver.quali_dominance_pct.toFixed(0)}%
         </div>
         <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.2rem" }}>
           QUALI WIN
@@ -131,7 +131,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
   return (
     <div className="panel fade-up" style={{ padding: "1.5rem" }}>
       <div className="section-header" style={{ marginBottom: "1rem" }}>
-        <span className="section-title">Head-to-Head vs Teammate</span>
+        <span className="section-title">Teammate Comparison</span>
         <div className="section-header-line" />
       </div>
 
@@ -161,7 +161,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
 
       <div style={{ marginBottom: "0.5rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.1em" }}>TEAMMATE DOMINANCE</span>
+          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.1em" }}>H2H DOMINANCE</span>
           <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)" }}>{winPct.toFixed(0)}%</span>
         </div>
         <div className="prob-bar">
@@ -184,7 +184,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
               QUALI WIN RATE
             </div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)" }}>
-              {driver.quali_dominance_pct}%
+              {driver.quali_dominance_pct.toFixed(0)}%
             </div>
           </div>
         </div>
@@ -194,7 +194,26 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
 }
 
 export default function EloDashboard() {
+  const [rankings, setRankings] = useState<EloRanking[]>(MOCK_ELO_RANKINGS);
   const [selected, setSelected] = useState<EloRanking>(MOCK_ELO_RANKINGS[0]);
+
+  useEffect(() => {
+    fetch("/api/predict/elo/rankings")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load rankings");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.rankings && data.rankings.length > 0) {
+          setRankings(data.rankings);
+          setSelected((prev) => {
+            const found = (data.rankings as EloRanking[]).find((r) => r.driver_id === prev.driver_id);
+            return found ?? data.rankings[0];
+          });
+        }
+      })
+      .catch((err) => console.error("Error loading ratings from microservice:", err));
+  }, []);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.25rem" }}>
@@ -231,7 +250,7 @@ export default function EloDashboard() {
           ))}
         </div>
 
-        {MOCK_ELO_RANKINGS.map((driver, i) => (
+        {rankings.map((driver, i) => (
           <DriverRow
             key={driver.driver_id}
             rank={i + 1}

@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from "recharts";
 import { MOCK_SIMULATION } from "../data/mockData";
-import type { ChampionshipEntry } from "../types";
+import type { ChampionshipEntry, SimulationResult } from "../types";
 
 function ProbabilityBar({ probability, color }: { probability: number; color: string }) {
   return (
@@ -82,7 +82,13 @@ function DriverChampionshipRow({ entry, rank }: { entry: ChampionshipEntry; rank
   );
 }
 
-const CustomBarTooltip = ({ active, payload, label }: any) => {
+interface TooltipProps {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: string;
+}
+
+const CustomBarTooltip = ({ active, payload, label }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px" }}>
@@ -95,10 +101,24 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function MonteCarlo() {
-  const sim = MOCK_SIMULATION;
+  const [sim, setSim] = useState<SimulationResult>(MOCK_SIMULATION);
   const [activeView, setActiveView] = useState<"wdc" | "wcc">("wdc");
 
-  const barData = sim.wdc.map((e) => ({
+  useEffect(() => {
+    fetch("/api/predict/simulation/championship")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load WDC/WCC simulations");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.wdc && data.wdc.length > 0) {
+          setSim(data);
+        }
+      })
+      .catch((err) => console.error("Error loading Monte Carlo simulation:", err));
+  }, []);
+
+  const barData = sim.wdc.slice(0, 8).map((e) => ({
     name: e.driver_id,
     probability: e.championship_probability,
     color: e.team_color,
@@ -115,7 +135,7 @@ export default function MonteCarlo() {
       {/* Header stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {[
-          { label: "SIMULATIONS", value: "1,000,000", accent: true },
+          { label: "SIMULATIONS", value: sim.simulations_run.toLocaleString(), accent: true },
           { label: "ROUNDS DONE", value: `${sim.as_of_round} / ${sim.total_rounds}` },
           { label: "LEADER PROB", value: `${(sim.wdc[0].championship_probability * 100).toFixed(1)}%` },
           { label: "LEADER POINTS", value: `${sim.wdc[0].current_points} PTS` },

@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer,
 } from "recharts";
 import { MOCK_DEGRADATION, SOFT_DEGRADATION, HARD_DEGRADATION } from "../data/mockData";
-import type { Compound } from "../types";
+import type { Compound, LapTimePrediction } from "../types";
 
 const COMPOUND_COLORS: Record<Compound, string> = {
   SOFT:   "#ff4466",
@@ -61,6 +61,34 @@ function StatsRow({ label, value, accent }: { label: string; value: string; acce
 
 export default function TyreLapPredictor() {
   const [activeCompounds, setActiveCompounds] = useState<Set<Compound>>(new Set(["SOFT", "MEDIUM", "HARD"]));
+  const [compoundsData, setCompoundsData] = useState<LapTimePrediction[]>(ALL_COMPOUNDS);
+
+  useEffect(() => {
+    const fetchCompound = (comp: Compound) => {
+      return fetch("/api/predict/lap-time", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          circuit_id: "monza",
+          compound: comp,
+          stint_lap: 1,
+          tyre_age_total: 1,
+          track_temp_c: 42.5,
+          fuel_load_kg: 68.0,
+          driver_id: "VER"
+        })
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to load compound " + comp);
+        return res.json();
+      });
+    };
+
+    Promise.all([fetchCompound("SOFT"), fetchCompound("MEDIUM"), fetchCompound("HARD")])
+      .then((results) => {
+        setCompoundsData(results);
+      })
+      .catch((err) => console.error("Error loading tyre predictions from microservice:", err));
+  }, []);
 
   const toggle = (c: Compound) => {
     setActiveCompounds((prev) => {
@@ -71,25 +99,34 @@ export default function TyreLapPredictor() {
   };
 
   // Build combined chart data
-  const maxLap = Math.max(...ALL_COMPOUNDS.flatMap((d) => d.degradation_curve.map((p) => p.stint_lap)));
+  const maxLap = Math.max(...compoundsData.flatMap((d) => d.degradation_curve.map((p) => p.stint_lap)));
   const chartData = Array.from({ length: maxLap }, (_, i) => {
     const lap = i + 1;
     const entry: Record<string, number> = { lap };
-    for (const comp of ALL_COMPOUNDS) {
+    for (const comp of compoundsData) {
       const point = comp.degradation_curve.find((p) => p.stint_lap === lap);
       if (point) entry[comp.compound] = point.predicted_s;
     }
     return entry;
   });
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipPayloadEntry {
+    dataKey: string;
+    value: number;
+  }
+  interface TyreTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadEntry[];
+    label?: number;
+  }
+  const CustomTooltip = ({ active, payload, label }: TyreTooltipProps) => {
     if (!active || !payload?.length) return null;
     return (
       <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "160px" }}>
         <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginBottom: "0.5rem", letterSpacing: "0.1em" }}>
           STINT LAP {label}
         </div>
-        {payload.map((p: any) => (
+        {payload.map((p) => (
           <div key={p.dataKey} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.2rem" }}>
             <span className="text-mono" style={{ fontSize: "0.65rem", color: COMPOUND_COLORS[p.dataKey as Compound] }}>
               {p.dataKey}
@@ -112,7 +149,7 @@ export default function TyreLapPredictor() {
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Tyre Degradation Curves
             </h2>
-            <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem" }}>
+            <p className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem" }}>
               MONZA · XGBoost Regression · ±0.25s MAE
             </p>
           </div>
@@ -144,7 +181,7 @@ export default function TyreLapPredictor() {
             <Tooltip content={<CustomTooltip />} />
 
             {/* Cliff reference lines */}
-            {ALL_COMPOUNDS.filter((d) => activeCompounds.has(d.compound) && d.cliff_lap).map((d) => (
+            {compoundsData.filter((d) => activeCompounds.has(d.compound) && d.cliff_lap).map((d) => (
               <ReferenceLine
                 key={d.compound}
                 x={d.cliff_lap!}
@@ -155,7 +192,7 @@ export default function TyreLapPredictor() {
               />
             ))}
 
-            {ALL_COMPOUNDS.filter((d) => activeCompounds.has(d.compound)).map((d) => (
+            {compoundsData.filter((d) => activeCompounds.has(d.compound)).map((d) => (
               <Line
                 key={d.compound}
                 type="monotone"
@@ -172,7 +209,7 @@ export default function TyreLapPredictor() {
 
         {/* Legend */}
         <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem", justifyContent: "center" }}>
-          {ALL_COMPOUNDS.map((d) => (
+          {compoundsData.map((d) => (
             <div key={d.compound} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: activeCompounds.has(d.compound) ? 1 : 0.3 }}>
               <div style={{ width: "20px", height: "2px", background: COMPOUND_COLORS[d.compound], borderRadius: "1px" }} />
               <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>{d.compound}</span>
@@ -188,7 +225,7 @@ export default function TyreLapPredictor() {
 
       {/* Stats sidebar */}
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        {ALL_COMPOUNDS.map((pred) => (
+        {compoundsData.map((pred) => (
           <div
             key={pred.compound}
             className="panel"
