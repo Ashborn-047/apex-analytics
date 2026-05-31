@@ -215,10 +215,12 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       driver_id: l.driver_id
     }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active) return null;
     
     // Find if there is actual scatter data hovered or just the main curve
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const predictedVal = payload?.find((p: any) => p.dataKey === "predicted")?.value;
     const hoverScatter = scatterData.filter(s => s.lap === label);
 

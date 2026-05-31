@@ -152,8 +152,8 @@ export default function MonteCarlo({ season }: { season: number }) {
   
   let actualDriverPoints: number | null = null;
   let actualDriverRank: number | null = null;
-  let simulatedDriverMedianPoints = selectedDriver.points_scenarios?.p50 || selectedDriver.current_points;
-  let simulatedDriverRank = sim.wdc.findIndex(d => d.driver_id === selectedDriverId) + 1;
+  const simulatedDriverMedianPoints = selectedDriver.points_scenarios?.p50 || selectedDriver.current_points;
+  const simulatedDriverRank = sim.wdc.findIndex(d => d.driver_id === selectedDriverId) + 1;
   
   if (actualWdc && actualWdc.length > 0) {
     const sortedActualWdc = [...actualWdc].sort((a, b) => b.points - a.points);
@@ -165,8 +165,8 @@ export default function MonteCarlo({ season }: { season: number }) {
   // Compare actual vs simulated calculations for constructors
   let actualConstructorPoints: number | null = null;
   let actualConstructorRank: number | null = null;
-  let simulatedConstructorPoints = selectedConstructor.current_points;
-  let simulatedConstructorRank = sim.wcc.findIndex(c => c.constructor_id === selectedConstructorId) + 1;
+  const simulatedConstructorPoints = selectedConstructor.current_points;
+  const simulatedConstructorRank = sim.wcc.findIndex(c => c.constructor_id === selectedConstructorId) + 1;
 
   if (actualWcc && actualWcc.length > 0) {
     const sortedActualWcc = [...actualWcc].sort((a, b) => b.points - a.points);

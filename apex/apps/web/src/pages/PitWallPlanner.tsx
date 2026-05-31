@@ -180,7 +180,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
   const actualBoxLap = driverActualStop?.pit_lap || null;
 
   let deltaLaps: number | null = null;
-  let paceLossPerLap = driverActualStop?.pace_loss_s || 0.45; // Default fallback if actual not synced
+  const paceLossPerLap = driverActualStop?.pace_loss_s || 0.45; // Default fallback if actual not synced
   let estimatedDeltaImpactS = 0.0;
   let impactString = "No comparison data";
 
