@@ -219,121 +219,293 @@ async function main() {
     // ------------------------------------------------------------------------
     // STEP 3: CHAMPIONSHIP SIMULATION SYNCHRONIZATION
     // ------------------------------------------------------------------------
-    logger.info('3️⃣ Preparing Monte Carlo Championship Simulation settings...');
+    logger.info('3️⃣ Preparing Monte Carlo Championship Simulation settings for all seasons...');
     
-    // Find the latest season in database
-    const latestSeasonResult = await db.select({
-      maxSeason: sql<number>`max(${races.season})`
-    }).from(races);
-    const latestSeason = latestSeasonResult[0]?.maxSeason || 2023;
+    // Find all distinct seasons in database
+    const allSeasonsResult = await db.select({
+      season: races.season
+    }).from(races).groupBy(races.season).orderBy(asc(races.season));
     
-    // Get all races for this season
-    const allSeasonRaces = await db.select({
-      id: races.id,
-      round: races.round,
-      name: races.name,
-      circuitId: races.circuitId
-    })
-    .from(races)
-    .where(eq(races.season, latestSeason))
-    .orderBy(asc(races.round));
+    const seasonList = allSeasonsResult.map(s => s.season).filter(Boolean);
+    logger.info(`Found seasons to simulate WDC/WCC: ${seasonList.join(', ')}`);
 
-    // Get completed races
-    const completedRacesResult = await db.select({
-      raceId: resultsTable.raceId
-    })
-    .from(resultsTable)
-    .groupBy(resultsTable.raceId);
-    const completedRaceIds = new Set(completedRacesResult.map(r => r.raceId));
-
-    let remainingRaces = allSeasonRaces.filter(r => !completedRaceIds.has(r.id));
-    let standingsCutoffRound = 999;
-
-    if (remainingRaces.length === 0 && allSeasonRaces.length > 5) {
-      // Fallback: Season is fully completed. Simulate the final 5 rounds using standings as of Round 17.
-      const cutoffIndex = allSeasonRaces.length - 5;
-      standingsCutoffRound = allSeasonRaces[cutoffIndex].round - 1;
-      remainingRaces = allSeasonRaces.slice(cutoffIndex);
-      logger.info(`ℹ️ Season ${latestSeason} is fully completed. Simulating the final 5 rounds (from Round ${standingsCutoffRound + 1}) using standings as of Round ${standingsCutoffRound}.`);
-    }
-
-    // Query WDC Standings
-    const driverStandingsQuery = await db.select({
-      driverCode: drivers.code,
-      points: sql<number>`sum(${resultsTable.points})`
-    })
-    .from(resultsTable)
-    .innerJoin(races, eq(resultsTable.raceId, races.id))
-    .innerJoin(drivers, eq(resultsTable.driverId, drivers.id))
-    .where(
-      and(
-        eq(races.season, latestSeason),
-        sql`${races.round} <= ${standingsCutoffRound}`
-      )
-    )
-    .groupBy(drivers.code);
-
-    // Query WCC Standings
-    const constructorStandingsQuery = await db.select({
-      constructorId: constructors.id,
-      points: sql<number>`sum(${resultsTable.points})`
-    })
-    .from(resultsTable)
-    .innerJoin(races, eq(resultsTable.raceId, races.id))
-    .innerJoin(constructors, eq(resultsTable.constructorId, constructors.id))
-    .where(
-      and(
-        eq(races.season, latestSeason),
-        sql`${races.round} <= ${standingsCutoffRound}`
-      )
-    )
-    .groupBy(constructors.id);
-
-    const wdc = driverStandingsQuery
-      .filter(d => d.driverCode)
-      .map(d => ({
-        driver_id: d.driverCode!.toUpperCase(),
-        points: Number(d.points) || 0
-      }));
-
-    const wcc = constructorStandingsQuery
-      .filter(c => c.constructorId)
-      .map(c => ({
-        constructor_id: c.constructorId,
-        points: Number(c.points) || 0
-      }));
-
-    const remainingRoundsPayload = remainingRaces.map(r => ({
-      round: r.round,
-      name: r.name,
-      circuit_type: CIRCUIT_TYPES[r.circuitId] || 'high_speed',
-      is_sprint: isSprint(latestSeason, r.round)
-    }));
-
-    logger.info(`Simulating with standings of ${wdc.length} drivers, ${wcc.length} constructors, and ${remainingRoundsPayload.length} remaining rounds.`);
-
-    const simResponse = await fetch(`${ML_SERVICE_URL}/api/predict/simulation/championship`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        wdc,
-        wcc,
-        remaining_rounds: remainingRoundsPayload,
-        simulations: 50000
+    for (const season of seasonList) {
+      // Get all races for this season
+      const allSeasonRaces = await db.select({
+        id: races.id,
+        round: races.round,
+        name: races.name,
+        circuitId: races.circuitId
       })
-    });
+      .from(races)
+      .where(eq(races.season, season))
+      .orderBy(asc(races.round));
 
-    if (!simResponse.ok) {
-      const errorText = await simResponse.text();
-      logger.error(`❌ Failed to run championship simulation: ${errorText}`);
-    } else {
-      const simResults = await simResponse.json();
-      logger.info('✅ Championship simulation ran successfully!');
+      if (allSeasonRaces.length === 0) continue;
+
+      // Get completed races for this season
+      const completedRacesResult = await db.select({
+        raceId: resultsTable.raceId
+      })
+      .from(resultsTable)
+      .innerJoin(races, eq(resultsTable.raceId, races.id))
+      .where(eq(races.season, season))
+      .groupBy(resultsTable.raceId);
+      const completedRaceIds = new Set(completedRacesResult.map(r => r.raceId));
+
+      let remainingRaces = allSeasonRaces.filter(r => !completedRaceIds.has(r.id));
+      let standingsCutoffRound = 999;
+
+      if (remainingRaces.length === 0 && allSeasonRaces.length > 5) {
+        // Fallback: Season is fully completed. Simulate the final 5 rounds using standings as of Round 17.
+        const cutoffIndex = allSeasonRaces.length - 5;
+        standingsCutoffRound = allSeasonRaces[cutoffIndex].round - 1;
+        remainingRaces = allSeasonRaces.slice(cutoffIndex);
+        logger.info(`ℹ️ Season ${season} is fully completed. Simulating the final 5 rounds (from Round ${standingsCutoffRound + 1}) using standings as of Round ${standingsCutoffRound}.`);
+      }
+
+      // Query WDC Standings
+      const driverStandingsQuery = await db.select({
+        driverCode: drivers.code,
+        points: sql<number>`sum(${resultsTable.points})`
+      })
+      .from(resultsTable)
+      .innerJoin(races, eq(resultsTable.raceId, races.id))
+      .innerJoin(drivers, eq(resultsTable.driverId, drivers.id))
+      .where(
+        and(
+          eq(races.season, season),
+          sql`${races.round} <= ${standingsCutoffRound}`
+        )
+      )
+      .groupBy(drivers.code);
+
+      // Query WCC Standings
+      const constructorStandingsQuery = await db.select({
+        constructorId: constructors.id,
+        points: sql<number>`sum(${resultsTable.points})`
+      })
+      .from(resultsTable)
+      .innerJoin(races, eq(resultsTable.raceId, races.id))
+      .innerJoin(constructors, eq(resultsTable.constructorId, constructors.id))
+      .where(
+        and(
+          eq(races.season, season),
+          sql`${races.round} <= ${standingsCutoffRound}`
+        )
+      )
+      .groupBy(constructors.id);
+
+      const wdc = driverStandingsQuery
+        .filter(d => d.driverCode)
+        .map(d => ({
+          driver_id: d.driverCode!.toUpperCase(),
+          points: Number(d.points) || 0
+        }));
+
+      const wcc = constructorStandingsQuery
+        .filter(c => c.constructorId)
+        .map(c => ({
+          constructor_id: c.constructorId,
+          points: Number(c.points) || 0
+        }));
+
+      const remainingRoundsPayload = remainingRaces.map(r => ({
+        round: r.round,
+        name: r.name,
+        circuit_type: CIRCUIT_TYPES[r.circuitId] || 'high_speed',
+        is_sprint: isSprint(season, r.round)
+      }));
+
+      // Query Actual Final WDC/WCC Standings
+      const actualDriverStandingsQuery = await db.select({
+        driverCode: drivers.code,
+        points: sql<number>`sum(${resultsTable.points})`
+      })
+      .from(resultsTable)
+      .innerJoin(races, eq(resultsTable.raceId, races.id))
+      .innerJoin(drivers, eq(resultsTable.driverId, drivers.id))
+      .where(eq(races.season, season))
+      .groupBy(drivers.code);
+
+      const actualConstructorStandingsQuery = await db.select({
+        constructorId: constructors.id,
+        points: sql<number>`sum(${resultsTable.points})`
+      })
+      .from(resultsTable)
+      .innerJoin(races, eq(resultsTable.raceId, races.id))
+      .innerJoin(constructors, eq(resultsTable.constructorId, constructors.id))
+      .where(eq(races.season, season))
+      .groupBy(constructors.id);
+
+      const actualWdc = actualDriverStandingsQuery
+        .filter(d => d.driverCode)
+        .map(d => ({
+          driver_id: d.driverCode!.toUpperCase(),
+          points: Number(d.points) || 0
+        }));
+
+      const actualWcc = actualConstructorStandingsQuery
+        .filter(c => c.constructorId)
+        .map(c => ({
+          constructor_id: c.constructorId,
+          points: Number(c.points) || 0
+        }));
+
+      // Sync actual lap times and pit stops for each completed race of this season
+      const completedRacesOfSeason = allSeasonRaces.filter(r => completedRaceIds.has(r.id));
+      logger.info(`Syncing actual lap times and pit stops for ${completedRacesOfSeason.length} completed races in season ${season}...`);
       
-      const top3Wdc = simResults.wdc?.slice(0, 3) || [];
-      logger.info('📊 Top 3 Driver Probabilities:');
-      for (const d of top3Wdc) {
-        logger.info(`   - ${d.driver_name} (${d.team}): ${(d.championship_probability * 100).toFixed(2)}%`);
+      for (const r of completedRacesOfSeason) {
+        // Fetch lap times for this race
+        const raceLaps = await db.select({
+          driverCode: drivers.code,
+          driverId: lapTimes.driverId,
+          lap: lapTimes.lap,
+          timeMs: lapTimes.timeMs
+        })
+        .from(lapTimes)
+        .innerJoin(drivers, eq(lapTimes.driverId, drivers.id))
+        .where(eq(lapTimes.raceId, r.id));
+
+        // Get pit stops for this race to partition laps into stints
+        const racePitStops = await db.select({
+          driverId: pitStops.driverId,
+          lap: pitStops.lap,
+          stopNumber: pitStops.stopNumber,
+          durationMs: pitStops.durationMs
+        })
+        .from(pitStops)
+        .where(eq(pitStops.raceId, r.id));
+
+        const driverPits = new Map<string, number[]>();
+        for (const p of racePitStops) {
+          if (!driverPits.has(p.driverId)) {
+            driverPits.set(p.driverId, []);
+          }
+          driverPits.get(p.driverId)!.push(p.lap);
+        }
+        for (const laps of driverPits.values()) {
+          laps.sort((a, b) => a - b);
+        }
+
+        // Map laps to actual items
+        const actualLapsPayload = [];
+        for (const lap of raceLaps) {
+          const stopsList = driverPits.get(lap.driverId) || [];
+          const stopsBefore = stopsList.filter(stopLap => stopLap < lap.lap).length;
+          const stintIndex = stopsBefore + 1;
+          const stintStartLap = stopsBefore > 0 ? stopsList[stopsBefore - 1] + 1 : 1;
+          const stintLap = lap.lap - stintStartLap + 1;
+          
+          let compound = 'MEDIUM';
+          if (stintIndex === 2) compound = 'HARD';
+          else if (stintIndex === 3) compound = 'SOFT';
+          
+          actualLapsPayload.push({
+            driver_id: lap.driverCode ? lap.driverCode.toUpperCase() : 'VER',
+            compound,
+            stint_number: stintIndex,
+            stint_lap: stintLap,
+            lap_time_s: lap.timeMs / 1000.0
+          });
+        }
+
+        if (actualLapsPayload.length > 0) {
+          const res = await fetch(`${ML_SERVICE_URL}/api/predict/lap-time/actuals`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              season,
+              circuit_id: r.circuitId,
+              laps: actualLapsPayload
+            })
+          });
+          if (!res.ok) {
+            logger.warn(`Failed to push actual lap times for ${r.name} (${season}): ${await res.text()}`);
+          }
+        }
+
+        // Fetch driver lap times map for pace loss calculation
+        const driverLapsMap = new Map<string, { lap: number; timeMs: number }[]>();
+        for (const lap of raceLaps) {
+          if (!driverLapsMap.has(lap.driverId)) {
+            driverLapsMap.set(lap.driverId, []);
+          }
+          driverLapsMap.get(lap.driverId)!.push({ lap: lap.lap, timeMs: lap.timeMs });
+        }
+
+        // Map pit stops to actual items
+        const actualStopsPayload = [];
+        for (const p of racePitStops) {
+          const raceLapsList = driverLapsMap.get(p.driverId) || [];
+          const beforeLaps = raceLapsList.filter(l => l.lap >= p.lap - 3 && l.lap < p.lap);
+          const afterLaps = raceLapsList.filter(l => l.lap > p.lap && l.lap <= p.lap + 3);
+
+          const avgBefore = beforeLaps.length > 0 ? (beforeLaps.reduce((sum, l) => sum + l.timeMs, 0) / beforeLaps.length) / 1000.0 : 0;
+          const avgAfter = afterLaps.length > 0 ? (afterLaps.reduce((sum, l) => sum + l.timeMs, 0) / afterLaps.length) / 1000.0 : 0;
+          const paceLossS = avgBefore > 0 && avgAfter > 0 ? Math.max(0.0, avgBefore - avgAfter) : 0.0;
+
+          const driver = raceLaps.find(l => l.driverId === p.driverId);
+          const driverCode = driver?.driverCode?.toUpperCase() || 'VER';
+
+          const stintNumber = p.stopNumber;
+          const currentCompound = stintNumber === 1 ? 'MEDIUM' : (stintNumber === 2 ? 'HARD' : 'SOFT');
+          const newCompound = stintNumber === 1 ? 'HARD' : 'SOFT';
+
+          actualStopsPayload.push({
+            driver_id: driverCode,
+            stint_number: stintNumber,
+            current_compound: currentCompound,
+            new_compound: newCompound,
+            pit_lap: p.lap,
+            pace_loss_s: Number(paceLossS.toFixed(3))
+          });
+        }
+
+        if (actualStopsPayload.length > 0) {
+          const res = await fetch(`${ML_SERVICE_URL}/api/predict/strategy/actuals`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              season,
+              circuit_id: r.circuitId,
+              stops: actualStopsPayload
+            })
+          });
+          if (!res.ok) {
+            logger.warn(`Failed to push actual pit stops for ${r.name} (${season}): ${await res.text()}`);
+          }
+        }
+      }
+
+      logger.info(`Season ${season}: Simulating with standings of ${wdc.length} drivers, ${wcc.length} constructors, and ${remainingRoundsPayload.length} remaining rounds.`);
+
+      const simResponse = await fetch(`${ML_SERVICE_URL}/api/predict/simulation/championship`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          season,
+          wdc,
+          wcc,
+          remaining_rounds: remainingRoundsPayload,
+          simulations: 50000,
+          actual_wdc: actualWdc.length > 0 ? actualWdc : undefined,
+          actual_wcc: actualWcc.length > 0 ? actualWcc : undefined
+        })
+      });
+
+      if (!simResponse.ok) {
+        const errorText = await simResponse.text();
+        logger.error(`❌ Failed to run championship simulation for season ${season}: ${errorText}`);
+      } else {
+        const simResults = await simResponse.json();
+        logger.info(`✅ Season ${season} championship simulation completed.`);
+        const top3Wdc = simResults.wdc?.slice(0, 3) || [];
+        logger.info(`📊 Top 3 Driver Probabilities for ${season}:`);
+        for (const d of top3Wdc) {
+          logger.info(`   - ${d.driver_name} (${d.team}): ${(d.championship_probability * 100).toFixed(2)}%`);
+        }
       }
     }
   } catch (err) {

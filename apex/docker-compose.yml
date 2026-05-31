@@ -35,6 +35,7 @@ services:
       - INGEST_SEASONS_LIMIT=5
       - PORT=3000
       - ENV=development
+      - ML_SERVICE_URL=http://ml:8000
     depends_on:
       - postgres
       - redis

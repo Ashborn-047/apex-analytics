@@ -10,6 +10,7 @@ class EloRatingSystem:
     """
     def __init__(self, base_rating: float = 1500.0):
         self.base_rating = base_rating
+        self.history: Dict[str, Dict[str, float]] = {}
         
         # Current driver ratings: driver_id -> rating
         self.ratings: Dict[str, float] = {
@@ -106,8 +107,24 @@ class EloRatingSystem:
         return "CLASSIFIED"
 
     def get_rankings(self, season: int = 2025, as_of_round: int = 12) -> List[Dict[str, Any]]:
+        ratings_to_use = self.ratings
+        season_history = {k: v for k, v in self.history.items() if k.startswith(f"{season}_")}
+        if season_history:
+            best_round_id = None
+            best_round_num = -1
+            for rid in season_history:
+                try:
+                    r_num = int(rid.split("_R")[-1])
+                    if r_num <= as_of_round and r_num > best_round_num:
+                        best_round_num = r_num
+                        best_round_id = rid
+                except Exception:
+                    pass
+            if best_round_id:
+                ratings_to_use = season_history[best_round_id]
+
         rankings_list = []
-        for d_id, rating in self.ratings.items():
+        for d_id, rating in ratings_to_use.items():
             team = self.teams.get(d_id, "Unknown")
             color = self.team_colors.get(team, "#cccccc")
             nationality = self.nationalities.get(d_id, "🏳️")
@@ -132,7 +149,22 @@ class EloRatingSystem:
             total_matches = sum(h2h.values())
             quali_dominance = round((h2h["wins"] / total_matches * 100), 1) if total_matches > 0 else 50.0
             trend = sum(self.recent_deltas.get(d_id, [0.0])[-5:])
-            
+            # Elo history for sparkline
+            driver_history = []
+            season_rounds = sorted(
+                [rk for rk in self.history.keys() if rk.startswith(f"{season}_R")],
+                key=lambda x: int(x.split("_R")[-1])
+            )
+            for rk in season_rounds:
+                round_num = int(rk.split("_R")[-1])
+                if round_num <= as_of_round:
+                    driver_history.append({
+                        "round": round_num,
+                        "elo": round(self.history[rk].get(d_id, rating), 1)
+                    })
+            if not driver_history:
+                driver_history = [{"round": 0, "elo": round(rating, 1)}]
+
             rankings_list.append({
                 "driver_id": d_id,
                 "driver_name": self.driver_names.get(d_id, d_id),
@@ -143,7 +175,8 @@ class EloRatingSystem:
                 "uncertainty": round(self.uncertainties.get(d_id, 20.0), 1),
                 "trend_5_rounds": round(trend, 1),
                 "h2h_record": h2h,
-                "quali_dominance_pct": quali_dominance
+                "quali_dominance_pct": quali_dominance,
+                "history": driver_history
             })
             
         # Sort descending
@@ -343,5 +376,8 @@ class EloRatingSystem:
             # Uncertainty
             recent = self.recent_deltas[d_id][-10:]
             self.uncertainties[d_id] = max(10.0, float(np.std(recent) * 4.0 if len(recent) > 1 else 20.0))
+
+        # Save snapshot
+        self.history[round_id] = self.ratings.copy()
 
         return self.ratings

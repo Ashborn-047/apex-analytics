@@ -100,6 +100,15 @@ class ChampionshipSimulation:
         self.dnf_rates = {d: 0.05 for d in self.driver_expected_finishes}
         self.dnf_rates["SAR"] = 0.12
         self.dnf_rates["OCO"] = 0.08
+        
+        # Cache for simulation results: season -> results dict
+        self.sim_results: Dict[int, Dict[str, Any]] = {}
+
+    def save_results(self, season: int, results: Dict[str, Any]):
+        self.sim_results[season] = results
+
+    def get_saved_results(self, season: int) -> Optional[Dict[str, Any]]:
+        return self.sim_results.get(season)
 
     def run_simulation(
         self,

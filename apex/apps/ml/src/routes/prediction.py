@@ -84,14 +84,47 @@ class RemainingRoundItem(BaseModel):
     is_sprint: Optional[bool] = False
 
 class ChampionshipSimulationInput(BaseModel):
+    season: Optional[int] = 2026
     wdc: List[WdcStandingItem]
     wcc: List[WccStandingItem]
     remaining_rounds: List[RemainingRoundItem]
     simulations: Optional[int] = Field(50000, ge=100, le=100000)
+    actual_wdc: Optional[List[WdcStandingItem]] = None
+    actual_wcc: Optional[List[WccStandingItem]] = None
+
+class ActualLapItem(BaseModel):
+    driver_id: str
+    compound: str
+    stint_number: int
+    stint_lap: int
+    lap_time_s: float
+
+class ActualLapTimesPayload(BaseModel):
+    season: int
+    circuit_id: str
+    laps: List[ActualLapItem]
+
+class ActualPitStopItem(BaseModel):
+    driver_id: str
+    stint_number: int
+    current_compound: str
+    new_compound: str
+    pit_lap: int
+    pace_loss_s: float = 0.0
+
+class ActualPitStopsPayload(BaseModel):
+    season: int
+    circuit_id: str
+    stops: List[ActualPitStopItem]
 
 # ============================================================================
 # API ROUTES
 # ============================================================================
+
+# In-memory stores for actuals comparison data
+actual_lap_times: Dict[str, List[Dict[str, Any]]] = {}
+actual_pit_stops: Dict[str, List[Dict[str, Any]]] = {}
+
 
 # --- ELO RATINGS ENDPOINTS ---
 
@@ -252,12 +285,16 @@ def get_strategy_pit_window(session_key: str, driver_id: str):
 # --- CHAMPIONSHIP SIMULATION ENDPOINTS ---
 
 @router.get("/simulation/championship")
-def get_championship_simulation(simulations: int = 50000):
+def get_championship_simulation(season: int = 2026, simulations: int = 50000):
     """
     Runs Monte Carlo simulation for the remaining F1 season.
     Returns WDC and WCC probabilities.
     """
     try:
+        saved_results = sim_engine.get_saved_results(season)
+        if saved_results is not None:
+            return saved_results
+            
         results = sim_engine.run_simulation(n_simulations=simulations)
         return results
     except Exception as e:
@@ -314,12 +351,52 @@ def run_dynamic_championship_simulation(data: ChampionshipSimulationInput):
     
     try:
         results = sim_engine.run_simulation(
-            n_simulations=data.simulations,
+            n_simulations=data.simulations or 50000,
             wdc_standings=wdc_dict,
             wcc_standings=wcc_dict,
             remaining_rounds=rounds_list
         )
+        season = data.season if data.season is not None else 2026
+        
+        # Inject actual final standings if provided
+        if data.actual_wdc is not None:
+            results["actual_wdc"] = [item.model_dump() for item in data.actual_wdc]
+        if data.actual_wcc is not None:
+            results["actual_wcc"] = [item.model_dump() for item in data.actual_wcc]
+            
+        sim_engine.save_results(season, results)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Dynamic simulation run failed: {str(e)}")
+
+@router.post("/lap-time/actuals")
+def save_actual_lap_times(data: ActualLapTimesPayload):
+    key = f"{data.season}_{data.circuit_id.lower()}"
+    actual_lap_times[key] = [item.model_dump() for item in data.laps]
+    return {"status": "success", "count": len(data.laps)}
+
+@router.get("/lap-time/actuals")
+def get_actual_lap_times(season: int, circuit_id: str):
+    key = f"{season}_{circuit_id.lower()}"
+    return {
+        "season": season,
+        "circuit_id": circuit_id,
+        "laps": actual_lap_times.get(key, [])
+    }
+
+@router.post("/strategy/actuals")
+def save_actual_pit_stops(data: ActualPitStopsPayload):
+    key = f"{data.season}_{data.circuit_id.lower()}"
+    actual_pit_stops[key] = [item.model_dump() for item in data.stops]
+    return {"status": "success", "count": len(data.stops)}
+
+@router.get("/strategy/actuals")
+def get_actual_pit_stops(season: int, circuit_id: str):
+    key = f"{season}_{circuit_id.lower()}"
+    return {
+        "season": season,
+        "circuit_id": circuit_id,
+        "stops": actual_pit_stops.get(key, [])
+    }
+
 

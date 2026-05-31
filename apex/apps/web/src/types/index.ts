@@ -14,6 +14,7 @@ export interface EloRanking {
   h2h_record: { wins: number; losses: number; ties: number };
   quali_dominance_pct: number;
   nationality_flag: string;
+  history?: { round: number; elo: number }[];
 }
 
 export interface EloHeadToHead {

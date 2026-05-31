@@ -1,15 +1,10 @@
 import { useState, useEffect } from "react";
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip as ChartTooltip, ResponsiveContainer,
+} from "recharts";
 import { MOCK_ELO_RANKINGS } from "../data/mockData";
 import type { EloRanking } from "../types";
 import { API_BASE } from "../config";
-
-function EloBar({ pct }: { pct: number }) {
-  return (
-    <div className="prob-bar" style={{ width: "100%" }}>
-      <div className="prob-bar-fill" style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
 
 function TrendBadge({ value }: { value: number }) {
   const positive = value >= 0;
@@ -20,6 +15,11 @@ function TrendBadge({ value }: { value: number }) {
         fontSize: "0.7rem",
         color: positive ? "var(--accent-success)" : "var(--accent-danger)",
         letterSpacing: "0.04em",
+        fontWeight: 600,
+        background: positive ? "rgba(0, 230, 115, 0.1)" : "rgba(255, 77, 77, 0.1)",
+        padding: "0.15rem 0.4rem",
+        borderRadius: "2px",
+        border: `1px solid ${positive ? "rgba(0, 230, 115, 0.2)" : "rgba(255, 77, 77, 0.2)"}`
       }}
     >
       {positive ? "▲" : "▼"} {Math.abs(value).toFixed(1)}
@@ -27,7 +27,7 @@ function TrendBadge({ value }: { value: number }) {
   );
 }
 
-function DriverRow({
+function DriverCard({
   rank,
   driver,
   isSelected,
@@ -38,88 +38,120 @@ function DriverRow({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const maxElo = 1900;
-  const minElo = 1600;
-  const pct = ((driver.elo_rating - minElo) / (maxElo - minElo)) * 100;
+  const ratingChange = driver.history && driver.history.length > 1
+    ? driver.elo_rating - driver.history[0].elo
+    : 0;
 
   return (
     <div
       onClick={onClick}
+      className="panel panel-scanner"
       style={{
-        display: "grid",
-        gridTemplateColumns: "2.5rem 1fr 7rem 6rem 6rem",
-        gap: "0.75rem",
-        alignItems: "center",
-        padding: "0.875rem 1rem",
-        borderBottom: "1px solid var(--border-subtle)",
+        padding: "1.25rem",
         cursor: "pointer",
-        background: isSelected ? "var(--bg-elevated)" : "transparent",
-        borderLeft: isSelected ? "2px solid var(--accent-primary)" : "2px solid transparent",
-        transition: "background 0.15s",
+        background: isSelected ? "rgba(0,212,255,0.08)" : "var(--bg-panel)",
+        borderColor: isSelected ? "var(--accent-primary)" : "var(--border-subtle)",
+        borderLeft: `4px solid ${driver.team_color || "var(--accent-primary)"}`,
+        boxShadow: isSelected ? "0 0 16px var(--accent-glow)" : "none",
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.75rem",
+        position: "relative",
+      }}
+      title={`Season rating change: ${ratingChange >= 0 ? "+" : ""}${ratingChange.toFixed(0)} Elo`}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          (e.currentTarget as HTMLElement).style.transform = "scale(1.02)";
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--border-active)";
+          (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          (e.currentTarget as HTMLElement).style.transform = "none";
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)";
+          (e.currentTarget as HTMLElement).style.boxShadow = "none";
+        }
       }}
     >
-      {/* Rank */}
-      <div
-        className="text-mono"
-        style={{
-          fontSize: "0.75rem",
-          fontWeight: 600,
-          color: rank <= 3 ? "var(--accent-primary)" : "var(--text-muted)",
-          textAlign: "center",
-        }}
-      >
-        P{rank}
-      </div>
-
-      {/* Driver info + bar */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{
+            fontSize: "0.7rem",
+            fontWeight: 800,
+            color: rank <= 3 ? "var(--bg-void)" : "var(--text-muted)",
+            background: rank <= 3 ? "var(--accent-primary)" : "var(--bg-elevated)",
+            padding: "0.15rem 0.4rem",
+            borderRadius: "2px",
+            fontFamily: "var(--font-mono)",
+            border: rank <= 3 ? "1px solid var(--border-accent)" : "1px solid var(--border-subtle)",
+          }}>
+            P{rank}
+          </span>
           <span style={{ fontSize: "0.85rem" }}>{driver.nationality_flag}</span>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            {driver.driver_name}
-          </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
-          <span
-            style={{
-              width: "8px", height: "8px", borderRadius: "2px",
-              background: driver.team_color, flexShrink: 0,
-            }}
-          />
-          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            {driver.team}
-          </span>
-        </div>
-        <EloBar pct={pct} />
-      </div>
-
-      {/* Elo */}
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", fontWeight: 800, color: "var(--accent-primary)", lineHeight: 1 }}>
-          {driver.elo_rating.toFixed(0)}
-        </div>
-        <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.1em", marginTop: "0.2rem" }}>
-          ELO ±{driver.uncertainty.toFixed(0)}
-        </div>
-      </div>
-
-      {/* Quali % */}
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
-          {driver.quali_dominance_pct.toFixed(0)}%
-        </div>
-        <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.2rem" }}>
-          QUALI WIN
-        </div>
-      </div>
-
-      {/* Trend */}
-      <div style={{ textAlign: "right" }}>
         <TrendBadge value={driver.trend_5_rounds} />
-        <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.2rem" }}>
-          5-RND TREND
+      </div>
+
+      {/* Driver Identity */}
+      <div>
+        <h3 style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 800,
+          fontSize: "1rem",
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+          color: "var(--text-primary)",
+          margin: 0,
+        }}>
+          {driver.driver_name}
+        </h3>
+        <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {driver.team}
+        </span>
+      </div>
+
+      {/* Readouts Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginTop: "auto" }}>
+        <div style={{ background: "var(--bg-void)", padding: "0.5rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
+          <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "0.08em", marginBottom: "0.15rem" }}>
+            ELO RATING
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.2rem" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 800, color: "var(--accent-primary)" }}>
+              {driver.elo_rating.toFixed(0)}
+            </span>
+            <span className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)" }}>
+              ±{driver.uncertainty.toFixed(0)}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ background: "var(--bg-void)", padding: "0.5rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
+          <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "0.08em", marginBottom: "0.15rem" }}>
+            QUALI DOMINANCE
+          </div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 800, color: "var(--text-primary)" }}>
+            {driver.quali_dominance_pct.toFixed(0)}%
+          </div>
         </div>
       </div>
+
+      {/* Season rating change badge overlay */}
+      {ratingChange !== 0 && (
+        <div className="text-mono" style={{
+          position: "absolute",
+          bottom: "0.25rem",
+          right: "0.5rem",
+          fontSize: "0.5rem",
+          color: ratingChange >= 0 ? "var(--accent-success)" : "var(--accent-danger)",
+          opacity: 0.6
+        }}>
+          {ratingChange >= 0 ? "+" : ""}{ratingChange.toFixed(0)} Elo this season
+        </div>
+      )}
     </div>
   );
 }
@@ -130,26 +162,43 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
   const winPct = total > 0 ? (rec.wins / total) * 100 : 0;
 
   return (
-    <div className="panel fade-up" style={{ padding: "1.5rem" }}>
-      <div className="section-header" style={{ marginBottom: "1rem" }}>
-        <span className="section-title">Teammate Comparison</span>
+    <div className="panel panel-scanner fade-up" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div className="section-header" style={{ marginBottom: "0.5rem" }}>
+        <span className="section-title">Teammate H2H</span>
         <div className="section-header-line" />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <span style={{ fontSize: "1rem" }}>{driver.nationality_flag}</span>
         <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--accent-primary)" }}>
           {driver.driver_name}
         </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", marginBottom: "1.5rem" }}>
+      {/* H2H Stats Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
         {[
           { label: "WINS", value: rec.wins, color: "var(--accent-success)" },
           { label: "LOSSES", value: rec.losses, color: "var(--accent-danger)" },
           { label: "TIES", value: rec.ties, color: "var(--text-muted)" },
         ].map((s) => (
-          <div key={s.label} style={{ textAlign: "center", background: "var(--bg-elevated)", padding: "0.75rem", borderRadius: "3px" }}>
+          <div key={s.label} style={{ 
+            textAlign: "center", 
+            background: "var(--bg-elevated)", 
+            padding: "0.75rem", 
+            borderRadius: "3px",
+            border: "1px solid var(--border-subtle)",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.boxShadow = `0 0 12px ${s.color}20`;
+            (e.currentTarget as HTMLElement).style.borderColor = s.color;
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.boxShadow = "none";
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)";
+          }}
+          >
             <div style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", fontWeight: 800, color: s.color, lineHeight: 1 }}>
               {s.value}
             </div>
@@ -160,17 +209,49 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
         ))}
       </div>
 
-      <div style={{ marginBottom: "0.5rem" }}>
+      {/* H2H Dominance Bar */}
+      <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
           <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.1em" }}>H2H DOMINANCE</span>
-          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)" }}>{winPct.toFixed(0)}%</span>
+          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: 600 }}>{winPct.toFixed(0)}%</span>
         </div>
-        <div className="prob-bar">
-          <div className="prob-bar-fill" style={{ width: `${winPct}%` }} />
+        <div className="ranking-bar">
+          <div className="ranking-bar-fill" style={{ width: `${winPct}%` }} />
         </div>
       </div>
 
-      <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
+      {/* ELO Progression Sparkline */}
+      <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--border-subtle)" }}>
+        <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>
+          ELO PROGRESSION OVER SEASON
+        </div>
+        <div style={{ width: "100%", height: "80px", background: "var(--bg-void)", padding: "0.25rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={driver.history || []} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+              <XAxis dataKey="round" hide />
+              <YAxis domain={["dataMin - 15", "dataMax + 15"]} hide />
+              <ChartTooltip
+                contentStyle={{ background: "var(--bg-void)", border: "1px solid var(--border-accent)", borderRadius: "2px", padding: "0.25rem 0.5rem" }}
+                labelStyle={{ color: "var(--text-muted)", fontSize: "0.65rem", fontFamily: "var(--font-mono)" }}
+                itemStyle={{ color: "var(--accent-primary)", fontSize: "0.75rem", fontFamily: "var(--font-mono)", padding: 0 }}
+                formatter={(value) => [`${Number(value).toFixed(0)} Elo`, "Rating"]}
+                labelFormatter={(label) => `Round ${label}`}
+              />
+              <Line
+                type="monotone"
+                dataKey="elo"
+                stroke="var(--accent-primary)"
+                strokeWidth={2}
+                dot={{ r: 2, fill: "var(--accent-primary)", strokeWidth: 0 }}
+                activeDot={{ r: 4, strokeWidth: 0 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ marginTop: "0.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
           <div>
             <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.1em", marginBottom: "0.25rem" }}>
@@ -182,7 +263,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
           </div>
           <div>
             <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.1em", marginBottom: "0.25rem" }}>
-              QUALI WIN RATE
+              QUALI WIN %
             </div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)" }}>
               {driver.quali_dominance_pct.toFixed(0)}%
@@ -194,12 +275,12 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
   );
 }
 
-export default function EloDashboard() {
+export default function EloDashboard({ season }: { season: number }) {
   const [rankings, setRankings] = useState<EloRanking[]>(MOCK_ELO_RANKINGS);
   const [selected, setSelected] = useState<EloRanking>(MOCK_ELO_RANKINGS[0]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/predict/elo/rankings`)
+    fetch(`${API_BASE}/api/predict/elo/rankings?season=${season}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load rankings");
         return res.json();
@@ -214,47 +295,32 @@ export default function EloDashboard() {
         }
       })
       .catch((err) => console.error("Error loading ratings from microservice:", err));
-  }, []);
+  }, [season]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Header and Controls */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(90deg, rgba(0,212,255,0.05), transparent)", padding: "1.25rem 1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
+        <div>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", margin: 0 }}>
+            Driver Elo Standings
+          </h2>
+          <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem", margin: 0 }}>
+            WEIGHTED TEAMMATE HEAD-TO-HEAD COMPARISON · {season} SEASON
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <div className="pulse-dot live" />
+          <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", letterSpacing: "0.1em", fontWeight: 600 }}>LIVE</span>
+        </div>
+      </div>
+
       {/* Main Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.25rem" }}>
-        {/* Rankings table */}
-        <div className="panel" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "1.25rem 1rem", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                Driver Elo Rankings
-              </h2>
-              <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem" }}>
-                WEIGHTED TEAMMATE HEAD-TO-HEAD · ROUND 12 / 24
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <div className="pulse-dot" />
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", letterSpacing: "0.1em" }}>LIVE</span>
-            </div>
-          </div>
-
-          {/* Column headers */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "2.5rem 1fr 7rem 6rem 6rem",
-            gap: "0.75rem",
-            padding: "0.5rem 1rem",
-            borderBottom: "1px solid var(--border-subtle)",
-            background: "var(--bg-surface)",
-          }}>
-            {["RNK", "DRIVER", "ELO", "Q-WIN%", "TREND"].map((h) => (
-              <div key={h} className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)", letterSpacing: "0.1em", textAlign: h !== "DRIVER" ? "right" : "left" }}>
-                {h === "RNK" ? <span style={{ textAlign: "center", display: "block" }}>{h}</span> : h}
-              </div>
-            ))}
-          </div>
-
+        {/* Card standinds grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem", alignContent: "start" }}>
           {rankings.map((driver, i) => (
-            <DriverRow
+            <DriverCard
               key={driver.driver_id}
               rank={i + 1}
               driver={driver}
@@ -265,13 +331,15 @@ export default function EloDashboard() {
         </div>
 
         {/* Detail panel */}
-        <H2HPanel driver={selected} />
+        <div>
+          <H2HPanel driver={selected} />
+        </div>
       </div>
 
       {/* Intelligence Desk Explanation */}
       <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
         <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-          <span className="section-title">Telemetry Intelligence Desk · Driver Elo Model Explanation</span>
+          <span className="section-title">Telemetry Intelligence Desk · Driver Elo Model</span>
           <div className="section-header-line" />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
@@ -290,7 +358,7 @@ export default function EloDashboard() {
           <div>
             <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Model Uncertainty (±)</h4>
             <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Calculated dynamically using the density of recent sessions. Rookies or drivers returning after a break start with higher uncertainty metrics (initially ±80), which decays into high confidence as consistent session data is ingested from Postgres.
+              Calculated dynamically using the density of recent sessions. Rookies or drivers returning after a break start with higher uncertainty metrics (initially ±80), which decays into high confidence as session data is ingested from Postgres.
             </p>
           </div>
         </div>
