@@ -1,0 +1,26 @@
+name: Scheduled F1 Data Ingestion
+
+on:
+  schedule:
+    # Run every Monday at 08:00 UTC (13:30 IST) during the F1 season
+    - cron: '0 8 * * 1'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  trigger-ingest:
+    name: Trigger Fly.io Ingestion
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Season Activity and Trigger
+        run: |
+          CURRENT_MONTH=$(date +%-m)
+          # F1 active season is typically from March (3) to November (11)
+          if [ "$CURRENT_MONTH" -ge 3 ] && [ "$CURRENT_MONTH" -le 11 ]; then
+            echo "🏁 F1 season is active (Month: $CURRENT_MONTH). Triggering ingestion pipeline..."
+            curl -f -X POST https://apex-f1-api.fly.dev/api/admin/ingest \
+              -H "x-api-key: ${{ secrets.DEFAULT_API_KEY || 'f1_apex_super_secret_dev_key' }}"
+            echo "✅ Ingestion pipeline triggered successfully."
+          else
+            echo "❄️ F1 season is inactive / off-season (Month: $CURRENT_MONTH). Skipping ingestion trigger to prevent waste."
+          fi
