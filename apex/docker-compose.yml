@@ -32,7 +32,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/apex
       - REDIS_URL=redis://redis:6379
       - DEFAULT_API_KEY=f1_apex_super_secret_dev_key
-      - INGEST_SEASONS_LIMIT=3
+      - INGEST_SEASONS_LIMIT=5
       - PORT=3000
       - ENV=development
     depends_on:
