@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { MOCK_ELO_RANKINGS } from "../data/mockData";
 import type { EloRanking } from "../types";
+import { API_BASE } from "../config";
 
 function EloBar({ pct }: { pct: number }) {
   return (
@@ -198,7 +199,7 @@ export default function EloDashboard() {
   const [selected, setSelected] = useState<EloRanking>(MOCK_ELO_RANKINGS[0]);
 
   useEffect(() => {
-    fetch("/api/predict/elo/rankings")
+    fetch(`${API_BASE}/api/predict/elo/rankings`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load rankings");
         return res.json();

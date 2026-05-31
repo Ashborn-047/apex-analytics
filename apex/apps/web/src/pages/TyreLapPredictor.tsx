@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { MOCK_DEGRADATION, SOFT_DEGRADATION, HARD_DEGRADATION } from "../data/mockData";
 import type { Compound, LapTimePrediction } from "../types";
+import { API_BASE } from "../config";
 
 const COMPOUND_COLORS: Record<Compound, string> = {
   SOFT:   "#ff4466",
@@ -65,7 +66,7 @@ export default function TyreLapPredictor() {
 
   useEffect(() => {
     const fetchCompound = (comp: Compound) => {
-      return fetch("/api/predict/lap-time", {
+      return fetch(`${API_BASE}/api/predict/lap-time`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

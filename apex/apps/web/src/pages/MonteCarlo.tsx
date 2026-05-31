@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { MOCK_SIMULATION } from "../data/mockData";
 import type { ChampionshipEntry, SimulationResult } from "../types";
+import { API_BASE } from "../config";
 
 function ProbabilityBar({ probability, color }: { probability: number; color: string }) {
   return (
@@ -105,7 +106,7 @@ export default function MonteCarlo() {
   const [activeView, setActiveView] = useState<"wdc" | "wcc">("wdc");
 
   useEffect(() => {
-    fetch("/api/predict/simulation/championship")
+    fetch(`${API_BASE}/api/predict/simulation/championship`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load WDC/WCC simulations");
         return res.json();

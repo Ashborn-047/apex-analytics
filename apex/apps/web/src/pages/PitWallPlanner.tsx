@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { MOCK_PIT_RECOMMENDATIONS, MOCK_DRIVER_STATE } from "../data/mockData";
 import type { PitRecommendation, Compound } from "../types";
+import { API_BASE } from "../config";
 
 const COMPOUND_COLORS: Record<Compound, string> = {
   SOFT:   "#ff4466", MEDIUM: "#ffcc00", HARD: "#cccccc", INTER: "#44cc66", WET: "#4488ff",
@@ -111,7 +112,7 @@ export default function PitWallPlanner() {
   const state = MOCK_DRIVER_STATE;
 
   useEffect(() => {
-    fetch(`/api/predict/strategy/pit-window/2025_R12/${state.driver_id}`)
+    fetch(`${API_BASE}/api/predict/strategy/pit-window/2025_R12/${state.driver_id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load strategy pit windows");
         return res.json();
