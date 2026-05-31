@@ -99,12 +99,17 @@ export default function TyreLapPredictor() {
     });
   };
 
-  // Build combined chart data
-  const maxLap = Math.max(...compoundsData.flatMap((d) => d.degradation_curve.map((p) => p.stint_lap)));
-  const chartData = Array.from({ length: maxLap }, (_, i) => {
+  // Build combined chart data safely
+  const validPredictions = compoundsData.filter((d) => d && d.degradation_curve && d.degradation_curve.length > 0);
+  const maxLap = validPredictions.length > 0
+    ? Math.max(...validPredictions.flatMap((d) => d.degradation_curve.map((p) => p.stint_lap)))
+    : 25;
+    
+  const chartData = Array.from({ length: isFinite(maxLap) && maxLap > 0 ? maxLap : 25 }, (_, i) => {
     const lap = i + 1;
     const entry: Record<string, number> = { lap };
     for (const comp of compoundsData) {
+      if (!comp || !comp.degradation_curve) continue;
       const point = comp.degradation_curve.find((p) => p.stint_lap === lap);
       if (point) entry[comp.compound] = point.predicted_s;
     }
@@ -254,10 +259,27 @@ export default function TyreLapPredictor() {
                   {pred.circuit_id.toUpperCase()}
                 </span>
               </div>
-              <StatsRow label="Predicted (L1)" value={formatTime(pred.degradation_curve[0].predicted_s)} />
-              <StatsRow label="Cliff Lap" value={pred.cliff_lap ? `L${pred.cliff_lap}` : "None"} accent={!!pred.cliff_lap} />
-              <StatsRow label="Cliff Severity" value={`+${pred.cliff_severity_s_per_lap.toFixed(2)}s/lap`} accent />
-              <StatsRow label="CI (±)" value={`±${((pred.confidence_interval[1] - pred.confidence_interval[0]) / 2).toFixed(2)}s`} />
+              <StatsRow 
+                label="Predicted (L1)" 
+                value={pred.degradation_curve?.[0] ? formatTime(pred.degradation_curve[0].predicted_s) : "N/A"} 
+              />
+              <StatsRow 
+                label="Cliff Lap" 
+                value={pred.cliff_lap ? `L${pred.cliff_lap}` : "None"} 
+                accent={!!pred.cliff_lap} 
+              />
+              <StatsRow 
+                label="Cliff Severity" 
+                value={pred.cliff_severity_s_per_lap ? `+${pred.cliff_severity_s_per_lap.toFixed(2)}s/lap` : "N/A"} 
+                accent 
+              />
+              <StatsRow 
+                label="CI (±)" 
+                value={pred.confidence_interval?.length >= 2 
+                  ? `±${((pred.confidence_interval[1] - pred.confidence_interval[0]) / 2).toFixed(2)}s` 
+                  : "N/A"
+                } 
+              />
             </div>
           ))}
         </div>
