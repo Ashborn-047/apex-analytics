@@ -217,53 +217,84 @@ export default function EloDashboard() {
   }, []);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.25rem" }}>
-      {/* Rankings table */}
-      <div className="panel" style={{ overflow: "hidden" }}>
-        <div style={{ padding: "1.25rem 1rem", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Driver Elo Rankings
-            </h2>
-            <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem" }}>
-              WEIGHTED TEAMMATE HEAD-TO-HEAD · ROUND 12 / 24
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <div className="pulse-dot" />
-            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", letterSpacing: "0.1em" }}>LIVE</span>
-          </div>
-        </div>
-
-        {/* Column headers */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "2.5rem 1fr 7rem 6rem 6rem",
-          gap: "0.75rem",
-          padding: "0.5rem 1rem",
-          borderBottom: "1px solid var(--border-subtle)",
-          background: "var(--bg-surface)",
-        }}>
-          {["RNK", "DRIVER", "ELO", "Q-WIN%", "TREND"].map((h) => (
-            <div key={h} className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)", letterSpacing: "0.1em", textAlign: h !== "DRIVER" ? "right" : "left" }}>
-              {h === "RNK" ? <span style={{ textAlign: "center", display: "block" }}>{h}</span> : h}
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Main Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.25rem" }}>
+        {/* Rankings table */}
+        <div className="panel" style={{ overflow: "hidden" }}>
+          <div style={{ padding: "1.25rem 1rem", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                Driver Elo Rankings
+              </h2>
+              <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem" }}>
+                WEIGHTED TEAMMATE HEAD-TO-HEAD · ROUND 12 / 24
+              </p>
             </div>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <div className="pulse-dot" />
+              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", letterSpacing: "0.1em" }}>LIVE</span>
+            </div>
+          </div>
+
+          {/* Column headers */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "2.5rem 1fr 7rem 6rem 6rem",
+            gap: "0.75rem",
+            padding: "0.5rem 1rem",
+            borderBottom: "1px solid var(--border-subtle)",
+            background: "var(--bg-surface)",
+          }}>
+            {["RNK", "DRIVER", "ELO", "Q-WIN%", "TREND"].map((h) => (
+              <div key={h} className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)", letterSpacing: "0.1em", textAlign: h !== "DRIVER" ? "right" : "left" }}>
+                {h === "RNK" ? <span style={{ textAlign: "center", display: "block" }}>{h}</span> : h}
+              </div>
+            ))}
+          </div>
+
+          {rankings.map((driver, i) => (
+            <DriverRow
+              key={driver.driver_id}
+              rank={i + 1}
+              driver={driver}
+              isSelected={selected.driver_id === driver.driver_id}
+              onClick={() => setSelected(driver)}
+            />
           ))}
         </div>
 
-        {rankings.map((driver, i) => (
-          <DriverRow
-            key={driver.driver_id}
-            rank={i + 1}
-            driver={driver}
-            isSelected={selected.driver_id === driver.driver_id}
-            onClick={() => setSelected(driver)}
-          />
-        ))}
+        {/* Detail panel */}
+        <H2HPanel driver={selected} />
       </div>
 
-      {/* Detail panel */}
-      <H2HPanel driver={selected} />
+      {/* Intelligence Desk Explanation */}
+      <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
+        <div className="section-header" style={{ marginBottom: "1.25rem" }}>
+          <span className="section-title">Telemetry Intelligence Desk · Driver Elo Model Explanation</span>
+          <div className="section-header-line" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
+          <div>
+            <h4 style={{ color: "var(--accent-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Core Elo Rating Algorithm</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Our machine learning pipeline separates driver ability from car performance by evaluating <strong>teammate head-to-head comparisons</strong>. Since teammates drive identical cars, comparing their lap-time margins and finishing ratios isolates driver capability from team budgets.
+            </p>
+          </div>
+          <div>
+            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Qualifying Dominance Index</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Represents the percentage of qualifying sessions where this driver outqualified their teammate. Margin differences are scaled via a sigmoid activation function to account for tight margins on fast tracks versus larger gaps on technical street circuits.
+            </p>
+          </div>
+          <div>
+            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Model Uncertainty (±)</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Calculated dynamically using the density of recent sessions. Rookies or drivers returning after a break start with higher uncertainty metrics (initially ±80), which decays into high confidence as consistent session data is ingested from Postgres.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

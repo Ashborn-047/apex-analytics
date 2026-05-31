@@ -126,99 +126,130 @@ export default function PitWallPlanner() {
   }, [state.driver_id]);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "1.25rem" }}>
-      {/* Driver state panel */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <div className="panel panel-accent" style={{ padding: "1.25rem" }}>
-          <div className="section-header">
-            <span className="section-title">Live Race State</span>
-            <div className="section-header-line" />
-            <div className="pulse-dot" />
-          </div>
-
-          <div style={{ marginBottom: "1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "2.5rem", fontWeight: 800, color: "var(--accent-primary)", lineHeight: 1 }}>
-              {state.driver_id}
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Main Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "1.25rem" }}>
+        {/* Driver state panel */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div className="panel panel-accent" style={{ padding: "1.25rem" }}>
+            <div className="section-header">
+              <span className="section-title">Live Race State</span>
+              <div className="section-header-line" />
+              <div className="pulse-dot" />
             </div>
-            <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.1em", marginTop: "0.25rem" }}>
-              P{state.position} · FERRARI
-            </div>
-          </div>
 
-          {[
-            { label: "CURRENT LAP", value: `L${state.current_lap}` },
-            { label: "TYRE", value: state.tyre.compound },
-            { label: "TYRE AGE", value: `${state.tyre.age} LAPS` },
-            { label: "GAP AHEAD", value: `${state.gap_ahead_s.toFixed(1)}s` },
-            { label: "GAP BEHIND", value: `${state.gap_behind_s.toFixed(1)}s` },
-          ].map((item) => (
-            <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", borderBottom: "1px solid var(--border-subtle)" }}>
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>{item.label}</span>
-              <span className="text-mono" style={{ fontSize: "0.7rem", fontWeight: 600, color: item.label === "TYRE" ? COMPOUND_COLORS[state.tyre.compound as Compound] : "var(--text-primary)" }}>
-                {item.value}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Pit window visual */}
-        <div className="panel" style={{ padding: "1.25rem" }}>
-          <div className="section-header" style={{ marginBottom: "1rem" }}>
-            <span className="section-title">Pit Windows</span>
-            <div className="section-header-line" />
-          </div>
-
-          <div style={{ position: "relative", height: "60px" }}>
-            {/* Race track bar */}
-            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "4px", background: "var(--bg-elevated)", transform: "translateY(-50%)", borderRadius: "2px" }} />
-            {/* Current lap marker */}
-            <div style={{
-              position: "absolute", top: "50%", width: "2px", height: "24px",
-              background: "var(--accent-primary)", transform: "translateY(-50%)",
-              left: `${(state.current_lap / 58) * 100}%`,
-            }}>
-              <div className="text-mono" style={{ position: "absolute", bottom: "-18px", left: "-8px", fontSize: "0.55rem", color: "var(--accent-primary)", whiteSpace: "nowrap" }}>
-                L{state.current_lap}
+            <div style={{ marginBottom: "1.25rem" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "2.5rem", fontWeight: 800, color: "var(--accent-primary)", lineHeight: 1 }}>
+                {state.driver_id}
+              </div>
+              <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.1em", marginTop: "0.25rem" }}>
+                P{state.position} · FERRARI
               </div>
             </div>
-            {/* Pit window markers */}
-            {recommendations.map((rec, i) => (
-              <div key={i} style={{
-                position: "absolute", top: "50%", width: "2px", height: "16px",
-                background: i === 0 ? "var(--accent-success)" : "var(--text-muted)",
-                transform: "translateY(-50%)",
-                left: `${(rec.pit_lap / 58) * 100}%`,
-                opacity: i === 0 ? 1 : 0.4,
-              }} />
+
+            {[
+              { label: "CURRENT LAP", value: `L${state.current_lap}` },
+              { label: "TYRE", value: state.tyre.compound },
+              { label: "TYRE AGE", value: `${state.tyre.age} LAPS` },
+              { label: "GAP AHEAD", value: `${state.gap_ahead_s.toFixed(1)}s` },
+              { label: "GAP BEHIND", value: `${state.gap_behind_s.toFixed(1)}s` },
+            ].map((item) => (
+              <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", borderBottom: "1px solid var(--border-subtle)" }}>
+                <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>{item.label}</span>
+                <span className="text-mono" style={{ fontSize: "0.7rem", fontWeight: 600, color: item.label === "TYRE" ? COMPOUND_COLORS[state.tyre.compound as Compound] : "var(--text-primary)" }}>
+                  {item.value}
+                </span>
+              </div>
             ))}
           </div>
 
-          <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "0.08em", textAlign: "center", marginTop: "0.5rem" }}>
-            LAPS 1 → 58 · MONZA 2025
+          {/* Pit window visual */}
+          <div className="panel" style={{ padding: "1.25rem" }}>
+            <div className="section-header" style={{ marginBottom: "1rem" }}>
+              <span className="section-title">Pit Windows</span>
+              <div className="section-header-line" />
+            </div>
+
+            <div style={{ position: "relative", height: "60px" }}>
+              {/* Race track bar */}
+              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "4px", background: "var(--bg-elevated)", transform: "translateY(-50%)", borderRadius: "2px" }} />
+              {/* Current lap marker */}
+              <div style={{
+                position: "absolute", top: "50%", width: "2px", height: "24px",
+                background: "var(--accent-primary)", transform: "translateY(-50%)",
+                left: `${(state.current_lap / 58) * 100}%`,
+              }}>
+                <div className="text-mono" style={{ position: "absolute", bottom: "-18px", left: "-8px", fontSize: "0.55rem", color: "var(--accent-primary)", whiteSpace: "nowrap" }}>
+                  L{state.current_lap}
+                </div>
+              </div>
+              {/* Pit window markers */}
+              {recommendations.map((rec, i) => (
+                <div key={i} style={{
+                  position: "absolute", top: "50%", width: "2px", height: "16px",
+                  background: i === 0 ? "var(--accent-success)" : "var(--text-muted)",
+                  transform: "translateY(-50%)",
+                  left: `${(rec.pit_lap / 58) * 100}%`,
+                  opacity: i === 0 ? 1 : 0.4,
+                }} />
+              ))}
+            </div>
+
+            <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "0.08em", textAlign: "center", marginTop: "0.5rem" }}>
+              LAPS 1 → 58 · MONZA 2025
+            </div>
+          </div>
+        </div>
+
+        {/* Recommendations */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                Optimal Pit Windows
+              </h2>
+              <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem" }}>
+                UNDERCUT / OVERCUT MODEL · 58-LAP BRUTE-FORCE SEARCH
+              </p>
+            </div>
+            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
+              {recommendations.length} CANDIDATES RANKED
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {recommendations.map((rec, i) => (
+              <RecommendationCard key={i} rec={rec} rank={i} />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+      {/* Intelligence Desk Explanation */}
+      <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
+        <div className="section-header" style={{ marginBottom: "1.25rem" }}>
+          <span className="section-title">Telemetry Intelligence Desk · Pit Wall Strategy Model Explanation</span>
+          <div className="section-header-line" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
           <div>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Optimal Pit Windows
-            </h2>
-            <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem" }}>
-              UNDERCUT / OVERCUT MODEL · 58-LAP BRUTE-FORCE SEARCH
+            <h4 style={{ color: "var(--accent-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Dynamic Stint Solver</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              A brute-force strategy search engine ($O(N^2)$ stint space) evaluates all compound combinations (Soft, Medium, Hard) to minimize total race time. Predictions factor in track grip evolution, tyre decay slopes, and fuel load burn rates.
             </p>
           </div>
-          <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
-            {recommendations.length} CANDIDATES RANKED
-          </span>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {recommendations.map((rec, i) => (
-            <RecommendationCard key={i} rec={rec} rank={i} />
-          ))}
+          <div>
+            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Poisson Safety Car Windows</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              The model scales pit stop time loss dynamically. During high-risk laps, it weights historical Poisson Safety Car rates—pitting during a virtual or full Safety Car cuts standard pit lane loss by $50\%$, yielding huge strategy gains.
+            </p>
+          </div>
+          <div>
+            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Traffic & Clean Air Verification</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              The model evaluates if a driver emerges in traffic or "dirty air" (which triggers a $0.3\text{s}$ penalty per lap). It ensures the re-entry window has a clear spacing gap ($&gt;3.0\text{s}$) to optimize the out-lap pacing.
+            </p>
+          </div>
         </div>
       </div>
     </div>

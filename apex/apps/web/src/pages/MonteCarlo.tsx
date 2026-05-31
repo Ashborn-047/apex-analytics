@@ -132,7 +132,7 @@ export default function MonteCarlo() {
   }));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {/* Header stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {[
@@ -198,23 +198,21 @@ export default function MonteCarlo() {
 
           {activeView === "wcc" && (
             <div style={{ padding: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 80px", gap: "1rem", padding: "0.5rem", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}>
+                {["CONSTRUCTOR", "POINTS", "PROBABILITY"].map((h, i) => (
+                  <div key={i} className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)", letterSpacing: "0.1em", textAlign: i >= 1 ? "right" : "left" }}>
+                    {h}
+                  </div>
+                ))}
+              </div>
               {sim.wcc.map((entry) => (
-                <div key={entry.constructor_id} style={{
-                  display: "grid", gridTemplateColumns: "1.5rem 1fr 5rem 6rem",
-                  alignItems: "center", gap: "0.75rem", padding: "0.875rem 0",
-                  borderBottom: "1px solid var(--border-subtle)",
-                }}>
-                  <div style={{ width: "4px", height: "32px", background: entry.color, borderRadius: "2px" }} />
-                  <div>
-                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.9rem", textTransform: "uppercase" }}>{entry.constructor_name}</div>
-                    <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>{entry.current_points} PTS</div>
+                <div key={entry.constructor_id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 80px", gap: "1rem", padding: "0.75rem 0.5rem", borderBottom: "1px solid var(--border-subtle)", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{ width: "4px", height: "16px", background: entry.color, borderRadius: "2px" }} />
+                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.85rem", textTransform: "uppercase" }}>{entry.constructor_name}</span>
                   </div>
-                  <ProbabilityBar probability={entry.championship_probability} color={entry.color} />
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)" }}>
-                      {(entry.championship_probability * 100).toFixed(1)}%
-                    </div>
-                  </div>
+                  <div className="text-mono" style={{ fontSize: "0.8rem", textAlign: "right", color: "var(--text-primary)" }}>{entry.current_points}</div>
+                  <div className="text-mono" style={{ fontSize: "0.85rem", fontWeight: 700, textAlign: "right", color: "var(--accent-primary)" }}>{(entry.championship_probability * 100).toFixed(1)}%</div>
                 </div>
               ))}
             </div>
@@ -223,20 +221,21 @@ export default function MonteCarlo() {
 
         {/* Chart sidebar */}
         <div className="panel" style={{ padding: "1.25rem" }}>
-          <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-            <span className="section-title">{activeView === "wdc" ? "WDC" : "WCC"} Probability Distribution</span>
+          <div className="section-header" style={{ marginBottom: "1rem" }}>
+            <span className="section-title">Probability Spread</span>
             <div className="section-header-line" />
           </div>
 
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={activeView === "wdc" ? barData : wccBarData} layout="vertical" margin={{ left: 8, right: 16 }}>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart
+              data={activeView === "wdc" ? barData : wccBarData}
+              layout="vertical" margin={{ left: -10, right: 10, top: 0, bottom: 0 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" horizontal={false} />
               <XAxis
-                type="number"
-                tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                type="number" tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
                 tick={{ fill: "var(--text-muted)", fontSize: 9, fontFamily: "var(--font-mono)" }}
-                axisLine={false} tickLine={false}
-                domain={[0, 1]}
+                axisLine={{ stroke: "var(--border-subtle)" }} tickLine={false}
               />
               <YAxis
                 type="category" dataKey="name"
@@ -268,6 +267,34 @@ export default function MonteCarlo() {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Intelligence Desk Explanation */}
+      <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
+        <div className="section-header" style={{ marginBottom: "1.25rem" }}>
+          <span className="section-title">Telemetry Intelligence Desk · Championship Simulation Model Explanation</span>
+          <div className="section-header-line" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
+          <div>
+            <h4 style={{ color: "var(--accent-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Season Monte Carlo Loops</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Runs 50,000 season projections dynamically using vectorized NumPy scripts. For every remaining race, the engine simulates finishing orders incorporating sprint points, main race allocations, and the random fastest lap bonus point.
+            </p>
+          </div>
+          <div>
+            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Form Weighting & Gumbel Noise</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Driver pace expectations are adjusted using an exponential decay filter ($\lambda = 0.08$) to weight recent performances heavier than early-season runs. A Gumbel extreme value distribution simulates random race-day variance, DNFs, and sudden performance spikes.
+            </p>
+          </div>
+          <div>
+            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Circuit & Team Affinities</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Constructor base pace is modified by circuit-type coefficient matrices (low downforce, high speed, technical street circuit). This accounts for physical car layouts—meaning teams with low drag excel at Monza, while high-downforce cars dominate Monaco simulations.
+            </p>
           </div>
         </div>
       </div>
