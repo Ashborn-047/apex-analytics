@@ -94,11 +94,16 @@ class LapTimePredictor:
             
         df = pd.DataFrame(historical_laps)
         
-        # Ensure fallback fields exist
+        # Ensure fallback fields exist and handle None values
         if 'air_temp_c' not in df.columns:
             df['air_temp_c'] = 22.0
+        else:
+            df['air_temp_c'] = df['air_temp_c'].fillna(22.0)
+
         if 'gap_ahead' not in df.columns:
             df['gap_ahead'] = 5.0
+        else:
+            df['gap_ahead'] = df['gap_ahead'].fillna(5.0)
             
         x, y = self.preprocess_features(df, training=True)
         
