@@ -264,10 +264,13 @@ async function main() {
         logger.info(`ℹ️ Season ${season} is fully completed. Simulating the final 5 rounds (from Round ${standingsCutoffRound + 1}) using standings as of Round ${standingsCutoffRound}.`);
       }
 
-      // Query WDC Standings
+      // Query WDC Standings with constructor and average finish position
       const driverStandingsQuery = await db.select({
         driverCode: drivers.code,
-        points: sql<number>`sum(${resultsTable.points})`
+        driverName: sql<string>`max(${drivers.name})`,
+        points: sql<number>`sum(${resultsTable.points})`,
+        constructorId: sql<string>`max(${resultsTable.constructorId})`,
+        avgPosition: sql<number>`avg(case when ${resultsTable.position} is null then 18.0 else cast(${resultsTable.position} as real) end)`
       })
       .from(resultsTable)
       .innerJoin(races, eq(resultsTable.raceId, races.id))
@@ -300,7 +303,10 @@ async function main() {
         .filter(d => d.driverCode)
         .map(d => ({
           driver_id: d.driverCode!.toUpperCase(),
-          points: Number(d.points) || 0
+          points: Number(d.points) || 0,
+          driver_name: d.driverName,
+          team: d.constructorId,
+          expected_finish: Number(d.avgPosition) || 15.0
         }));
 
       const wcc = constructorStandingsQuery

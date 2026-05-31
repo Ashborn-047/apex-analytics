@@ -72,6 +72,9 @@ class LapTimeTrainInput(BaseModel):
 class WdcStandingItem(BaseModel):
     driver_id: str
     points: float
+    driver_name: Optional[str] = None
+    team: Optional[str] = None
+    expected_finish: Optional[float] = None
 
 class WccStandingItem(BaseModel):
     constructor_id: str
@@ -337,6 +340,15 @@ def run_dynamic_championship_simulation(data: ChampionshipSimulationInput):
     """
     Runs Monte Carlo simulation using dynamic points standings and remaining schedule.
     """
+    for item in data.wdc:
+        driver_id = item.driver_id.upper()
+        if item.driver_name:
+            sim_engine.driver_names[driver_id] = item.driver_name
+        if item.team:
+            sim_engine.driver_teams[driver_id] = item.team
+        if item.expected_finish is not None:
+            sim_engine.driver_expected_finishes[driver_id] = item.expected_finish
+
     wdc_dict = {item.driver_id: item.points for item in data.wdc}
     wcc_dict = {item.constructor_id: item.points for item in data.wcc}
     rounds_list = [
