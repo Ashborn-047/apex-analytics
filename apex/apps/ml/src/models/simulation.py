@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 class ChampionshipSimulation:
     """
@@ -101,13 +101,23 @@ class ChampionshipSimulation:
         self.dnf_rates["SAR"] = 0.12
         self.dnf_rates["OCO"] = 0.08
 
-    def run_simulation(self, n_simulations: int = 50000) -> Dict[str, Any]:
+    def run_simulation(
+        self,
+        n_simulations: int = 50000,
+        wdc_standings: Optional[Dict[str, float]] = None,
+        wcc_standings: Optional[Dict[str, float]] = None,
+        remaining_rounds: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """
         Runs Monte Carlo simulations for the remainder of the season.
         Uses vectorized NumPy calculations for maximum speed (< 1s execution).
         """
-        drivers = list(self.wdc_standings.keys())
-        constructors = list(self.wcc_standings.keys())
+        wdc_standings_to_use = wdc_standings if wdc_standings is not None else self.wdc_standings
+        wcc_standings_to_use = wcc_standings if wcc_standings is not None else self.wcc_standings
+        remaining_rounds_to_use = remaining_rounds if remaining_rounds is not None else self.remaining_rounds
+
+        drivers = list(wdc_standings_to_use.keys())
+        constructors = list(wcc_standings_to_use.keys())
         
         n_drivers = len(drivers)
         n_constructors = len(constructors)
@@ -118,23 +128,21 @@ class ChampionshipSimulation:
         
         # Start points matrix (n_simulations x n_drivers)
         sim_wdc_points = np.tile(
-            np.array([self.wdc_standings[d] for d in drivers]),
+            np.array([wdc_standings_to_use[d] for d in drivers]),
             (n_simulations, 1)
         ).astype(float)
         
-        # Max possible points per driver
-        # Remaining rounds: 12. Sprint rounds: 3.
-        # Max points per round: 26 (25 win + 1 fastest lap) * 12 = 312
-        # Max sprint points: 8 * 3 = 24
-        # Total max points = 336
-        max_possible_gain = 336
+        # Calculate max possible points per driver dynamically
+        num_rounds = len(remaining_rounds_to_use)
+        num_sprints = sum(1 for r in remaining_rounds_to_use if r.get("is_sprint", False))
+        max_possible_gain = 26 * num_rounds + 8 * num_sprints
         
         points_map = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
         sprint_points_map = {1: 8, 2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1}
         
         # Simulation Loop for remaining rounds
-        for rnd in self.remaining_rounds:
-            circuit_type = rnd["circuit_type"]
+        for rnd in remaining_rounds_to_use:
+            circuit_type = rnd.get("circuit_type", "street_circuit")
             is_sprint = rnd.get("is_sprint", False)
             
             # Simulate Sprint if applicable
@@ -212,11 +220,24 @@ class ChampionshipSimulation:
         wcc_counts = np.bincount(wcc_winners, minlength=n_constructors)
         wcc_probs = wcc_counts / n_simulations
 
+        # Determine round information
+        if remaining_rounds_to_use:
+            rounds_sorted = sorted([r.get("round", r.get("round_number", 0)) for r in remaining_rounds_to_use if isinstance(r, dict)])
+            if rounds_sorted and rounds_sorted[0] > 0:
+                as_of_round = rounds_sorted[0] - 1
+                total_rounds = max(rounds_sorted[-1], 24)
+            else:
+                as_of_round = 12
+                total_rounds = 24
+        else:
+            as_of_round = 24
+            total_rounds = 24
+
         # Build output structure matching blueprint
-        max_wdc_points = max(self.wdc_standings.values())
+        max_wdc_points = max(wdc_standings_to_use.values()) if wdc_standings_to_use else 0
         wdc_list = []
         for i, d in enumerate(drivers):
-            current_pts = self.wdc_standings[d]
+            current_pts = wdc_standings_to_use[d]
             max_pts = current_pts + max_possible_gain
             eliminated = max_pts < max_wdc_points
             
@@ -252,16 +273,16 @@ class ChampionshipSimulation:
         for i, c in enumerate(constructors):
             wcc_list.append({
                 "constructor_id": c,
-                "constructor_name": self.team_names[c],
-                "current_points": self.wcc_standings[c],
+                "constructor_name": self.team_names.get(c, c.replace('_', ' ').title()),
+                "current_points": wcc_standings_to_use[c],
                 "championship_probability": float(wcc_probs[i]),
-                "color": self.team_colors[c]
+                "color": self.team_colors.get(c, "#475569")
             })
         wcc_list = sorted(wcc_list, key=lambda x: (x["championship_probability"], x["current_points"]), reverse=True)
 
         return {
-            "as_of_round": 12,
-            "total_rounds": 24,
+            "as_of_round": as_of_round,
+            "total_rounds": total_rounds,
             "simulations_run": n_simulations,
             "wdc": wdc_list,
             "wcc": wcc_list

@@ -55,6 +55,40 @@ class StrategyInput(BaseModel):
     circuit_id: str = Field("monza")
     position: int = Field(3, ge=1, le=20)
 
+class LapTrainingItem(BaseModel):
+    driver_id: str = Field(..., examples=["VER"])
+    compound: str = Field(..., pattern="^(SOFT|MEDIUM|HARD|INTER|WET)$", examples=["MEDIUM"])
+    stint_lap: int = Field(..., ge=1, examples=[12])
+    tyre_age_total: int = Field(..., ge=1, examples=[12])
+    track_temp_c: float = Field(..., ge=0.0, examples=[42.5])
+    air_temp_c: float = Field(..., ge=0.0, examples=[22.0])
+    fuel_load_kg: float = Field(..., ge=0.0, examples=[68.0])
+    lap_time_s: float = Field(..., ge=0.0, examples=[82.1])
+    gap_ahead: Optional[float] = Field(None, ge=0.0, examples=[1.2])
+
+class LapTimeTrainInput(BaseModel):
+    laps: List[LapTrainingItem]
+
+class WdcStandingItem(BaseModel):
+    driver_id: str
+    points: float
+
+class WccStandingItem(BaseModel):
+    constructor_id: str
+    points: float
+
+class RemainingRoundItem(BaseModel):
+    round: int
+    name: str
+    circuit_type: str
+    is_sprint: Optional[bool] = False
+
+class ChampionshipSimulationInput(BaseModel):
+    wdc: List[WdcStandingItem]
+    wcc: List[WccStandingItem]
+    remaining_rounds: List[RemainingRoundItem]
+    simulations: Optional[int] = Field(50000, ge=100, le=100000)
+
 # ============================================================================
 # API ROUTES
 # ============================================================================
@@ -228,3 +262,64 @@ def get_championship_simulation(simulations: int = 50000):
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulation run failed: {str(e)}")
+
+@router.post("/lap-time/train")
+def train_lap_time_model(data: LapTimeTrainInput):
+    """
+    Train the Ridge & XGBoost lap time prediction models on historical timing data.
+    """
+    if len(data.laps) < 15:
+        raise HTTPException(status_code=400, detail="Minimum 15 training lap samples required.")
+    
+    laps_list = [
+        {
+            "driver_id": lap.driver_id,
+            "compound": lap.compound,
+            "stint_lap": lap.stint_lap,
+            "tyre_age_total": lap.tyre_age_total,
+            "track_temp_c": lap.track_temp_c,
+            "air_temp_c": lap.air_temp_c,
+            "fuel_load_kg": lap.fuel_load_kg,
+            "lap_time_s": lap.lap_time_s,
+            "gap_ahead": lap.gap_ahead
+        }
+        for lap in data.laps
+    ]
+    
+    try:
+        lap_predictor.train(laps_list)
+        return {
+            "status": "success",
+            "message": f"Successfully trained model on {len(data.laps)} lap times."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to train lap time models: {str(e)}")
+
+@router.post("/simulation/championship")
+def run_dynamic_championship_simulation(data: ChampionshipSimulationInput):
+    """
+    Runs Monte Carlo simulation using dynamic points standings and remaining schedule.
+    """
+    wdc_dict = {item.driver_id: item.points for item in data.wdc}
+    wcc_dict = {item.constructor_id: item.points for item in data.wcc}
+    rounds_list = [
+        {
+            "round": r.round,
+            "name": r.name,
+            "circuit_type": r.circuit_type,
+            "is_sprint": r.is_sprint
+        }
+        for r in data.remaining_rounds
+    ]
+    
+    try:
+        results = sim_engine.run_simulation(
+            n_simulations=data.simulations,
+            wdc_standings=wdc_dict,
+            wcc_standings=wcc_dict,
+            remaining_rounds=rounds_list
+        )
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dynamic simulation run failed: {str(e)}")
+
