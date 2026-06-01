@@ -20,3 +20,6 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
+# Playwright
+playwright-report/
+test-results/

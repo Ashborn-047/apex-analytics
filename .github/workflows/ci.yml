@@ -34,3 +34,11 @@ jobs:
       - name: Build Monorepo Workspaces
         run: bun run build
         working-directory: ./apex
+
+      - name: Install Playwright Chromium Browser
+        run: bunx playwright install chromium --with-deps
+        working-directory: ./apex/apps/web
+
+      - name: Run Playwright E2E Tests
+        run: bun run test:e2e
+        working-directory: ./apex
