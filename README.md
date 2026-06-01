@@ -202,14 +202,45 @@ The database migration configuration is compatible with vanilla PostgreSQL (as h
 
 ---
 
-## SpacetimeDB Real-time Bridge & ML Roadmap
+## Implemented Telemetry & Machine Learning Models
 
-APEX establishes a real-time predictive bridge using streamed session telemetry from Silverwall:
-*   **Silverwall writes to:** `live_positions`, `live_gaps`, `session_state`, `live_timing`.
-*   **APEX ML writes to:** `strategy_recommendation`, `championship_probability`, `predicted_laptime`.
+APEX is equipped with fully active Python-based machine learning pipelines (`apps/ml`) connected directly to the React dashboard pages:
 
-### Python ML Microservice Roadmap
-The FastAPI prediction microservice (`apps/ml`) executes data science computations:
-1.  **Elo rating system:** Predict driver form based on teammate head-to-head race and qualifying metrics.
-2.  **Lap time predictor:** Predict target lap times based on tyre compound, tyre life, and track temperature.
-3.  **Optimal pit strategy:** Formulate recommendations for when to execute pit stops to minimize time lost in traffic.
+### 1. Driver ELO Ratings (`apps/ml/src/models/elo.py`)
+*   **Core Logic:** Isolates driver skill from constructor performance by weighting same-car teammate qualifying and race comparisons.
+*   **Features:** Implements continuous qualifying outcomes scaled via sigmoid lap time differences, rookie cold-starts, and mechanical DNF filtering.
+*   **UI Dashboard:** Displays teammate Elo matchups, head-to-head dominance gauges, and a round-by-round Elo progression sparkline line chart.
+
+### 2. Tyre degradation & Lap Time Predictor (`apps/ml/src/models/lap_time.py`)
+*   **Core Logic:** Trains dynamic Ridge and XGBoost regression models on historical timings grouped by stints, excluding safety cars and pace outliers.
+*   **Features:** Applies a linear fuel-burn rate correction (0.03s per kg of fuel) to reduce model pace variance.
+*   **UI Dashboard:** Plots predicted pace with confidence shading bounds ($\pm 1\sigma$), overlaid with actual stint timing data as interactive scatter points.
+
+### 3. Optimal Pit Stop Strategy (`apps/ml/src/models/strategy.py`)
+*   **Core Logic:** Performs stint search evaluating pit stops to minimize overall race time.
+*   **Features:** Integrates a Safety Car rate Poisson model per track, downweighting pit lane loss by $50\%$ if SC likelihood is high.
+*   **UI Dashboard:** Features strategy cards comparing primary/alternative strategy timelines, recommended vs. actual box laps, and undercut/overcut delta impact calculations.
+
+### 4. Monte Carlo Championship Simulator (`apps/ml/src/models/simulation.py`)
+*   **Core Logic:** Dynamic 50,000-run NumPy-vectorized simulator utilizing active driver points, constructor teams, and average finish positions from the database.
+*   **UI Dashboard:** Displays circular dial gauges for WDC/WCC probabilities, and compares simulated standings side-by-side with actual results for completed seasons (2022-2025).
+
+---
+
+## Machine Learning Data Synchronization Pipeline
+
+The monorepo features an automated data synchronization script in the API package. It queries database standings and stint lap times, pushes actual timings to the ML microservice cache, trains the regression models, and runs championship simulations.
+
+To trigger the pipeline inside the API container:
+```bash
+docker exec apex-api bun run --cwd apps/api sync:ml
+```
+
+---
+
+## CI/CD Pipeline
+
+*   **Continuous Integration (`ci.yml`):** Automatically triggers lint checks (`eslint`), typecheck validation (`tsc`), and workspaces build testing on all pushes and pull requests to ensure monorepo integrity.
+*   **Continuous Deployment:** On commits to `main`, automatically builds and deploys:
+    *   **API Service (`deploy-api.yml`):** Deploys to Fly.io using the monorepo root context.
+    *   **ML Service (`deploy-ml.yml`):** Deploys to Fly.io.
