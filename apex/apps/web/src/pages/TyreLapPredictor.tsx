@@ -206,7 +206,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
         setSimCurrentLap((prev) => {
           const next = prev + 1;
           if (next > simLapsPool.length) {
-            clearInterval(intervalId);
+            if (intervalId) clearInterval(intervalId);
             setIsSimulating(false);
             return prev;
           }
