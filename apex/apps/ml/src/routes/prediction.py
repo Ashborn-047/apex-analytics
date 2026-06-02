@@ -411,4 +411,32 @@ def get_actual_pit_stops(season: int, circuit_id: str):
         "stops": actual_pit_stops.get(key, [])
     }
 
+class LiveStintSimulationInput(BaseModel):
+    compound: str = Field("MEDIUM", pattern="^(SOFT|MEDIUM|HARD|INTER|WET)$")
+    track_temp_c: float = Field(35.0, ge=0.0)
+    fuel_load_kg: float = Field(80.0, ge=0.0)
+    laps: Optional[int] = Field(25, ge=1, le=50)
+    noise_level: Optional[float] = Field(0.15, ge=0.0)
+
+@router.post("/live-stint/simulate")
+def simulate_live_stint(data: LiveStintSimulationInput):
+    try:
+        results = lap_predictor.simulate_stint(
+            compound=data.compound,
+            track_temp_c=data.track_temp_c,
+            fuel_load_kg=data.fuel_load_kg,
+            laps=data.laps or 25,
+            noise_level=data.noise_level if data.noise_level is not None else 0.15
+        )
+        return {
+            "status": "success",
+            "compound": data.compound,
+            "track_temp_c": data.track_temp_c,
+            "starting_fuel_load_kg": data.fuel_load_kg,
+            "laps": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Live stint simulation failed: {str(e)}")
+
+
 

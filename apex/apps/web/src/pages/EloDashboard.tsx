@@ -157,7 +157,7 @@ function DriverCard({
 }
 
 function H2HPanel({ driver }: { driver: EloRanking }) {
-  const { h2h_record: rec } = driver;
+  const rec = driver.h2h_record || { wins: 0, losses: 0, ties: 0 };
   const total = rec.wins + rec.losses + rec.ties;
   const winPct = total > 0 ? (rec.wins / total) * 100 : 0;
 
@@ -258,7 +258,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
               ELO RATING
             </div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--accent-primary)" }}>
-              {driver.elo_rating.toFixed(0)}
+              {driver.elo_rating ? driver.elo_rating.toFixed(0) : "0"}
             </div>
           </div>
           <div>
@@ -266,7 +266,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
               QUALI WIN %
             </div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)" }}>
-              {driver.quali_dominance_pct.toFixed(0)}%
+              {driver.quali_dominance_pct ? driver.quali_dominance_pct.toFixed(0) : "0"}%
             </div>
           </div>
         </div>
@@ -278,6 +278,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
 export default function EloDashboard({ season }: { season: number }) {
   const [rankings, setRankings] = useState<EloRanking[]>(MOCK_ELO_RANKINGS);
   const [selected, setSelected] = useState<EloRanking>(MOCK_ELO_RANKINGS[0]);
+  const [_, setError] = useState<any>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/predict/elo/rankings?season=${season}`)
@@ -294,7 +295,10 @@ export default function EloDashboard({ season }: { season: number }) {
           });
         }
       })
-      .catch((err) => console.error("Error loading ratings from microservice:", err));
+      .catch((err) => {
+        console.error("Error loading ratings from microservice:", err);
+        setError(() => { throw err; });
+      });
   }, [season]);
 
   return (

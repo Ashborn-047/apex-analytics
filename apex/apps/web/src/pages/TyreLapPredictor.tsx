@@ -139,6 +139,85 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   const [selectedCompound, setSelectedCompound] = useState<Compound>("MEDIUM");
   const [compoundsData, setCompoundsData] = useState<LapTimePrediction[]>(ALL_COMPOUNDS);
   const [actualLaps, setActualLaps] = useState<ActualLap[]>([]);
+  const [_, setError] = useState<any>(null);
+
+  // Live Stint Simulator State
+  const [sidebarTab, setSidebarTab] = useState<"static" | "live">("static");
+  const [simTrackTemp, setSimTrackTemp] = useState<number>(35);
+  const [simStartingFuel, setSimStartingFuel] = useState<number>(80);
+  const [simNoiseLevel, setSimNoiseLevel] = useState<number>(0.15);
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [simulatedLaps, setSimulatedLaps] = useState<any[]>([]);
+  const [simCurrentLap, setSimCurrentLap] = useState<number>(0);
+  const [simLapsPool, setSimLapsPool] = useState<any[]>([]);
+
+  const startSimulation = () => {
+    if (isSimulating) return;
+    
+    fetch(`${API_BASE}/api/predict/live-stint/simulate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        compound: selectedCompound,
+        track_temp_c: simTrackTemp,
+        fuel_load_kg: simStartingFuel,
+        laps: 25,
+        noise_level: simNoiseLevel
+      })
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to start live stint simulation");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.status === "success" && data.laps && data.laps.length > 0) {
+          setSimulatedLaps([]);
+          setSimCurrentLap(0);
+          setSimLapsPool(data.laps);
+          setIsSimulating(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Simulation run failed:", err);
+        setError(() => { throw err; });
+      });
+  };
+
+  const stopSimulation = () => {
+    setIsSimulating(false);
+    setSimulatedLaps([]);
+    setSimCurrentLap(0);
+    setSimLapsPool([]);
+  };
+
+  useEffect(() => {
+    let intervalId: any = null;
+    if (isSimulating && simLapsPool.length > 0) {
+      intervalId = setInterval(() => {
+        setSimCurrentLap((prev) => {
+          const next = prev + 1;
+          if (next > simLapsPool.length) {
+            clearInterval(intervalId);
+            setIsSimulating(false);
+            return prev;
+          }
+          setSimulatedLaps((prevLaps) => [
+            ...prevLaps,
+            simLapsPool[next - 1]
+          ]);
+          return next;
+        });
+      }, 700);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isSimulating, simLapsPool]);
+
+  // Stop simulation if compound changes
+  useEffect(() => {
+    stopSimulation();
+  }, [selectedCompound]);
 
   useEffect(() => {
     const fetchCompound = (comp: Compound) => {
@@ -164,7 +243,10 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       .then((results) => {
         setCompoundsData(results);
       })
-      .catch((err) => console.error("Error loading tyre predictions from microservice:", err));
+      .catch((err) => {
+        console.error("Error loading tyre predictions from microservice:", err);
+        setError(() => { throw err; });
+      });
   }, [season]);
 
   // Fetch actual lap times for comparison
@@ -183,7 +265,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error fetching actual lap times:", err);
-        setActualLaps([]);
+        setError(() => { throw err; });
       });
   }, [season]);
 
@@ -197,12 +279,15 @@ export default function TyreLapPredictor({ season }: { season: number }) {
     const predicted = pt.predicted_s;
     const lower = predicted - ciWidth;
     const upper = predicted + ciWidth;
+    const simLap = simulatedLaps.find(sl => sl.lap === pt.stint_lap);
     return {
       lap: pt.stint_lap,
       predicted: Number(predicted.toFixed(3)),
       ci_lower: Number(lower.toFixed(3)),
       ci_upper: Number(upper.toFixed(3)),
-      ci_band: [Number(lower.toFixed(3)), Number(upper.toFixed(3))]
+      ci_band: [Number(lower.toFixed(3)), Number(upper.toFixed(3))],
+      simulated: simLap ? Number(simLap.simulated_s.toFixed(3)) : undefined,
+      tyre_health: simLap ? simLap.tyre_health_percent : undefined
     };
   });
 
@@ -222,6 +307,8 @@ export default function TyreLapPredictor({ season }: { season: number }) {
     // Find if there is actual scatter data hovered or just the main curve
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const predictedVal = payload?.find((p: any) => p.dataKey === "predicted")?.value;
+    const simVal = payload?.find((p: any) => p.dataKey === "simulated")?.value;
+    const tyreHealth = payload?.find((p: any) => p.dataKey === "simulated")?.payload?.tyre_health;
     const hoverScatter = scatterData.filter(s => s.lap === label);
 
     return (
@@ -237,6 +324,28 @@ export default function TyreLapPredictor({ season }: { season: number }) {
             </span>
             <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
               {formatTime(predictedVal)}
+            </span>
+          </div>
+        )}
+
+        {simVal !== undefined && (
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
+            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)" }}>
+              SIMULATED LIVE
+            </span>
+            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
+              {formatTime(simVal)}
+            </span>
+          </div>
+        )}
+
+        {tyreHealth !== undefined && (
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
+            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
+              TYRE HEALTH
+            </span>
+            <span className="text-mono" style={{ fontSize: "0.65rem", color: tyreHealth > 35 ? "var(--accent-success)" : "var(--accent-danger)", fontWeight: 600 }}>
+              {tyreHealth}%
             </span>
           </div>
         )}
@@ -339,9 +448,22 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                     name="Actual Laps"
                     data={scatterData}
                     dataKey="actual"
-                    fill="var(--accent-primary)"
-                    stroke="rgba(0,212,255,0.4)"
+                    fill="rgba(0, 212, 255, 0.4)"
+                    stroke="rgba(0, 212, 255, 0.2)"
                     strokeWidth={1}
+                  />
+                )}
+
+                {/* Live Simulated Laps Overlay */}
+                {simulatedLaps.length > 0 && (
+                  <Line
+                    type="monotone"
+                    dataKey="simulated"
+                    stroke="var(--accent-primary)"
+                    strokeWidth={2.5}
+                    strokeDasharray="4 4"
+                    dot={{ r: 3.5, fill: "var(--accent-primary)", strokeWidth: 0 }}
+                    activeDot={{ r: 6, fill: "var(--accent-primary)" }}
                   />
                 )}
 
@@ -362,8 +484,14 @@ export default function TyreLapPredictor({ season }: { season: number }) {
             </div>
             {scatterData.length > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--accent-primary)" }} />
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "rgba(0, 212, 255, 0.6)" }} />
                 <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>ACTUAL LAP TIMINGS ({scatterData.length} pts)</span>
+              </div>
+            )}
+            {simulatedLaps.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <div style={{ width: "15px", borderBottom: "2px dashed var(--accent-primary)", alignSelf: "center", marginBottom: "3px" }} />
+                <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", letterSpacing: "0.08em" }}>LIVE SIMULATION</span>
               </div>
             )}
             <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-danger)", fontWeight: 600 }}>
@@ -374,76 +502,283 @@ export default function TyreLapPredictor({ season }: { season: number }) {
 
         {/* Sidebar Details Panel */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {/* Tab Selector */}
+          <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.25rem", gap: "0.75rem" }}>
+            <button
+              onClick={() => setSidebarTab("static")}
+              style={{
+                background: "none",
+                border: "none",
+                borderBottom: sidebarTab === "static" ? "2px solid var(--accent-primary)" : "none",
+                color: sidebarTab === "static" ? "var(--text-primary)" : "var(--text-muted)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.65rem",
+                fontWeight: "bold",
+                padding: "0.25rem 0.25rem",
+                cursor: "pointer",
+                letterSpacing: "0.08em"
+              }}
+            >
+              STATIC ANALYTICS
+            </button>
+            <button
+              onClick={() => setSidebarTab("live")}
+              style={{
+                background: "none",
+                border: "none",
+                borderBottom: sidebarTab === "live" ? "2px solid var(--accent-primary)" : "none",
+                color: sidebarTab === "live" ? "var(--text-primary)" : "var(--text-muted)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.65rem",
+                fontWeight: "bold",
+                padding: "0.25rem 0.25rem",
+                cursor: "pointer",
+                letterSpacing: "0.08em"
+              }}
+            >
+              LIVE SIMULATOR
+            </button>
+          </div>
+
           <div
             className="panel panel-scanner"
             style={{
               padding: "1.25rem",
-              borderColor: COMPOUND_COLORS[selectedCompound],
+              borderColor: sidebarTab === "live" && isSimulating ? "var(--accent-primary)" : COMPOUND_COLORS[selectedCompound],
               background: `${COMPOUND_COLORS[selectedCompound]}05`,
-              height: "100%"
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.85rem"
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <span
-                style={{
-                  background: `${COMPOUND_COLORS[selectedCompound]}18`,
-                  color: COMPOUND_COLORS[selectedCompound],
-                  border: `1px solid ${COMPOUND_COLORS[selectedCompound]}40`,
-                  fontSize: "0.75rem",
-                  fontWeight: 800,
-                  padding: "0.25rem 0.75rem",
-                  borderRadius: "2px",
-                  letterSpacing: "0.08em"
-                }}
-              >
-                {selectedCompound}
-              </span>
-              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
-                TELEMETRY STATUS
-              </span>
-            </div>
+            {sidebarTab === "static" ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                  <span
+                    style={{
+                      background: `${COMPOUND_COLORS[selectedCompound]}18`,
+                      color: COMPOUND_COLORS[selectedCompound],
+                      border: `1px solid ${COMPOUND_COLORS[selectedCompound]}40`,
+                      fontSize: "0.75rem",
+                      fontWeight: 800,
+                      padding: "0.25rem 0.75rem",
+                      borderRadius: "2px",
+                      letterSpacing: "0.08em"
+                    }}
+                  >
+                    {selectedCompound}
+                  </span>
+                  <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
+                    TELEMETRY STATUS
+                  </span>
+                </div>
 
-            <StatsRow 
-              label="Optimal Window" 
-              value={`Lap 1 → Lap ${Math.max(1, (activePrediction.cliff_lap || 15) - 3)}`}
-              sector="optimal"
-            />
-            <StatsRow 
-              label="Degradation Window" 
-              value={`Lap ${Math.max(1, (activePrediction.cliff_lap || 15) - 2)} → Lap ${activePrediction.cliff_lap || 15}`}
-              sector="fading"
-            />
-            <StatsRow 
-              label="Cliff Onset" 
-              value={`Lap ${activePrediction.cliff_lap || "N/A"}`}
-              sector="cliff"
-            />
-            <StatsRow 
-              label="Cliff Severity" 
-              value={`+${activePrediction.cliff_severity_s_per_lap?.toFixed(2)}s/lap`}
-              sector="cliff"
-            />
-            <StatsRow 
-              label="Confidence Bound" 
-              value={`±${ciWidth.toFixed(2)}s`}
-              sector="fading"
-            />
-            {scatterData.length > 0 && (
-              <div style={{ marginTop: "1rem" }}>
-                <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>
-                  ACTUAL INGESTION
-                </div>
-                <div style={{ background: "var(--bg-void)", padding: "0.75rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                    <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Samples Ingested</span>
-                    <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: 600 }}>{scatterData.length} laps</span>
+                <StatsRow 
+                  label="Optimal Window" 
+                  value={`Lap 1 → Lap ${Math.max(1, (activePrediction.cliff_lap || 15) - 3)}`}
+                  sector="optimal"
+                />
+                <StatsRow 
+                  label="Degradation Window" 
+                  value={`Lap ${Math.max(1, (activePrediction.cliff_lap || 15) - 2)} → Lap ${activePrediction.cliff_lap || 15}`}
+                  sector="fading"
+                />
+                <StatsRow 
+                  label="Cliff Onset" 
+                  value={`Lap ${activePrediction.cliff_lap || "N/A"}`}
+                  sector="cliff"
+                />
+                <StatsRow 
+                  label="Cliff Severity" 
+                  value={`+${activePrediction.cliff_severity_s_per_lap?.toFixed(2)}s/lap`}
+                  sector="cliff"
+                />
+                <StatsRow 
+                  label="Confidence Bound" 
+                  value={`±${ciWidth.toFixed(2)}s`}
+                  sector="fading"
+                />
+                {scatterData.length > 0 && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>
+                      ACTUAL INGESTION
+                    </div>
+                    <div style={{ background: "var(--bg-void)", padding: "0.75rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Samples Ingested</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: 600 }}>{scatterData.length} laps</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Accuracy Matching</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-success)", fontWeight: 600 }}>98.4%</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Accuracy Matching</span>
-                    <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-success)", fontWeight: 600 }}>98.4%</span>
-                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.25rem" }}>
+                  STINT TELEMETRY CONTROL
                 </div>
-              </div>
+
+                {!isSimulating && simulatedLaps.length === 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Track Temp</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{simTrackTemp}°C</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="15"
+                        max="55"
+                        value={simTrackTemp}
+                        onChange={(e) => setSimTrackTemp(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "var(--accent-primary)" }}
+                      />
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Starting Fuel</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{simStartingFuel} kg</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="10"
+                        max="110"
+                        value={simStartingFuel}
+                        onChange={(e) => setSimStartingFuel(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "var(--accent-primary)" }}
+                      />
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Timing Noise</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>±{simNoiseLevel.toFixed(2)}s</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.05"
+                        max="0.50"
+                        step="0.05"
+                        value={simNoiseLevel}
+                        onChange={(e) => setSimNoiseLevel(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "var(--accent-primary)" }}
+                      />
+                    </div>
+
+                    <button
+                      onClick={startSimulation}
+                      style={{
+                        background: "var(--accent-primary)",
+                        color: "var(--bg-void)",
+                        border: "none",
+                        padding: "0.6rem",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.7rem",
+                        fontWeight: "bold",
+                        borderRadius: "2px",
+                        cursor: "pointer",
+                        marginTop: "0.5rem"
+                      }}
+                    >
+                      RUN LIVE SIMULATION
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div style={{ background: "var(--bg-void)", padding: "0.75rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Status</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: isSimulating ? "var(--accent-primary)" : "var(--accent-success)", fontWeight: 600 }}>
+                          {isSimulating ? "SIMULATING..." : "FINISHED"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Stint Progress</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                          {simCurrentLap} / 25 Laps
+                        </span>
+                      </div>
+                      {simulatedLaps.length > 0 && (
+                        <>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
+                            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Last Lap</span>
+                            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                              {formatTime(simulatedLaps[simulatedLaps.length - 1].simulated_s)}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
+                            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Pace Delta</span>
+                            {(() => {
+                              const last = simulatedLaps[simulatedLaps.length - 1];
+                              const offset = last.simulated_s - last.predicted_s;
+                              return (
+                                <span className="text-mono" style={{ fontSize: "0.6rem", color: offset >= 0 ? "var(--accent-danger)" : "var(--accent-success)", fontWeight: 600 }}>
+                                  {offset >= 0 ? "+" : ""}{offset.toFixed(3)}s
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {simulatedLaps.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Tyre Wear / Health</span>
+                          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: "bold" }}>
+                            {simulatedLaps[simulatedLaps.length - 1].tyre_health_percent}%
+                          </span>
+                        </div>
+                        {/* Wear Bar */}
+                        <div style={{ background: "var(--bg-void)", height: "6px", width: "100%", borderRadius: "3px", overflow: "hidden", border: "1px solid var(--border-subtle)" }}>
+                          <div
+                            style={{
+                              height: "100%",
+                              width: `${simulatedLaps[simulatedLaps.length - 1].tyre_health_percent}%`,
+                              background: (() => {
+                                const wear = simulatedLaps[simulatedLaps.length - 1].tyre_health_percent;
+                                return wear > 65 ? "var(--accent-success)" : (wear > 35 ? "var(--accent-primary)" : "var(--accent-danger)");
+                              })(),
+                              transition: "width 0.2s"
+                            }}
+                          />
+                        </div>
+
+                        {simulatedLaps[simulatedLaps.length - 1].is_cliff && (
+                          <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--accent-danger)", fontWeight: "bold", textAlign: "center", marginTop: "0.25rem", letterSpacing: "0.04em", animation: "pulse 1s infinite" }}>
+                            ⚠️ ACCELERATED THERMAL CLIFF ACTIVE
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={stopSimulation}
+                      style={{
+                        background: "var(--accent-danger)",
+                        color: "var(--bg-void)",
+                        border: "none",
+                        padding: "0.6rem",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.7rem",
+                        fontWeight: "bold",
+                        borderRadius: "2px",
+                        cursor: "pointer",
+                        marginTop: "0.5rem"
+                      }}
+                    >
+                      RESET SIMULATION
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

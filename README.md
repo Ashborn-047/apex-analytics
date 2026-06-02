@@ -102,6 +102,7 @@ apex/
 *   **ML Microservice:** Python 3.12 + FastAPI + scikit-learn + XGBoost + pandas + statsmodels
 *   **3D Geometry Renderer:** Three.js (vanilla ES module embed)
 *   **Dashboard Web App:** React + Vite + Tailwind CSS + Recharts + D3 + Zustand
+*   **E2E Testing:** Playwright (Desktop Chromium & Mobile Pixel 5 Chrome simulation)
 *   **Hosting:** Fly.io (bom Mumbai region) for API/ML, Vercel for Dashboard, Upstash / Neon for databases.
 
 ---
@@ -214,7 +215,8 @@ APEX is equipped with fully active Python-based machine learning pipelines (`app
 ### 2. Tyre degradation & Lap Time Predictor (`apps/ml/src/models/lap_time.py`)
 *   **Core Logic:** Trains dynamic Ridge and XGBoost regression models on historical timings grouped by stints, excluding safety cars and pace outliers.
 *   **Features:** Applies a linear fuel-burn rate correction (0.03s per kg of fuel) to reduce model pace variance.
-*   **UI Dashboard:** Plots predicted pace with confidence shading bounds ($\pm 1\sigma$), overlaid with actual stint timing data as interactive scatter points.
+*   **Live Stint Simulator:** Exposes a simulation endpoint generating noisy lap-by-lap stints with temperature offsets, fuel burn, and real-time tyre health updates showing the thermal cliff.
+*   **UI Dashboard:** Includes static analytic charts with confidence bounds ($\pm 1\sigma$) overlaid with actual stint timing scatter points, plus a live interactive simulator control panel with real-time wear gauges.
 
 ### 3. Optimal Pit Stop Strategy (`apps/ml/src/models/strategy.py`)
 *   **Core Logic:** Performs stint search evaluating pit stops to minimize overall race time.
@@ -241,6 +243,7 @@ docker exec apex-api bun run --cwd apps/api sync:ml
 ## CI/CD Pipeline
 
 *   **Continuous Integration (`ci.yml`):** Automatically triggers lint checks (`eslint`), typecheck validation (`tsc`), and workspaces build testing on all pushes and pull requests to ensure monorepo integrity.
+*   **E2E Browser Tests (`e2e.yml`):** Runs Playwright end-to-end tests validating layout responsiveness (desktop and mobile viewports), dynamic compound selectors, simulated vs actual metrics, API failure resilience (error boundaries and reconnection recovery), and live simulation tickers.
 *   **Continuous Deployment:** On commits to `main`, automatically builds and deploys:
     *   **API Service (`deploy-api.yml`):** Deploys to Fly.io using the monorepo root context.
     *   **ML Service (`deploy-ml.yml`):** Deploys to Fly.io.

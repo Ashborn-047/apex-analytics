@@ -103,6 +103,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
   const [recommendations, setRecommendations] = useState<PitRecommendation[]>(MOCK_PIT_RECOMMENDATIONS);
   const [selectedRecIndex, setSelectedRecIndex] = useState<number>(0);
   const [actualStops, setActualStops] = useState<ActualPitStop[]>([]);
+  const [_, setError] = useState<any>(null);
 
   // Dynamic live driver status based on selected driver ID
   const [driverState, setDriverState] = useState<DriverRaceState>({
@@ -149,7 +150,10 @@ export default function PitWallPlanner({ season }: { season: number }) {
           setSelectedRecIndex(0);
         }
       })
-      .catch((err) => console.error("Error loading pit strategy from microservice:", err));
+      .catch((err) => {
+        console.error("Error loading pit strategy from microservice:", err);
+        setError(() => { throw err; });
+      });
   }, [driverId, season]);
 
   // Fetch actual pit stops for this season
@@ -168,7 +172,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error fetching actual pit stops:", err);
-        setActualStops([]);
+        setError(() => { throw err; });
       });
   }, [season]);
 

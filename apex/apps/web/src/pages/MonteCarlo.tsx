@@ -112,6 +112,7 @@ export default function MonteCarlo({ season }: { season: number }) {
   const [activeView, setActiveView] = useState<"wdc" | "wcc">("wdc");
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [selectedConstructorId, setSelectedConstructorId] = useState<string>("");
+  const [_, setError] = useState<any>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/predict/simulation/championship?season=${season}`)
@@ -128,7 +129,10 @@ export default function MonteCarlo({ season }: { season: number }) {
           }
         }
       })
-      .catch((err) => console.error("Error loading Monte Carlo simulation:", err));
+      .catch((err) => {
+        console.error("Error loading Monte Carlo simulation:", err);
+        setError(() => { throw err; });
+      });
   }, [season]);
 
   const selectedDriver = sim.wdc.find((d) => d.driver_id === selectedDriverId) || sim.wdc[0] || MOCK_SIMULATION.wdc[0];

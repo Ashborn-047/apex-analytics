@@ -112,9 +112,14 @@ class LapTimePredictor:
         
         # Train XGBoost model if available
         if XGBRegressor is not None:
+            # Dynamic hyperparameter tuning based on training set size to prevent overfitting
+            data_size = len(x)
+            max_depth = 3 if data_size < 100 else (4 if data_size < 1000 else 5)
+            n_estimators = 50 if data_size < 100 else 100
+            
             self.xgb_model = XGBRegressor(
-                n_estimators=100,
-                max_depth=4,
+                n_estimators=n_estimators,
+                max_depth=max_depth,
                 learning_rate=0.1,
                 objective="reg:squarederror"
             )
@@ -198,3 +203,45 @@ class LapTimePredictor:
             "compound": compound,
             "circuit_id": "monza"
         }
+
+    def simulate_stint(self, compound: str, track_temp_c: float, fuel_load_kg: float, laps: int = 25, noise_level: float = 0.15) -> List[Dict[str, Any]]:
+        """
+        Simulates lap-by-lap timings for a stint with randomized race noise,
+        calculating dynamic fuel burn and real-time tyre health.
+        """
+        import random
+        compound = compound.upper()
+        
+        # Get baseline prediction curve
+        pred_res = self.predict_full_curve(compound, track_temp_c, fuel_load_kg)
+        curve = pred_res["degradation_curve"]
+        cliff_lap = pred_res["cliff_lap"]
+        
+        simulated_stint = []
+        for pt in curve:
+            lap = pt["stint_lap"]
+            if lap > laps:
+                break
+            pred_time = pt["predicted_s"]
+            
+            # Add random normal noise to simulate live timing noise
+            noise = random.normalvariate(0.0, noise_level)
+            sim_time = pred_time + noise
+            
+            # Simple linear + cliff-accelerated tyre wear formula
+            if lap <= cliff_lap:
+                wear_factor = (lap / cliff_lap) * 40.0 # up to 40% wear
+            else:
+                wear_factor = 40.0 + ((lap - cliff_lap) / (25.0 - cliff_lap)) * 60.0 # up to 100% wear
+                
+            tyre_health = max(0.0, round(100.0 - wear_factor, 1))
+            
+            simulated_stint.append({
+                "lap": lap,
+                "predicted_s": round(pred_time, 3),
+                "simulated_s": round(sim_time, 3),
+                "tyre_health_percent": tyre_health,
+                "is_cliff": lap >= cliff_lap
+            })
+            
+        return simulated_stint
