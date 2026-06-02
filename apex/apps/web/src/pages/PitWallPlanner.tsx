@@ -103,7 +103,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
   const [recommendations, setRecommendations] = useState<PitRecommendation[]>(MOCK_PIT_RECOMMENDATIONS);
   const [selectedRecIndex, setSelectedRecIndex] = useState<number>(0);
   const [actualStops, setActualStops] = useState<ActualPitStop[]>([]);
-  const [_, setError] = useState<any>(null);
+  const [, setError] = useState<unknown>(null);
 
   // Dynamic live driver status based on selected driver ID
   const [driverState, setDriverState] = useState<DriverRaceState>({

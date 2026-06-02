@@ -278,7 +278,7 @@ function H2HPanel({ driver }: { driver: EloRanking }) {
 export default function EloDashboard({ season }: { season: number }) {
   const [rankings, setRankings] = useState<EloRanking[]>(MOCK_ELO_RANKINGS);
   const [selected, setSelected] = useState<EloRanking>(MOCK_ELO_RANKINGS[0]);
-  const [_, setError] = useState<any>(null);
+  const [, setError] = useState<unknown>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/predict/elo/rankings?season=${season}`)

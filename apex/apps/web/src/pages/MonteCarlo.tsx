@@ -112,7 +112,7 @@ export default function MonteCarlo({ season }: { season: number }) {
   const [activeView, setActiveView] = useState<"wdc" | "wcc">("wdc");
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [selectedConstructorId, setSelectedConstructorId] = useState<string>("");
-  const [_, setError] = useState<any>(null);
+  const [, setError] = useState<unknown>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/predict/simulation/championship?season=${season}`)

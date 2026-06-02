@@ -32,6 +32,15 @@ interface ActualLap {
   lap_time_s: number;
 }
 
+interface SimulatedLap {
+  lap: number;
+  predicted_s: number;
+  simulated_s: number;
+  tyre_health_percent: number;
+  is_cliff: boolean;
+}
+
+
 function TyreCard({
   pred,
   isSelected,
@@ -139,7 +148,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   const [selectedCompound, setSelectedCompound] = useState<Compound>("MEDIUM");
   const [compoundsData, setCompoundsData] = useState<LapTimePrediction[]>(ALL_COMPOUNDS);
   const [actualLaps, setActualLaps] = useState<ActualLap[]>([]);
-  const [_, setError] = useState<any>(null);
+  const [, setError] = useState<unknown>(null);
 
   // Live Stint Simulator State
   const [sidebarTab, setSidebarTab] = useState<"static" | "live">("static");
@@ -147,9 +156,9 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   const [simStartingFuel, setSimStartingFuel] = useState<number>(80);
   const [simNoiseLevel, setSimNoiseLevel] = useState<number>(0.15);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
-  const [simulatedLaps, setSimulatedLaps] = useState<any[]>([]);
+  const [simulatedLaps, setSimulatedLaps] = useState<SimulatedLap[]>([]);
   const [simCurrentLap, setSimCurrentLap] = useState<number>(0);
-  const [simLapsPool, setSimLapsPool] = useState<any[]>([]);
+  const [simLapsPool, setSimLapsPool] = useState<SimulatedLap[]>([]);
 
   const startSimulation = () => {
     if (isSimulating) return;
@@ -191,7 +200,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   };
 
   useEffect(() => {
-    let intervalId: any = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
     if (isSimulating && simLapsPool.length > 0) {
       intervalId = setInterval(() => {
         setSimCurrentLap((prev) => {
@@ -304,11 +313,9 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active) return null;
     
-    // Find if there is actual scatter data hovered or just the main curve
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const predictedVal = payload?.find((p: any) => p.dataKey === "predicted")?.value;
-    const simVal = payload?.find((p: any) => p.dataKey === "simulated")?.value;
-    const tyreHealth = payload?.find((p: any) => p.dataKey === "simulated")?.payload?.tyre_health;
+    const predictedVal = payload?.find((p: { dataKey?: string | number; value?: number }) => p.dataKey === "predicted")?.value;
+    const simVal = payload?.find((p: { dataKey?: string | number; value?: number }) => p.dataKey === "simulated")?.value;
+    const tyreHealth = payload?.find((p: { dataKey?: string | number; payload?: { tyre_health?: number } }) => p.dataKey === "simulated")?.payload?.tyre_health;
     const hoverScatter = scatterData.filter(s => s.lap === label);
 
     return (
