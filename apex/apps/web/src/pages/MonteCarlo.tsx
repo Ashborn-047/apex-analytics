@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import type { SimulationResult } from "../types";
 import { API_BASE } from "../config";
-import ChampionshipScenarioModal from "../components/ChampionshipScenarioModal";
+import ChampionshipScenarioView from "../components/ChampionshipScenarioView";
 import ExportPanel from "../components/ExportPanel";
 
 interface ExtendedSimulationResult extends SimulationResult {
@@ -145,7 +145,9 @@ export default function MonteCarlo({ season }: { season: number }) {
 
   return (
     <>
-      <ChampionshipScenarioModal isOpen={modalOpen} onClose={() => setModalOpen(false)} driver={modalDriver} />
+      {modalOpen && modalDriver ? (
+        <ChampionshipScenarioView driver={modalDriver} onBack={() => setModalOpen(false)} />
+      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         
         {/* Export panel and controls */}
@@ -490,6 +492,7 @@ export default function MonteCarlo({ season }: { season: number }) {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }
