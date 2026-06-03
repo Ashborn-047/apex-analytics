@@ -12,10 +12,10 @@ interface ModalProps {
 }
 
 const SIZES = {
-  sm: "max-w-md",
-  md: "max-w-2xl",
-  lg: "max-w-4xl",
-  xl: "max-w-6xl",
+  sm: "480px",
+  md: "768px",
+  lg: "1024px",
+  xl: "1280px",
 };
 
 export default function Modal({
@@ -85,7 +85,7 @@ export default function Modal({
             maxHeight: "90vh",
             overflow: "auto",
             width: "100%",
-            maxWidth: "100%",
+            maxWidth: SIZES[size as keyof typeof SIZES] || "1024px",
             opacity: isOpen ? 1 : 0,
             transform: isOpen ? "scale(1)" : "scale(0.95)",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -196,7 +196,6 @@ export default function Modal({
           <div
             style={{
               padding: "1.5rem",
-              maxWidth: SIZES[size as keyof typeof SIZES],
             }}
           >
             {children}

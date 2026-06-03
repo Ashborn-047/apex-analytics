@@ -129,164 +129,186 @@ export default function ChampionshipScenarioModal({ isOpen, onClose, driver }: C
           ))}
         </div>
 
-        {/* Scenario Distribution */}
-        <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
-          <div className="section-header" style={{ marginBottom: "1rem" }}>
-            <span className="section-title">Points Scenario Distribution</span>
-            <div className="section-header-line" />
-          </div>
-          <div style={{ width: "100%", height: "300px" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.scenarios}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                <XAxis dataKey="outcome" tick={{ fill: "var(--text-muted)", fontSize: 9, fontFamily: "var(--font-mono)" }} angle={-45} textAnchor="end" height={80} />
-                <YAxis yAxisId="left" tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} label={{ value: "Points", angle: -90, position: "insideLeft" }} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} label={{ value: "Probability", angle: 90, position: "insideRight" }} />
-                <Tooltip content={<CustomScenarioTooltip />} />
-                <Bar yAxisId="left" dataKey="points" fill="var(--accent-primary)" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Race-by-Race Probabilities */}
-        <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
-          <div className="section-header" style={{ marginBottom: "1rem" }}>
-            <span className="section-title">Race-by-Race Finishing Probabilities</span>
-            <div className="section-header-line" />
-          </div>
-          <div style={{ width: "100%", height: "280px" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.raceByRaceProbs}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                <XAxis dataKey="race" tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} />
-                <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} />
-                <Tooltip content={<CustomRaceTooltip />} />
-                <Line type="monotone" dataKey="p1" stroke="var(--accent-success)" strokeWidth={2.5} name="P1" dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="p2" stroke="var(--accent-primary)" strokeWidth={2} name="P2" dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="p3" stroke="var(--accent-warning)" strokeWidth={2} name="P3" dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Scenario Breakdown */}
-        <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
-          <div className="section-header" style={{ marginBottom: "1rem" }}>
-            <span className="section-title">Detailed Scenario Breakdown</span>
-            <div className="section-header-line" />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {data.scenarios.map((scenario) => (
-              <div
-                key={scenario.outcome}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: "1rem",
-                  alignItems: "center",
-                  padding: "1rem",
-                  background: "var(--bg-panel)",
-                  borderRadius: "3px",
-                  border: "1px solid var(--border-subtle)",
-                }}
-              >
-                <div>
-                  <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "0.25rem", letterSpacing: "0.08em" }}>
-                    SCENARIO
-                  </div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                    {scenario.outcome}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "0.25rem", letterSpacing: "0.08em" }}>
-                    FINAL POINTS
-                  </div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, color: "var(--accent-primary)" }}>
-                    {scenario.points}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "0.25rem", letterSpacing: "0.08em" }}>
-                    PROBABILITY
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <div style={{ flex: 1, height: "4px", background: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-                      <div
-                        style={{
-                          height: "100%",
-                          background: "var(--accent-primary)",
-                          width: `${scenario.probability * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="text-mono" style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--accent-primary)", minWidth: "40px", textAlign: "right" }}>
-                      {(scenario.probability * 100).toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
+        {/* Two-Column Grid */}
+        <div className="scenarios-grid">
+          {/* Left Column: Charts */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+            {/* Scenario Distribution */}
+            <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
+              <div className="section-header" style={{ marginBottom: "1rem" }}>
+                <span className="section-title">Points Scenario Distribution</span>
+                <div className="section-header-line" />
               </div>
-            ))}
-          </div>
-        </div>
+              <div style={{ width: "100%", height: "300px" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.scenarios}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                    <XAxis dataKey="outcome" tick={{ fill: "var(--text-muted)", fontSize: 9, fontFamily: "var(--font-mono)" }} angle={-45} textAnchor="end" height={80} />
+                    <YAxis yAxisId="left" tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} label={{ value: "Points", angle: -90, position: "insideLeft" }} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} label={{ value: "Probability", angle: 90, position: "insideRight" }} />
+                    <Tooltip content={<CustomScenarioTooltip />} />
+                    <Bar yAxisId="left" dataKey="points" fill="var(--accent-primary)" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-        {/* Remaining Races Impact */}
-        <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
-          <div className="section-header" style={{ marginBottom: "1rem" }}>
-            <span className="section-title">Remaining Races Impact</span>
-            <div className="section-header-line" />
+            {/* Race-by-Race Probabilities */}
+            <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
+              <div className="section-header" style={{ marginBottom: "1rem" }}>
+                <span className="section-title">Race-by-Race Finishing Probabilities</span>
+                <div className="section-header-line" />
+              </div>
+              <div style={{ width: "100%", height: "280px" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.raceByRaceProbs}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                    <XAxis dataKey="race" tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} />
+                    <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }} />
+                    <Tooltip content={<CustomRaceTooltip />} />
+                    <Line type="monotone" dataKey="p1" stroke="var(--accent-success)" strokeWidth={2.5} name="P1" dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="p2" stroke="var(--accent-primary)" strokeWidth={2} name="P2" dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="p3" stroke="var(--accent-warning)" strokeWidth={2} name="P3" dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem" }}>
-            {[
-              { race: "Austria", impact: "HIGH", reason: "High points available, favorable track" },
-              { race: "Silverstone", impact: "CRITICAL", reason: "Home race, maximum points opportunity" },
-              { race: "Hungary", impact: "MEDIUM", reason: "Balanced track, moderate points" },
-              { race: "Spa", impact: "HIGH", reason: "High-speed circuit, strong performance expected" },
-            ].map((item) => (
-              <div key={item.race} style={{ padding: "1rem", background: "var(--bg-panel)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                    {item.race}
-                  </div>
+          {/* Right Column: Detailed Breakdowns */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+            {/* Scenario Breakdown */}
+            <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
+              <div className="section-header" style={{ marginBottom: "1rem" }}>
+                <span className="section-title">Detailed Scenario Breakdown</span>
+                <div className="section-header-line" />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {data.scenarios.map((scenario) => (
                   <div
+                    key={scenario.outcome}
                     style={{
-                      padding: "0.3rem 0.6rem",
-                      background:
-                        item.impact === "CRITICAL"
-                          ? "rgba(239,68,68,0.1)"
-                          : item.impact === "HIGH"
-                            ? "rgba(251,191,36,0.1)"
-                            : "rgba(34,197,94,0.1)",
-                      border: `1px solid ${item.impact === "CRITICAL" ? "var(--accent-danger)" : item.impact === "HIGH" ? "var(--accent-warning)" : "var(--accent-success)"}40`,
-                      borderRadius: "2px",
+                      display: "grid",
+                      gridTemplateColumns: "1.2fr 0.8fr 1fr",
+                      gap: "0.75rem",
+                      alignItems: "center",
+                      padding: "0.75rem",
+                      background: "var(--bg-panel)",
+                      borderRadius: "3px",
+                      border: "1px solid var(--border-subtle)",
                     }}
                   >
-                    <div
-                      className="text-mono"
-                      style={{
-                        fontSize: "0.6rem",
-                        fontWeight: 600,
-                        color: item.impact === "CRITICAL" ? "var(--accent-danger)" : item.impact === "HIGH" ? "var(--accent-warning)" : "var(--accent-success)",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      {item.impact}
+                    <div>
+                      <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", marginBottom: "0.25rem", letterSpacing: "0.08em" }}>
+                        SCENARIO
+                      </div>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                        {scenario.outcome}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", marginBottom: "0.25rem", letterSpacing: "0.08em" }}>
+                        FINAL PTS
+                      </div>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: "0.85rem", fontWeight: 700, color: "var(--accent-primary)" }}>
+                        {scenario.points}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", marginBottom: "0.25rem", letterSpacing: "0.08em" }}>
+                        PROBABILITY
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <div style={{ flex: 1, height: "4px", background: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
+                          <div
+                            style={{
+                              height: "100%",
+                              background: "var(--accent-primary)",
+                              width: `${scenario.probability * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="text-mono" style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--accent-primary)", minWidth: "35px", textAlign: "right" }}>
+                          {(scenario.probability * 100).toFixed(1)}%
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: 0, lineHeight: "1.4" }}>
-                  {item.reason}
-                </p>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Remaining Races Impact */}
+            <div style={{ padding: "1.5rem", background: "var(--bg-elevated)", borderRadius: "4px", border: "1px solid var(--border-subtle)" }}>
+              <div className="section-header" style={{ marginBottom: "1rem" }}>
+                <span className="section-title">Remaining Races Impact</span>
+                <div className="section-header-line" />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem" }}>
+                {[
+                  { race: "Austria", impact: "HIGH", reason: "High points available, favorable track" },
+                  { race: "Silverstone", impact: "CRITICAL", reason: "Home race, maximum points opportunity" },
+                  { race: "Hungary", impact: "MEDIUM", reason: "Balanced track, moderate points" },
+                  { race: "Spa", impact: "HIGH", reason: "High-speed circuit, strong performance expected" },
+                ].map((item) => (
+                  <div key={item.race} style={{ padding: "1rem", background: "var(--bg-panel)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                        {item.race}
+                      </div>
+                      <div
+                        style={{
+                          padding: "0.3rem 0.6rem",
+                          background:
+                            item.impact === "CRITICAL"
+                              ? "rgba(239,68,68,0.1)"
+                              : item.impact === "HIGH"
+                                ? "rgba(251,191,36,0.1)"
+                                : "rgba(34,197,94,0.1)",
+                          border: `1px solid ${item.impact === "CRITICAL" ? "var(--accent-danger)" : item.impact === "HIGH" ? "var(--accent-warning)" : "var(--accent-success)"}40`,
+                          borderRadius: "2px",
+                        }}
+                      >
+                        <div
+                          className="text-mono"
+                          style={{
+                            fontSize: "0.6rem",
+                            fontWeight: 600,
+                            color: item.impact === "CRITICAL" ? "var(--accent-danger)" : item.impact === "HIGH" ? "var(--accent-warning)" : "var(--accent-success)",
+                            letterSpacing: "0.08em",
+                          }}
+                        >
+                          {item.impact}
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: 0, lineHeight: "1.4" }}>
+                      {item.reason}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
+      <style>{`
+        .scenarios-grid {
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+          .scenarios-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+        }
+      `}</style>
     </Modal>
   );
 }
