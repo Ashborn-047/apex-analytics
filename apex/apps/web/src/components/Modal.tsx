@@ -11,11 +11,11 @@ interface ModalProps {
   onBack?: () => void;
 }
 
-const SIZES = {
-  sm: "480px",
-  md: "768px",
-  lg: "1024px",
-  xl: "1280px",
+const SIZE_CONFIG: Record<string, { maxWidth: string; maxHeight: string }> = {
+  sm: { maxWidth: "480px", maxHeight: "70vh" },
+  md: { maxWidth: "768px", maxHeight: "80vh" },
+  lg: { maxWidth: "1024px", maxHeight: "85vh" },
+  xl: { maxWidth: "95vw", maxHeight: "92vh" },
 };
 
 export default function Modal({
@@ -45,6 +45,8 @@ export default function Modal({
 
   if (!isOpen && !isAnimating) return null;
 
+  const sizeConfig = SIZE_CONFIG[size] || SIZE_CONFIG.lg;
+
   return (
     <>
       {/* Backdrop */}
@@ -52,8 +54,8 @@ export default function Modal({
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.7)",
-          backdropFilter: "blur(4px)",
+          background: "rgba(0, 0, 0, 0.75)",
+          backdropFilter: "blur(6px)",
           zIndex: 40,
           opacity: isOpen ? 1 : 0,
           transition: "opacity 0.3s ease-out",
@@ -62,7 +64,7 @@ export default function Modal({
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal Centering Wrapper */}
       <div
         style={{
           position: "fixed",
@@ -72,20 +74,22 @@ export default function Modal({
           alignItems: "center",
           justifyContent: "center",
           pointerEvents: isOpen ? "auto" : "none",
-          padding: "1rem",
+          padding: size === "xl" ? "1rem" : "2rem",
         }}
         onClick={onClose}
       >
+        {/* Modal Card */}
         <div
           style={{
             background: "var(--bg-panel)",
             border: "1px solid var(--border-active)",
-            borderRadius: "4px",
-            boxShadow: "0 0 32px rgba(0, 212, 255, 0.15), 0 20px 60px rgba(0, 0, 0, 0.5)",
-            maxHeight: "90vh",
-            overflow: "auto",
+            borderRadius: "6px",
+            boxShadow: "0 0 40px rgba(0, 212, 255, 0.15), 0 25px 80px rgba(0, 0, 0, 0.6)",
             width: "100%",
-            maxWidth: SIZES[size as keyof typeof SIZES] || "1024px",
+            maxWidth: sizeConfig.maxWidth,
+            maxHeight: sizeConfig.maxHeight,
+            display: "flex",
+            flexDirection: "column",
             opacity: isOpen ? 1 : 0,
             transform: isOpen ? "scale(1)" : "scale(0.95)",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -94,18 +98,16 @@ export default function Modal({
           onClick={(e) => e.stopPropagation()}
           className="modal-content"
         >
-          {/* Header */}
+          {/* Header - Fixed at top */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "flex-start",
-              padding: "1.5rem",
+              padding: "1.25rem 1.5rem",
               borderBottom: "1px solid var(--border-subtle)",
               background: "linear-gradient(180deg, var(--bg-surface), var(--bg-panel))",
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
+              flexShrink: 0,
             }}
           >
             <div style={{ flex: 1 }}>
@@ -180,6 +182,7 @@ export default function Modal({
                 fontSize: "1.5rem",
                 padding: "0.25rem 0.5rem",
                 transition: "all 0.2s",
+                flexShrink: 0,
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.color = "var(--accent-primary)";
@@ -192,11 +195,15 @@ export default function Modal({
             </button>
           </div>
 
-          {/* Content */}
+          {/* Scrollable Content */}
           <div
             style={{
               padding: "1.5rem",
+              overflowY: "auto",
+              flex: 1,
+              minHeight: 0,
             }}
+            className="modal-scroll-body"
           >
             {children}
           </div>
@@ -221,20 +228,20 @@ export default function Modal({
           }
         }
 
-        .modal-content::-webkit-scrollbar {
+        .modal-scroll-body::-webkit-scrollbar {
           width: 8px;
         }
 
-        .modal-content::-webkit-scrollbar-track {
+        .modal-scroll-body::-webkit-scrollbar-track {
           background: var(--bg-panel);
         }
 
-        .modal-content::-webkit-scrollbar-thumb {
+        .modal-scroll-body::-webkit-scrollbar-thumb {
           background: var(--border-subtle);
           border-radius: 4px;
         }
 
-        .modal-content::-webkit-scrollbar-thumb:hover {
+        .modal-scroll-body::-webkit-scrollbar-thumb:hover {
           background: var(--border-active);
         }
       `}</style>
