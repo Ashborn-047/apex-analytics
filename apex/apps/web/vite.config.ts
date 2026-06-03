@@ -16,7 +16,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: process.env.VITE_ML_SERVICE_URL ?? "http://localhost:8000",
+        target: process.env.VITE_ML_SERVICE_URL ?? "https://apex-f1-ml.fly.dev",
         changeOrigin: true,
       },
     },

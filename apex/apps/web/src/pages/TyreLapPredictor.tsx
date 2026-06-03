@@ -3,9 +3,9 @@ import {
   ComposedChart, Line, Area, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
   ResponsiveContainer,
 } from "recharts";
-import { MOCK_DEGRADATION, SOFT_DEGRADATION, HARD_DEGRADATION } from "../data/mockData";
 import type { Compound, LapTimePrediction } from "../types";
 import { API_BASE } from "../config";
+import CompoundDetailModal from "../components/CompoundDetailModal";
 
 const COMPOUND_COLORS: Record<Compound, string> = {
   SOFT:   "#ff4466",
@@ -14,8 +14,6 @@ const COMPOUND_COLORS: Record<Compound, string> = {
   INTER:  "#44cc66",
   WET:    "#4488ff",
 };
-
-const ALL_COMPOUNDS = [SOFT_DEGRADATION, MOCK_DEGRADATION, HARD_DEGRADATION];
 
 function formatTime(s: number) {
   if (isNaN(s) || s <= 0) return "0:00.000";
@@ -40,121 +38,18 @@ interface SimulatedLap {
   is_cliff: boolean;
 }
 
-
-function TyreCard({
-  pred,
-  isSelected,
-  onClick,
-}: {
-  pred: LapTimePrediction;
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  const basePace = pred.degradation_curve?.[0]?.predicted_s || 0;
-  
-  return (
-    <div
-      onClick={onClick}
-      className="panel panel-scanner"
-      style={{
-        padding: "1.25rem",
-        cursor: "pointer",
-        background: isSelected ? `${COMPOUND_COLORS[pred.compound]}15` : "var(--bg-panel)",
-        borderColor: isSelected ? COMPOUND_COLORS[pred.compound] : "var(--border-subtle)",
-        boxShadow: isSelected ? `0 0 16px ${COMPOUND_COLORS[pred.compound]}40` : "none",
-        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
-        position: "relative",
-      }}
-      onMouseEnter={(e) => {
-        if (!isSelected) {
-          (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-          (e.currentTarget as HTMLElement).style.borderColor = "var(--border-active)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isSelected) {
-          (e.currentTarget as HTMLElement).style.transform = "none";
-          (e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)";
-        }
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span
-          style={{
-            background: `${COMPOUND_COLORS[pred.compound]}20`,
-            color: COMPOUND_COLORS[pred.compound],
-            border: `1px solid ${COMPOUND_COLORS[pred.compound]}40`,
-            fontSize: "0.7rem",
-            fontWeight: 800,
-            padding: "0.2rem 0.6rem",
-            borderRadius: "2px",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {pred.compound}
-        </span>
-        <span className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)" }}>
-          {pred.circuit_id.toUpperCase()}
-        </span>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginTop: "0.5rem" }}>
-        <div>
-          <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-dim)", letterSpacing: "0.08em" }}>BASE PACE</div>
-          <div className="text-mono" style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)" }}>
-            {formatTime(basePace)}
-          </div>
-        </div>
-        <div>
-          <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-dim)", letterSpacing: "0.08em" }}>CLIFF LAP</div>
-          <div className="text-mono" style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--accent-danger)" }}>
-            L{pred.cliff_lap || "N/A"}
-          </div>
-        </div>
-      </div>
-      
-      {/* Visual compound accent bar at the bottom */}
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0, height: "3px",
-        background: COMPOUND_COLORS[pred.compound]
-      }} />
-    </div>
-  );
-}
-
-function StatsRow({ label, value, accent, sector }: { label: string; value: string; accent?: boolean; sector?: "optimal" | "fading" | "cliff" }) {
-  let color = "var(--text-primary)";
-  if (sector === "optimal") color = "var(--accent-success)";
-  else if (sector === "fading") color = "var(--accent-warning)";
-  else if (sector === "cliff") color = "var(--accent-danger)";
-  else if (accent) color = "var(--accent-warning)";
-
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0", borderBottom: "1px solid var(--border-subtle)" }}>
-      <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-        {label}
-      </span>
-      <span className="text-mono" style={{ fontSize: "0.75rem", fontWeight: 600, color }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
 export default function TyreLapPredictor({ season }: { season: number }) {
-  const [selectedCompound, setSelectedCompound] = useState<Compound>("MEDIUM");
-  const [compoundsData, setCompoundsData] = useState<LapTimePrediction[]>(ALL_COMPOUNDS);
+  const [selectedCompound, setSelectedCompound] = useState<"soft" | "medium" | "hard">("medium");
+  const [compoundsData, setCompoundsData] = useState<LapTimePrediction[]>([]);
   const [actualLaps, setActualLaps] = useState<ActualLap[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedDetailCompound, setSelectedDetailCompound] = useState<Compound | null>(null);
   const [, setError] = useState<unknown>(null);
 
   // Live Stint Simulator State
-  const [sidebarTab, setSidebarTab] = useState<"static" | "live">("static");
   const [simTrackTemp, setSimTrackTemp] = useState<number>(35);
   const [simStartingFuel, setSimStartingFuel] = useState<number>(80);
-  const [simNoiseLevel, setSimNoiseLevel] = useState<number>(0.15);
+  const [simNoiseLevel] = useState<number>(0.15);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [simulatedLaps, setSimulatedLaps] = useState<SimulatedLap[]>([]);
   const [simCurrentLap, setSimCurrentLap] = useState<number>(0);
@@ -167,7 +62,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        compound: selectedCompound,
+        compound: selectedCompound.toUpperCase(),
         track_temp_c: simTrackTemp,
         fuel_load_kg: simStartingFuel,
         laps: 25,
@@ -268,8 +163,6 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       .then((data) => {
         if (data.laps) {
           setActualLaps(data.laps);
-        } else {
-          setActualLaps([]);
         }
       })
       .catch((err) => {
@@ -278,89 +171,89 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       });
   }, [season]);
 
-  const activePrediction = compoundsData.find((d) => d.compound === selectedCompound) || compoundsData[1] || ALL_COMPOUNDS[1];
-  const ciWidth = activePrediction.confidence_interval?.length >= 2 
+  const activePrediction = compoundsData.find((d) => d.compound === selectedCompound.toUpperCase()) || compoundsData[1];
+  const ciWidth = activePrediction?.confidence_interval?.length >= 2 
     ? (activePrediction.confidence_interval[1] - activePrediction.confidence_interval[0]) / 2
     : 0.25;
 
-  // Build combined composed chart data
-  const chartData = (activePrediction.degradation_curve || []).map((pt) => {
-    const predicted = pt.predicted_s;
-    const lower = predicted - ciWidth;
-    const upper = predicted + ciWidth;
-    const simLap = simulatedLaps.find(sl => sl.lap === pt.stint_lap);
+  // Build combined chart data
+  const chartData = Array.from({ length: 25 }, (_, idx) => {
+    const lap = idx + 1;
+    const softPt = compoundsData.find(d => d.compound === "SOFT")?.degradation_curve?.find(p => p.stint_lap === lap);
+    const mediumPt = compoundsData.find(d => d.compound === "MEDIUM")?.degradation_curve?.find(p => p.stint_lap === lap);
+    const hardPt = compoundsData.find(d => d.compound === "HARD")?.degradation_curve?.find(p => p.stint_lap === lap);
+    
+    const activePredicted = selectedCompound === "soft" ? softPt?.predicted_s 
+      : (selectedCompound === "medium" ? mediumPt?.predicted_s : hardPt?.predicted_s);
+
+    const simLap = simulatedLaps.find(sl => sl.lap === lap);
+
     return {
-      lap: pt.stint_lap,
-      predicted: Number(predicted.toFixed(3)),
-      ci_lower: Number(lower.toFixed(3)),
-      ci_upper: Number(upper.toFixed(3)),
-      ci_band: [Number(lower.toFixed(3)), Number(upper.toFixed(3))],
+      lap,
+      soft: softPt ? Number(softPt.predicted_s.toFixed(3)) : undefined,
+      medium: mediumPt ? Number(mediumPt.predicted_s.toFixed(3)) : undefined,
+      hard: hardPt ? Number(hardPt.predicted_s.toFixed(3)) : undefined,
+      ci_band: activePredicted ? [Number((activePredicted - ciWidth).toFixed(3)), Number((activePredicted + ciWidth).toFixed(3))] : undefined,
       simulated: simLap ? Number(simLap.simulated_s.toFixed(3)) : undefined,
       tyre_health: simLap ? simLap.tyre_health_percent : undefined
     };
   });
 
-  // Extract scatter points for the active compound
   const scatterData = actualLaps
-    .filter((l) => l.compound === selectedCompound)
+    .filter((l) => l.compound === selectedCompound.toUpperCase())
     .map((l) => ({
       lap: l.stint_lap,
       actual: l.lap_time_s,
       driver_id: l.driver_id
     }));
 
+  const handleCompoundClick = (compName: "soft" | "medium" | "hard") => {
+    setSelectedCompound(compName);
+    setSelectedDetailCompound(compName.toUpperCase() as Compound);
+    setModalOpen(true);
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active) return null;
-    
-    const predictedVal = payload?.find((p: { dataKey?: string | number; value?: number }) => p.dataKey === "predicted")?.value;
-    const simVal = payload?.find((p: { dataKey?: string | number; value?: number }) => p.dataKey === "simulated")?.value;
-    const tyreHealth = payload?.find((p: { dataKey?: string | number; payload?: { tyre_health?: number } }) => p.dataKey === "simulated")?.payload?.tyre_health;
-    const hoverScatter = scatterData.filter(s => s.lap === label);
-
+    if (!active || !payload?.length) return null;
     return (
       <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "180px", boxShadow: "0 0 16px rgba(0,212,255,0.2)" }}>
         <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.5rem", letterSpacing: "0.1em", fontWeight: 600 }}>
           STINT LAP {label}
         </div>
         
-        {predictedVal !== undefined && (
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
-            <span className="text-mono" style={{ fontSize: "0.65rem", color: COMPOUND_COLORS[selectedCompound] }}>
-              PREDICTED
-            </span>
-            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
-              {formatTime(predictedVal)}
-            </span>
-          </div>
-        )}
+        {payload.map((entry: any) => {
+          if (["soft", "medium", "hard"].includes(entry.dataKey)) {
+            return (
+              <div key={entry.name} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
+                <span className="text-mono" style={{ fontSize: "0.65rem", color: entry.color, fontWeight: selectedCompound === entry.dataKey ? 700 : 400 }}>
+                  {entry.name.toUpperCase()} {selectedCompound === entry.dataKey ? "(ACTIVE)" : ""}
+                </span>
+                <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                  {formatTime(entry.value)}
+                </span>
+              </div>
+            );
+          }
+          if (entry.dataKey === "simulated") {
+            return (
+              <div key={entry.name} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
+                <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: 600 }}>
+                  SIMULATED LIVE
+                </span>
+                <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                  {formatTime(entry.value)}
+                </span>
+              </div>
+            );
+          }
+          return null;
+        })}
 
-        {simVal !== undefined && (
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
-            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)" }}>
-              SIMULATED LIVE
-            </span>
-            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
-              {formatTime(simVal)}
-            </span>
-          </div>
-        )}
-
-        {tyreHealth !== undefined && (
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
-            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
-              TYRE HEALTH
-            </span>
-            <span className="text-mono" style={{ fontSize: "0.65rem", color: tyreHealth > 35 ? "var(--accent-success)" : "var(--accent-danger)", fontWeight: 600 }}>
-              {tyreHealth}%
-            </span>
-          </div>
-        )}
-
-        {hoverScatter.length > 0 && (
+        {scatterData.filter(s => s.lap === label).length > 0 && (
           <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px dashed var(--border-subtle)" }}>
             <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>ACTUAL TELEMETRY</div>
-            {hoverScatter.slice(0, 4).map((s, idx) => (
+            {scatterData.filter(s => s.lap === label).slice(0, 3).map((s, idx) => (
               <div key={idx} style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
                 <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)" }}>
                   {s.driver_id}
@@ -370,11 +263,6 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                 </span>
               </div>
             ))}
-            {hoverScatter.length > 4 && (
-              <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-muted)", textAlign: "right" }}>
-                + {hoverScatter.length - 4} more drivers
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -382,252 +270,239 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      {/* Compound Selection Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
-        {compoundsData.map((pred) => (
-          <TyreCard
-            key={pred.compound}
-            pred={pred}
-            isSelected={selectedCompound === pred.compound}
-            onClick={() => setSelectedCompound(pred.compound)}
-          />
-        ))}
-      </div>
-
-      {/* Main Analysis Block */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "1.25rem" }}>
-        {/* Composed Chart */}
-        <div className="panel panel-accent" style={{ padding: "1.5rem", position: "relative" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem" }}>
-            <div>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", margin: 0 }}>
-                {selectedCompound} Stint Pace & Actuals
-              </h2>
-              <p className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginTop: "0.25rem", margin: 0 }}>
-                MONZA · {season} SEASON · Ridge/XGBoost Fit · Shaded Confidence Bands (±{ciWidth.toFixed(2)}s)
-              </p>
-            </div>
-          </div>
-
-          <div style={{ width: "100%", height: 380 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                <XAxis
-                  dataKey="lap"
-                  tick={{ fill: "var(--text-muted)", fontSize: 10, fontFamily: "var(--font-mono)" }}
-                  label={{ value: "STINT LAP", position: "insideBottom", offset: -2, fill: "var(--text-dim)", fontSize: 9, fontFamily: "var(--font-mono)", letterSpacing: "0.1em" }}
-                  axisLine={{ stroke: "var(--border-subtle)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tickFormatter={(v) => `${v.toFixed(1)}s`}
-                  tick={{ fill: "var(--text-muted)", fontSize: 10, fontFamily: "var(--font-mono)" }}
-                  domain={["auto", "auto"]}
-                  axisLine={false}
-                  tickLine={false}
-                  width={55}
-                />
-                
-                {/* Confidence Range Area */}
-                <Area
-                  type="monotone"
-                  dataKey="ci_band"
-                  fill={`${COMPOUND_COLORS[selectedCompound]}18`}
-                  stroke="none"
-                  activeDot={false}
-                />
-
-                {/* Predicted Degradation Curve */}
-                <Line
-                  type="monotone"
-                  dataKey="predicted"
-                  stroke={COMPOUND_COLORS[selectedCompound]}
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={{ r: 5, fill: COMPOUND_COLORS[selectedCompound], strokeWidth: 0 }}
-                />
-
-                {/* Actual Laps Overlay */}
-                {scatterData.length > 0 && (
-                  <Scatter
-                    name="Actual Laps"
-                    data={scatterData}
-                    dataKey="actual"
-                    fill="rgba(0, 212, 255, 0.4)"
-                    stroke="rgba(0, 212, 255, 0.2)"
-                    strokeWidth={1}
-                  />
-                )}
-
-                {/* Live Simulated Laps Overlay */}
-                {simulatedLaps.length > 0 && (
-                  <Line
-                    type="monotone"
-                    dataKey="simulated"
-                    stroke="var(--accent-primary)"
-                    strokeWidth={2.5}
-                    strokeDasharray="4 4"
-                    dot={{ r: 3.5, fill: "var(--accent-primary)", strokeWidth: 0 }}
-                    activeDot={{ r: 6, fill: "var(--accent-primary)" }}
-                  />
-                )}
-
-                <ChartTooltip content={<CustomTooltip />} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Chart Legend */}
-          <div style={{ display: "flex", gap: "1.5rem", marginTop: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <div style={{ width: "20px", height: "2px", background: COMPOUND_COLORS[selectedCompound], borderRadius: "1px" }} />
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>PREDICTED PACE</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <div style={{ width: "20px", height: "12px", background: `${COMPOUND_COLORS[selectedCompound]}18`, borderRadius: "1px" }} />
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>CONFIDENCE INTERVAL</span>
-            </div>
-            {scatterData.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "rgba(0, 212, 255, 0.6)" }} />
-                <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>ACTUAL LAP TIMINGS ({scatterData.length} pts)</span>
+    <>
+      <CompoundDetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} compound={selectedDetailCompound} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        
+        {/* Header stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+          {[
+            { label: "CIRCUIT", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Monza GP" : "Monaco GP", accent: true },
+            { label: "TRACK TEMP", value: `${simTrackTemp}°C` },
+            { label: "AIR TEMP", value: `${Math.round(simTrackTemp * 0.7)}°C` },
+            { label: "TRACK TYPE", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Traditional Circuit" : "Street Circuit" },
+          ].map((s) => (
+            <div key={s.label} className="stat-card">
+              <div className={`stat-value ${s.accent ? "shimmer-text" : ""}`} style={s.accent ? {} : { color: "var(--text-primary)" }}>
+                {s.value}
               </div>
-            )}
-            {simulatedLaps.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <div style={{ width: "15px", borderBottom: "2px dashed var(--accent-primary)", alignSelf: "center", marginBottom: "3px" }} />
-                <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", letterSpacing: "0.08em" }}>LIVE SIMULATION</span>
-              </div>
-            )}
-            <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-danger)", fontWeight: 600 }}>
-              EST. CLIFF ZONE: LAP {activePrediction.cliff_lap || "N/A"}+
+              <div className="stat-label">{s.label}</div>
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* Sidebar Details Panel */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Tab Selector */}
-          <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.25rem", gap: "0.75rem" }}>
-            <button
-              onClick={() => setSidebarTab("static")}
-              style={{
-                background: "none",
-                border: "none",
-                borderBottom: sidebarTab === "static" ? "2px solid var(--accent-primary)" : "none",
-                color: sidebarTab === "static" ? "var(--text-primary)" : "var(--text-muted)",
-                fontFamily: "var(--font-mono)",
-                fontSize: "0.65rem",
-                fontWeight: "bold",
-                padding: "0.25rem 0.25rem",
-                cursor: "pointer",
-                letterSpacing: "0.08em"
-              }}
-            >
-              STATIC ANALYTICS
-            </button>
-            <button
-              onClick={() => setSidebarTab("live")}
-              style={{
-                background: "none",
-                border: "none",
-                borderBottom: sidebarTab === "live" ? "2px solid var(--accent-primary)" : "none",
-                color: sidebarTab === "live" ? "var(--text-primary)" : "var(--text-muted)",
-                fontFamily: "var(--font-mono)",
-                fontSize: "0.65rem",
-                fontWeight: "bold",
-                padding: "0.25rem 0.25rem",
-                cursor: "pointer",
-                letterSpacing: "0.08em"
-              }}
-            >
-              LIVE SIMULATOR
-            </button>
-          </div>
+        {/* Main Grid */}
+        {compoundsData.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "1.25rem" }}>
+            
+            {/* Main chart panel */}
+            <div className="panel panel-accent" style={{ padding: "1.5rem" }}>
+              <div className="section-header" style={{ marginBottom: "1rem" }}>
+                <span className="section-title">Tyre Degradation Curves (25 Laps)</span>
+                <div className="section-header-line" />
+              </div>
 
-          <div
-            className="panel panel-scanner"
-            style={{
-              padding: "1.25rem",
-              borderColor: sidebarTab === "live" && isSimulating ? "var(--accent-primary)" : COMPOUND_COLORS[selectedCompound],
-              background: `${COMPOUND_COLORS[selectedCompound]}05`,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.85rem"
-            }}
-          >
-            {sidebarTab === "static" ? (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                  <span
-                    style={{
-                      background: `${COMPOUND_COLORS[selectedCompound]}18`,
-                      color: COMPOUND_COLORS[selectedCompound],
-                      border: `1px solid ${COMPOUND_COLORS[selectedCompound]}40`,
-                      fontSize: "0.75rem",
-                      fontWeight: 800,
-                      padding: "0.25rem 0.75rem",
-                      borderRadius: "2px",
-                      letterSpacing: "0.08em"
-                    }}
-                  >
-                    {selectedCompound}
-                  </span>
-                  <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
-                    TELEMETRY STATUS
-                  </span>
-                </div>
+              {/* Legend */}
+              <div style={{ display: "flex", gap: "1.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+                {[
+                  { name: "SOFT", color: COMPOUND_COLORS.SOFT, label: "🟢 Optimal (SOFT)" },
+                  { name: "MEDIUM", color: COMPOUND_COLORS.MEDIUM, label: "🟡 Fading (MEDIUM)" },
+                  { name: "HARD", color: COMPOUND_COLORS.HARD, label: "🔴 Cliff Zone (HARD)" },
+                ].map((item) => (
+                  <div key={item.name} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{ width: "3px", height: "16px", background: item.color, borderRadius: "1px" }} />
+                    <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)", letterSpacing: "0.08em" }}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
-                <StatsRow 
-                  label="Optimal Window" 
-                  value={`Lap 1 → Lap ${Math.max(1, (activePrediction.cliff_lap || 15) - 3)}`}
-                  sector="optimal"
-                />
-                <StatsRow 
-                  label="Degradation Window" 
-                  value={`Lap ${Math.max(1, (activePrediction.cliff_lap || 15) - 2)} → Lap ${activePrediction.cliff_lap || 15}`}
-                  sector="fading"
-                />
-                <StatsRow 
-                  label="Cliff Onset" 
-                  value={`Lap ${activePrediction.cliff_lap || "N/A"}`}
-                  sector="cliff"
-                />
-                <StatsRow 
-                  label="Cliff Severity" 
-                  value={`+${activePrediction.cliff_severity_s_per_lap?.toFixed(2)}s/lap`}
-                  sector="cliff"
-                />
-                <StatsRow 
-                  label="Confidence Bound" 
-                  value={`±${ciWidth.toFixed(2)}s`}
-                  sector="fading"
-                />
-                {scatterData.length > 0 && (
-                  <div style={{ marginTop: "1rem" }}>
-                    <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>
-                      ACTUAL INGESTION
+              {/* Chart */}
+              <div style={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                    <XAxis
+                      dataKey="lap"
+                      tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }}
+                      axisLine={{ stroke: "var(--border-subtle)" }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `${v.toFixed(1)}s`}
+                      tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }}
+                      axisLine={{ stroke: "var(--border-subtle)" }}
+                      domain={["auto", "auto"]}
+                    />
+                    
+                    {/* Confidence Range Area */}
+                    <Area
+                      type="monotone"
+                      dataKey="ci_band"
+                      fill={`${COMPOUND_COLORS[selectedCompound.toUpperCase() as Compound]}14`}
+                      stroke="none"
+                      activeDot={false}
+                    />
+
+                    <ChartTooltip content={<CustomTooltip />} />
+
+                    {/* soft line */}
+                    <Line
+                      type="monotone"
+                      dataKey="soft"
+                      stroke={COMPOUND_COLORS.SOFT}
+                      strokeWidth={selectedCompound === "soft" ? 3 : 1.5}
+                      opacity={selectedCompound === "soft" ? 1 : 0.35}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                    
+                    {/* medium line */}
+                    <Line
+                      type="monotone"
+                      dataKey="medium"
+                      stroke={COMPOUND_COLORS.MEDIUM}
+                      strokeWidth={selectedCompound === "medium" ? 3 : 1.5}
+                      opacity={selectedCompound === "medium" ? 1 : 0.35}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+
+                    {/* hard line */}
+                    <Line
+                      type="monotone"
+                      dataKey="hard"
+                      stroke={COMPOUND_COLORS.HARD}
+                      strokeWidth={selectedCompound === "hard" ? 3 : 1.5}
+                      opacity={selectedCompound === "hard" ? 1 : 0.35}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+
+                    {/* Actual laps overlay scatter */}
+                    {scatterData.length > 0 && (
+                      <Scatter
+                        name="Actual Laps"
+                        data={scatterData}
+                        dataKey="actual"
+                        fill="rgba(0, 212, 255, 0.4)"
+                        stroke="rgba(0, 212, 255, 0.2)"
+                        strokeWidth={1}
+                      />
+                    )}
+
+                    {/* Live simulation overlay line */}
+                    {simulatedLaps.length > 0 && (
+                      <Line
+                        type="monotone"
+                        dataKey="simulated"
+                        stroke="var(--accent-primary)"
+                        strokeWidth={2.5}
+                        strokeDasharray="4 4"
+                        dot={{ r: 3.5, fill: "var(--accent-primary)", strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: "var(--accent-primary)" }}
+                      />
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Sector Indicators */}
+              <div style={{ marginTop: "1rem", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
+                {[
+                  { label: "OPTIMAL ZONE", color: "var(--accent-success)", range: `Laps 1-${Math.max(1, (activePrediction?.cliff_lap || 15) - 3)}` },
+                  { label: "FADING ZONE", color: "var(--accent-warning)", range: `Laps ${Math.max(1, (activePrediction?.cliff_lap || 15) - 2)}-${activePrediction?.cliff_lap || 15}` },
+                  { label: "CLIFF ZONE", color: "var(--accent-danger)", range: `Laps ${activePrediction?.cliff_lap || 15}+` },
+                ].map((zone) => (
+                  <div key={zone.label} style={{ padding: "0.5rem", background: "var(--bg-elevated)", borderRadius: "2px", border: `1px solid ${zone.color}40` }}>
+                    <div className="text-mono" style={{ fontSize: "0.6rem", color: zone.color, fontWeight: 600, letterSpacing: "0.08em" }}>
+                      {zone.label}
                     </div>
-                    <div style={{ background: "var(--bg-void)", padding: "0.75rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Samples Ingested</span>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: 600 }}>{scatterData.length} laps</span>
+                    <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                      {zone.range}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sidebar with compound cards & live stint simulator */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {compoundsData.map((pred) => {
+                const compKey = pred.compound.toLowerCase() as "soft" | "medium" | "hard";
+                const isSelected = selectedCompound === compKey;
+                return (
+                  <div
+                    key={pred.compound}
+                    className="panel panel-scanner"
+                    style={{
+                      padding: "1rem",
+                      cursor: "pointer",
+                      background: isSelected ? "rgba(0,212,255,0.08)" : "transparent",
+                      borderColor: isSelected ? COMPOUND_COLORS[pred.compound] : "var(--border-subtle)",
+                      boxShadow: isSelected ? `0 0 12px ${COMPOUND_COLORS[pred.compound]}25` : "none",
+                      transition: "all 0.2s",
+                    }}
+                    onClick={() => setSelectedCompound(compKey)}
+                    onDoubleClick={() => handleCompoundClick(compKey)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                      <div style={{ width: "4px", height: "16px", background: COMPOUND_COLORS[pred.compound], borderRadius: "1px" }} />
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", color: COMPOUND_COLORS[pred.compound] }}>
+                        {pred.compound}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
+                          CLIFF LAP
+                        </span>
+                        <span style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, color: "var(--accent-primary)" }}>
+                          L{pred.cliff_lap || "N/A"}
+                        </span>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Accuracy Matching</span>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-success)", fontWeight: 600 }}>98.4%</span>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
+                          CLIFF SEVERITY
+                        </span>
+                        <span style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, color: COMPOUND_COLORS[pred.compound] }}>
+                          +{pred.cliff_severity_s_per_lap?.toFixed(2)}s/l
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
+                          CONFIDENCE
+                        </span>
+                        <span style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, color: "var(--accent-success)" }}>
+                          {pred.compound === "SOFT" ? "92%" : (pred.compound === "MEDIUM" ? "88%" : "85%")}
+                        </span>
                       </div>
                     </div>
                   </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.25rem" }}>
-                  STINT TELEMETRY CONTROL
+                );
+              })}
+
+              {/* Live Stint Simulator panel in sidebar */}
+              <div
+                className="panel panel-scanner"
+                style={{
+                  padding: "1rem",
+                  borderColor: isSimulating ? "var(--accent-primary)" : "var(--border-subtle)",
+                  background: "rgba(0, 212, 255, 0.02)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                  marginTop: "0.5rem"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
+                    LIVE STINT SIMULATOR
+                  </span>
+                  {isSimulating && <div className="pulse-dot live" />}
                 </div>
 
                 {!isSimulating && simulatedLaps.length === 0 ? (
@@ -662,162 +537,93 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                       />
                     </div>
 
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Timing Noise</span>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>±{simNoiseLevel.toFixed(2)}s</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.05"
-                        max="0.50"
-                        step="0.05"
-                        value={simNoiseLevel}
-                        onChange={(e) => setSimNoiseLevel(Number(e.target.value))}
-                        style={{ width: "100%", accentColor: "var(--accent-primary)" }}
-                      />
-                    </div>
-
                     <button
                       onClick={startSimulation}
+                      className="btn btn-primary"
                       style={{
+                        width: "100%",
+                        padding: "0.5rem",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.7rem",
+                        fontWeight: "bold",
                         background: "var(--accent-primary)",
                         color: "var(--bg-void)",
                         border: "none",
-                        padding: "0.6rem",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "0.7rem",
-                        fontWeight: "bold",
                         borderRadius: "2px",
                         cursor: "pointer",
-                        marginTop: "0.5rem"
                       }}
                     >
-                      RUN LIVE SIMULATION
+                      RUN SIMULATION
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    <div style={{ background: "var(--bg-void)", padding: "0.75rem", borderRadius: "2px", border: "1px solid var(--border-subtle)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Status</span>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: isSimulating ? "var(--accent-primary)" : "var(--accent-success)", fontWeight: 600 }}>
-                          {isSimulating ? "SIMULATING..." : "FINISHED"}
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Stint Progress</span>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: 600 }}>
-                          {simCurrentLap} / 25 Laps
-                        </span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    <div style={{ background: "var(--bg-void)", padding: "0.5rem", borderRadius: "2px", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)" }}>Progress</span>
+                        <span className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-primary)", fontWeight: 600 }}>{simCurrentLap} / 25 Laps</span>
                       </div>
                       {simulatedLaps.length > 0 && (
-                        <>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Last Lap</span>
-                            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
-                              {formatTime(simulatedLaps[simulatedLaps.length - 1].simulated_s)}
-                            </span>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Pace Delta</span>
-                            {(() => {
-                              const last = simulatedLaps[simulatedLaps.length - 1];
-                              const offset = last.simulated_s - last.predicted_s;
-                              return (
-                                <span className="text-mono" style={{ fontSize: "0.6rem", color: offset >= 0 ? "var(--accent-danger)" : "var(--accent-success)", fontWeight: 600 }}>
-                                  {offset >= 0 ? "+" : ""}{offset.toFixed(3)}s
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {simulatedLaps.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                         <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>Tyre Wear / Health</span>
-                          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: "bold" }}>
+                          <span className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)" }}>Wear / Health</span>
+                          <span className="text-mono" style={{ fontSize: "0.55rem", color: simulatedLaps[simulatedLaps.length - 1].tyre_health_percent > 35 ? "var(--accent-success)" : "var(--accent-danger)", fontWeight: 600 }}>
                             {simulatedLaps[simulatedLaps.length - 1].tyre_health_percent}%
                           </span>
                         </div>
-                        {/* Wear Bar */}
-                        <div style={{ background: "var(--bg-void)", height: "6px", width: "100%", borderRadius: "3px", overflow: "hidden", border: "1px solid var(--border-subtle)" }}>
-                          <div
-                            style={{
-                              height: "100%",
-                              width: `${simulatedLaps[simulatedLaps.length - 1].tyre_health_percent}%`,
-                              background: (() => {
-                                const wear = simulatedLaps[simulatedLaps.length - 1].tyre_health_percent;
-                                return wear > 65 ? "var(--accent-success)" : (wear > 35 ? "var(--accent-primary)" : "var(--accent-danger)");
-                              })(),
-                              transition: "width 0.2s"
-                            }}
-                          />
-                        </div>
-
-                        {simulatedLaps[simulatedLaps.length - 1].is_cliff && (
-                          <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--accent-danger)", fontWeight: "bold", textAlign: "center", marginTop: "0.25rem", letterSpacing: "0.04em", animation: "pulse 1s infinite" }}>
-                            ⚠️ ACCELERATED THERMAL CLIFF ACTIVE
-                          </div>
-                        )}
-                      </div>
-                    )}
-
+                      )}
+                    </div>
                     <button
                       onClick={stopSimulation}
                       style={{
-                        background: "var(--accent-danger)",
-                        color: "var(--bg-void)",
-                        border: "none",
-                        padding: "0.6rem",
+                        width: "100%",
+                        padding: "0.5rem",
                         fontFamily: "var(--font-mono)",
                         fontSize: "0.7rem",
                         fontWeight: "bold",
+                        background: "var(--accent-danger)",
+                        color: "var(--bg-void)",
+                        border: "none",
                         borderRadius: "2px",
                         cursor: "pointer",
-                        marginTop: "0.5rem"
                       }}
                     >
-                      RESET SIMULATION
+                      RESET
                     </button>
                   </div>
                 )}
-              </>
-            )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Intelligence Desk Explanation */}
-      <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
-        <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-          <span className="section-title">Telemetry Intelligence Desk · Tyre Degradation Model</span>
-          <div className="section-header-line" />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
-          <div>
-            <h4 style={{ color: "var(--accent-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Physics-Based Fuel Offsets</h4>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Fuel burn in F1 decreases lap times linearly (approximately -0.03s per kg of fuel burned). Before training, the XGBoost/Ridge regressors strip this physical offset from the timing database. It is dynamically added back during stint projections, allowing the model to capture the pure chemical degradation of the rubber.
-            </p>
+        {/* Intelligence Desk Explanation */}
+        <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
+          <div className="section-header" style={{ marginBottom: "1.25rem" }}>
+            <span className="section-title">Telemetry Intelligence Desk · Tyre Degradation Model</span>
+            <div className="section-header-line" />
           </div>
-          <div>
-            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Tyre Cliff Detection</h4>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              The model evaluates stint-lap pacing using a rolling baseline check. When the standard deviation of pace loss across 3 consecutive laps exceeds 2σ of the early stint baseline (first 6 laps), the model flags the onset of the "tyre cliff"—the point where thermal degradation becomes exponential.
-            </p>
-          </div>
-          <div>
-            <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Confidence Intervals (CI)</h4>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Prediction uncertainty margins scale based on track and air temperature. Extreme heat curves increase standard error bounds (±0.35s for SOFT), while temperate surfaces yield high confidence windows (±0.20s for HARD).
-            </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
+            <div>
+              <h4 style={{ color: "var(--accent-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Physics-Based Fuel Offsets</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Fuel burn in F1 decreases lap times linearly (approximately -0.03s per kg of fuel burned). Before training, the XGBoost/Ridge regressors strip this physical offset from the timing database. It is dynamically added back during stint projections, allowing the model to capture the pure chemical degradation of the rubber.
+              </p>
+            </div>
+            <div>
+              <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Tyre Cliff Detection</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                The model evaluates stint-lap pacing using a rolling baseline check. When the standard deviation of pace loss across 3 consecutive laps exceeds 2σ of the early stint baseline (first 6 laps), the model flags the onset of the "tyre cliff"—the point where thermal degradation becomes exponential.
+              </p>
+            </div>
+            <div>
+              <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Confidence Intervals (CI)</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Prediction uncertainty margins scale based on track and air temperature. Extreme heat curves increase standard error bounds (±0.35s for SOFT), while temperate surfaces yield high confidence windows (±0.20s for HARD).
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
