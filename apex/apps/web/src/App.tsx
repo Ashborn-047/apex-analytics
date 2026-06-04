@@ -3,6 +3,8 @@ import EloDashboard from "./pages/EloDashboard";
 import TyreLapPredictor from "./pages/TyreLapPredictor";
 import PitWallPlanner from "./pages/PitWallPlanner";
 import MonteCarlo from "./pages/MonteCarlo";
+import DriverProfile from "./pages/DriverProfile";
+import DriverCompare from "./pages/DriverCompare";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -82,7 +84,7 @@ class PageErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 }
 
-type Tab = "elo" | "tyres" | "pit" | "montecarlo";
+type Tab = "elo" | "tyres" | "pit" | "montecarlo" | "driver-profile" | "compare";
 
 interface NavItem {
   id: Tab;
@@ -109,6 +111,7 @@ function TopNav({
   season: number;
   onSeasonChange: (s: number) => void;
 }) {
+  const highlightedTab = (active === "driver-profile" || active === "compare") ? "elo" : active;
   return (
     <header style={{
       background: "var(--bg-surface)",
@@ -229,9 +232,9 @@ function TopNav({
               flexDirection: "column",
               alignItems: "flex-start",
               padding: "0.625rem 1rem",
-              background: active === item.id ? "rgba(0,212,255,0.08)" : "transparent",
+              background: highlightedTab === item.id ? "rgba(0,212,255,0.08)" : "transparent",
               border: "none",
-              borderBottom: `2px solid ${active === item.id ? "var(--accent-primary)" : "transparent"}`,
+              borderBottom: `2px solid ${highlightedTab === item.id ? "var(--accent-primary)" : "transparent"}`,
               cursor: "pointer",
               transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
               gap: "0.1rem",
@@ -240,28 +243,28 @@ function TopNav({
               zIndex: 1,
             }}
             onMouseEnter={(e) => {
-              if (active !== item.id) {
+              if (highlightedTab !== item.id) {
                 (e.currentTarget as HTMLElement).style.background = "rgba(0,212,255,0.04)";
               }
             }}
             onMouseLeave={(e) => {
-              if (active !== item.id) {
+              if (highlightedTab !== item.id) {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
               }
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <span style={{ fontSize: "0.8rem", opacity: active === item.id ? 1 : 0.5, transition: "opacity 0.2s" }}>{item.icon}</span>
+              <span style={{ fontSize: "0.8rem", opacity: highlightedTab === item.id ? 1 : 0.5, transition: "opacity 0.2s" }}>{item.icon}</span>
               <span style={{
                 fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.8rem",
                 textTransform: "uppercase", letterSpacing: "0.08em",
-                color: active === item.id ? "var(--accent-primary)" : "var(--text-secondary)",
+                color: highlightedTab === item.id ? "var(--accent-primary)" : "var(--text-secondary)",
                 transition: "color 0.2s",
               }}>
                 {item.label}
               </span>
             </div>
-            <span className="text-mono" style={{ fontSize: "0.55rem", color: active === item.id ? "var(--accent-primary)" : "var(--text-dim)", letterSpacing: "0.1em", transition: "color 0.2s" }}>
+            <span className="text-mono" style={{ fontSize: "0.55rem", color: highlightedTab === item.id ? "var(--accent-primary)" : "var(--text-dim)", letterSpacing: "0.1em", transition: "color 0.2s" }}>
               {item.sublabel}
             </span>
           </button>
@@ -274,12 +277,41 @@ function TopNav({
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("elo");
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
 
   const PAGE_MAP: Record<Tab, JSX.Element> = {
-    elo:        <EloDashboard season={selectedSeason} />,
+    elo: (
+      <EloDashboard
+        season={selectedSeason}
+        onViewProfile={(id) => {
+          setSelectedDriverId(id);
+          setActiveTab("driver-profile");
+        }}
+        onViewCompare={(id) => {
+          setSelectedDriverId(id);
+          setActiveTab("compare");
+        }}
+      />
+    ),
     tyres:      <TyreLapPredictor season={selectedSeason} />,
     pit:        <PitWallPlanner season={selectedSeason} />,
     montecarlo: <MonteCarlo season={selectedSeason} />,
+    "driver-profile": (
+      <DriverProfile
+        driverId={selectedDriverId || "VER"}
+        onBack={() => setActiveTab("elo")}
+        onCompare={(id) => {
+          setSelectedDriverId(id);
+          setActiveTab("compare");
+        }}
+      />
+    ),
+    compare: (
+      <DriverCompare
+        initialDriverId={selectedDriverId || "VER"}
+        onBack={() => setActiveTab("elo")}
+      />
+    ),
   };
 
   return (
