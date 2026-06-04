@@ -5,6 +5,8 @@ from src.models.elo import EloRatingSystem
 from src.models.lap_time import LapTimePredictor
 from src.models.strategy import PitStopStrategy
 from src.models.simulation import ChampionshipSimulation
+from src.models.driver_form import DriverFormIndex
+from src.models.weather import WeatherImpactModel
 
 router = APIRouter(
     prefix="/predict",
@@ -16,6 +18,8 @@ elo_system = EloRatingSystem()
 lap_predictor = LapTimePredictor()
 strategy_engine = PitStopStrategy()
 sim_engine = ChampionshipSimulation()
+form_index_model = DriverFormIndex()
+weather_model = WeatherImpactModel()
 
 # ============================================================================
 # PYDANTIC SCHEMAS
@@ -115,10 +119,19 @@ class ActualPitStopItem(BaseModel):
     pit_lap: int
     pace_loss_s: float = 0.0
 
-class ActualPitStopsPayload(BaseModel):
-    season: int
-    circuit_id: str
-    stops: List[ActualPitStopItem]
+class DriverFormUpdateInput(BaseModel):
+    driver_id: str = Field(..., examples=["VER"])
+    lap_times: List[float] = Field(..., examples=[82.1, 82.3, 82.5, 82.2, 82.4])
+    qual_pos: int = Field(..., ge=1, le=22, examples=[1])
+    finish_pos: int = Field(..., ge=1, le=22, examples=[1])
+    expected_finish_pos: float = Field(..., ge=1.0, le=22.0, examples=[2.2])
+
+class WeatherImpactInput(BaseModel):
+    track_temp_c: float = Field(35.0, ge=0.0, le=70.0, examples=[42.5])
+    air_temp_c: float = Field(25.0, ge=0.0, le=50.0, examples=[22.0])
+    humidity: float = Field(50.0, ge=0.0, le=100.0, examples=[45.0])
+    rain_probability: float = Field(0.0, ge=0.0, le=1.0, examples=[0.1])
+    wind_speed_kmh: float = Field(10.0, ge=0.0, le=100.0, examples=[12.0])
 
 # ============================================================================
 # API ROUTES
@@ -437,6 +450,70 @@ def simulate_live_stint(data: LiveStintSimulationInput):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Live stint simulation failed: {str(e)}")
+
+
+# --- DRIVER FORM ENDPOINTS ---
+
+@router.get("/driver-form/{driver_id}")
+def get_driver_form(driver_id: str):
+    try:
+        return form_index_model.get_form(driver_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate driver form: {str(e)}")
+
+@router.post("/driver-form/update")
+def update_driver_form(data: DriverFormUpdateInput):
+    try:
+        new_val = form_index_model.update_form(
+            driver_id=data.driver_id,
+            lap_times=data.lap_times,
+            qual_pos=data.qual_pos,
+            finish_pos=data.finish_pos,
+            expected_finish_pos=data.expected_finish_pos
+        )
+        return {
+            "status": "success",
+            "driver_id": data.driver_id,
+            "new_form_index": round(new_val, 1)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update driver form: {str(e)}")
+
+@router.get("/driver-form/rankings")
+def get_driver_form_rankings():
+    try:
+        return {
+            "status": "success",
+            "rankings": form_index_model.get_rankings()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get form rankings: {str(e)}")
+
+
+# --- WEATHER IMPACT ENDPOINTS ---
+
+@router.post("/weather-impact")
+def predict_weather_impact(data: WeatherImpactInput):
+    try:
+        return weather_model.calculate_impact(
+            track_temp_c=data.track_temp_c,
+            air_temp_c=data.air_temp_c,
+            humidity=data.humidity,
+            rain_probability=data.rain_probability,
+            wind_speed_kmh=data.wind_speed_kmh
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate weather impact: {str(e)}")
+
+@router.get("/weather-impact/wet-rankings")
+def get_driver_wet_rankings():
+    try:
+        return {
+            "status": "success",
+            "rankings": weather_model.get_wet_rankings()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve wet weather rankings: {str(e)}")
 
 
 
