@@ -50,6 +50,28 @@ class LapTimePredictor:
                 "ci_width": 0.20
             }
         }
+        
+        # Driver-specific performance profiles
+        self.driver_profiles = {
+            "VER": {"pace_offset": -0.45, "tyre_management": 0.82},  # Red Bull - Max Verstappen
+            "NOR": {"pace_offset": -0.35, "tyre_management": 0.88},  # McLaren - Lando Norris
+            "LEC": {"pace_offset": -0.38, "tyre_management": 0.92},  # Ferrari - Charles Leclerc
+            "HAM": {"pace_offset": -0.28, "tyre_management": 0.80},  # Ferrari - Lewis Hamilton (veteran preservation)
+            "RUS": {"pace_offset": -0.25, "tyre_management": 0.95},  # Mercedes - George Russell
+            "PIA": {"pace_offset": -0.20, "tyre_management": 0.93},  # McLaren - Oscar Piastri
+            "SAI": {"pace_offset": -0.22, "tyre_management": 0.86},  # Williams - Carlos Sainz
+            "ALO": {"pace_offset": -0.15, "tyre_management": 0.83},  # Aston Martin - Fernando Alonso
+            "PER": {"pace_offset": 0.12,   "tyre_management": 0.85},  # Red Bull - Sergio Perez
+            "STR": {"pace_offset": 0.38,   "tyre_management": 1.12},  # Aston Martin - Lance Stroll
+            "GAS": {"pace_offset": 0.30,   "tyre_management": 1.05},  # Alpine - Pierre Gasly
+            "OCO": {"pace_offset": 0.32,   "tyre_management": 1.08},  # Haas - Esteban Ocon
+            "ALB": {"pace_offset": 0.25,   "tyre_management": 0.94},  # Williams - Alex Albon
+            "TSU": {"pace_offset": 0.35,   "tyre_management": 1.02},  # RB - Yuki Tsunoda
+            "RIC": {"pace_offset": 0.40,   "tyre_management": 0.98},  # RB - Daniel Ricciardo
+            "HUL": {"pace_offset": 0.22,   "tyre_management": 1.04},  # Kick Sauber - Nico Hulkenberg
+            "BOT": {"pace_offset": 0.45,   "tyre_management": 0.96},  # Kick Sauber - Valtteri Bottas
+            "MAG": {"pace_offset": 0.50,   "tyre_management": 1.15},  # Haas - Kevin Magnussen
+        }
 
     def detect_cliff(self, lap_times: List[float], window: int = 3) -> Optional[int]:
         if len(lap_times) < 8:
@@ -127,23 +149,30 @@ class LapTimePredictor:
             
         self.is_trained = True
 
-    def predict(self, tyre_age: int, track_temp: float, fuel_load: float, compound: str) -> float:
+    def predict(self, tyre_age: int, track_temp: float, fuel_load: float, compound: str, driver_id: str = "VER") -> float:
         """
         Calculates predicted lap time in seconds for a specific query.
         """
         compound = compound.upper()
+        driver_id = driver_id.upper()
+        
+        # Get driver-specific factors
+        profile = self.driver_profiles.get(driver_id, {"pace_offset": 0.0, "tyre_management": 1.0})
+        pace_offset = profile["pace_offset"]
+        tyre_management = profile["tyre_management"]
         
         # Falling back to analytical model if not trained or if compound not in trained set
         if not self.is_trained:
             params = self.fallback_curves.get(compound, self.fallback_curves["MEDIUM"])
-            base = params["base_time"]
-            n = tyre_age
+            base = params["base_time"] + pace_offset
+            # Scale age by tyre management factor (e.g. <1 saves tyre, >1 burns tyre)
+            n = tyre_age * tyre_management
             
             # T(n) = base + b1*n + b2*n^2 + cliff(n)
             degrade = params["b1"] * n + params["b2"] * (n ** 2)
-            cliff_lap = params["cliff_lap"]
-            if n > cliff_lap:
-                degrade += params["cliff_severity"] * (n - cliff_lap)
+            cliff_lap = params["cliff_lap"] / tyre_management
+            if tyre_age > cliff_lap:
+                degrade += params["cliff_severity"] * (tyre_age - cliff_lap)
                 
             # Add fuel load effect back: T_raw = T_adjusted + fuel_load * 0.03
             fuel_penalty = fuel_load * self.fuel_penalty_s_per_kg
@@ -165,21 +194,22 @@ class LapTimePredictor:
         else:
             pred_adjusted = self.ridge_model.predict(x)[0]
             
-        # Add fuel effect back
-        return float(pred_adjusted + (fuel_load * self.fuel_penalty_s_per_kg))
+        # Add fuel effect back & driver pace offset
+        return float(pred_adjusted + (fuel_load * self.fuel_penalty_s_per_kg) + pace_offset)
 
     def predict_full_curve(self, compound: str, track_temp_c: float, fuel_load_kg: float, driver_id: str = "VER") -> Dict[str, Any]:
         """
         Predicts a full 25-lap stint degradation curve and reports cliff metrics.
         """
         compound = compound.upper()
+        driver_id = driver_id.upper()
         curve = []
         
         # Calculate times for laps 1 through 25
         for lap in range(1, 26):
             # Decrease fuel load dynamically over the stint (~1.55kg fuel burned per lap)
             current_fuel = max(0.0, fuel_load_kg - (lap - 1) * 1.55)
-            lap_time = self.predict(tyre_age=lap, track_temp=track_temp_c, fuel_load=current_fuel, compound=compound)
+            lap_time = self.predict(tyre_age=lap, track_temp=track_temp_c, fuel_load=current_fuel, compound=compound, driver_id=driver_id)
             curve.append({
                 "stint_lap": lap,
                 "predicted_s": round(lap_time, 3)
@@ -188,32 +218,34 @@ class LapTimePredictor:
         times = [pt["predicted_s"] for pt in curve]
         cliff_lap = self.detect_cliff(times)
         
-        # Confidence interval sizing
         params = self.fallback_curves.get(compound, self.fallback_curves["MEDIUM"])
-        ci_width = params["ci_width"]
+        profile = self.driver_profiles.get(driver_id, {"pace_offset": 0.0, "tyre_management": 1.0})
+        tyre_management = profile["tyre_management"]
         
+        ci_width = params["ci_width"]
         predicted_lap_time = times[0]
         
         return {
             "predicted_lap_time_s": round(predicted_lap_time, 3),
             "confidence_interval": [round(predicted_lap_time - ci_width, 3), round(predicted_lap_time + ci_width, 3)],
             "degradation_curve": curve,
-            "cliff_lap": cliff_lap or params["cliff_lap"],
+            "cliff_lap": cliff_lap or int(params["cliff_lap"] / tyre_management),
             "cliff_severity_s_per_lap": params["cliff_severity"],
             "compound": compound,
             "circuit_id": "monza"
         }
 
-    def simulate_stint(self, compound: str, track_temp_c: float, fuel_load_kg: float, laps: int = 25, noise_level: float = 0.15) -> List[Dict[str, Any]]:
+    def simulate_stint(self, compound: str, track_temp_c: float, fuel_load_kg: float, laps: int = 25, noise_level: float = 0.15, driver_id: str = "VER") -> List[Dict[str, Any]]:
         """
         Simulates lap-by-lap timings for a stint with randomized race noise,
         calculating dynamic fuel burn and real-time tyre health.
         """
         import random
         compound = compound.upper()
+        driver_id = driver_id.upper()
         
         # Get baseline prediction curve
-        pred_res = self.predict_full_curve(compound, track_temp_c, fuel_load_kg)
+        pred_res = self.predict_full_curve(compound, track_temp_c, fuel_load_kg, driver_id=driver_id)
         curve = pred_res["degradation_curve"]
         cliff_lap = pred_res["cliff_lap"]
         

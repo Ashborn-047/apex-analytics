@@ -5,6 +5,7 @@ import PitWallPlanner from "./pages/PitWallPlanner";
 import MonteCarlo from "./pages/MonteCarlo";
 import DriverProfile from "./pages/DriverProfile";
 import DriverCompare from "./pages/DriverCompare";
+import RacePreview from "./pages/RacePreview";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -84,7 +85,7 @@ class PageErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 }
 
-type Tab = "elo" | "tyres" | "pit" | "montecarlo" | "driver-profile" | "compare";
+type Tab = "elo" | "tyres" | "pit" | "montecarlo" | "driver-profile" | "compare" | "preview";
 
 interface NavItem {
   id: Tab;
@@ -95,6 +96,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: "elo",         label: "Driver Elo",     sublabel: "H2H RATINGS",      icon: "⚡" },
+  { id: "preview",     label: "Race Preview",   sublabel: "GRID & OUTCOME",   icon: "❖" },
   { id: "tyres",       label: "Tyre & Lap",     sublabel: "DEGRADATION MODEL", icon: "◎" },
   { id: "pit",         label: "Pit Wall",        sublabel: "STRATEGY PLANNER",  icon: "⬡" },
   { id: "montecarlo",  label: "Monte Carlo",    sublabel: "CHAMPIONSHIP SIM",  icon: "∑" },
@@ -293,6 +295,7 @@ export default function App() {
         }}
       />
     ),
+    preview:    <RacePreview season={selectedSeason} />,
     tyres:      <TyreLapPredictor season={selectedSeason} />,
     pit:        <PitWallPlanner season={selectedSeason} />,
     montecarlo: <MonteCarlo season={selectedSeason} />,

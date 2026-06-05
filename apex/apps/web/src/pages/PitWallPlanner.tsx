@@ -163,6 +163,34 @@ export default function PitWallPlanner({ season }: { season: number }) {
 
   const driverActualStop = actualStops.find(s => s.driver_id === driverId);
 
+  const { trackList, exitTime, pitLoss } = (() => {
+    const baseTimes: Record<string, number> = {
+      VER: 0.0,
+      NOR: 3.8,
+      LEC: 5.9,
+      RUS: 11.3,
+      PIA: 12.5,
+      SAI: 21.4,
+      HAM: 21.9,
+      PER: 26.0,
+      ALO: 27.9,
+    };
+    
+    const targetTime = baseTimes[driverId] || 0.0;
+    const loss = 24.0;
+    const exit = targetTime + loss;
+    
+    const list = Object.entries(baseTimes)
+      .map(([id, time]) => ({ id, time }))
+      .sort((a, b) => a.time - b.time);
+      
+    return {
+      trackList: list,
+      exitTime: exit,
+      pitLoss: loss
+    };
+  })();
+
   return (
     <>
       <StrategyDetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} lapNumber={selectedDetailLap} />
@@ -228,6 +256,143 @@ export default function PitWallPlanner({ season }: { season: number }) {
           </div>
         </div>
 
+        {/* 1D Track Location Exit Ribbon */}
+        <div className="panel" style={{ padding: "1.5rem", borderLeft: "4px solid var(--accent-warning)", background: "rgba(255, 255, 255, 0.01)" }}>
+          <div className="section-header" style={{ marginBottom: "1rem" }}>
+            <span className="section-title">1D Pit Exit Track Re-entry Ribbon (Monza)</span>
+            <div className="section-header-line" />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
+              VISUALIZING EXIT POSITION AFTER A STANDARD {pitLoss}s PIT LANE LOSS
+            </span>
+            <div style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              background: "var(--bg-void)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "4px",
+              height: "56px",
+              padding: "0 1rem",
+              overflowX: "auto",
+              gap: "1.25rem",
+              scrollbarWidth: "none"
+            }}>
+              {trackList.map((driver, index) => {
+                const isSelf = driver.id === driverId;
+                const nextDriver = trackList[index + 1];
+                const showExit = exitTime > driver.time && (!nextDriver || exitTime < nextDriver.time);
+                
+                return (
+                  <div key={driver.id} style={{ display: "flex", alignItems: "center", gap: "1.25rem", flexShrink: 0 }}>
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      background: isSelf ? "rgba(239, 68, 68, 0.1)" : "transparent",
+                      border: isSelf ? "1px dashed var(--accent-danger)" : "none",
+                      borderRadius: "4px",
+                      padding: isSelf ? "0.2rem 0.5rem" : "0",
+                      opacity: isSelf ? 0.5 : 1
+                    }}>
+                      <div style={{
+                        width: "4px",
+                        height: "14px",
+                        background: driver.id === "VER" || driver.id === "PER" ? "#3671C6" :
+                                    driver.id === "NOR" || driver.id === "PIA" ? "#FF8700" :
+                                    driver.id === "LEC" || driver.id === "SAI" ? "#E80020" : "#27F4D2",
+                        borderRadius: "1.5px"
+                      }} />
+                      <span className="text-mono" style={{ fontSize: "0.75rem", fontWeight: "bold", color: "var(--text-primary)" }}>
+                        {driver.id} {isSelf ? "(PITTING)" : ""}
+                      </span>
+                    </div>
+                    
+                    {showExit && (
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        background: "rgba(0, 212, 255, 0.15)",
+                        border: "1px solid var(--accent-primary)",
+                        borderRadius: "3px",
+                        padding: "0.25rem 0.5rem",
+                        boxShadow: "0 0 10px rgba(0, 212, 255, 0.3)",
+                      }}>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", fontWeight: "bold" }}>
+                          ▼ MERGE ZONE (+{(exitTime - driver.time).toFixed(1)}s behind {driver.id})
+                        </span>
+                      </div>
+                    )}
+                    
+                    {index < trackList.length - 1 && (
+                      <div style={{
+                        width: "40px",
+                        height: "2px",
+                        background: "var(--border-subtle)",
+                        position: "relative",
+                        opacity: 0.6
+                      }}>
+                        <span className="text-mono" style={{
+                          position: "absolute",
+                          top: "-12px",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          fontSize: "0.55rem",
+                          color: "var(--text-dim)",
+                          fontWeight: 600
+                        }}>
+                          {(trackList[index+1].time - driver.time).toFixed(1)}s
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Q&A Strategy Cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
+          {[
+            {
+              q: "When should we pit?",
+              a: recommendations.length > 0 
+                ? `Pit on Lap ${recommendations[0].pit_lap} to leverage the optimal crossover window.`
+                : "Pit on Lap 18-22 as medium tyres degrade towards the cliff zone.",
+              icon: "⏱️"
+            },
+            {
+              q: "Which compound is optimal?",
+              a: recommendations.length > 0
+                ? `Switch to ${recommendations[0].compound_new} compound. Sim shows net delta of ${recommendations[0].net_delta_s.toFixed(2)}s.`
+                : "Switch to HARD tyres to complete the stint safely.",
+              icon: "🛞"
+            },
+            {
+              q: "What is the safety car risk?",
+              a: recommendations.length > 0
+                ? `SC probability is ${(recommendations[0].sc_probability * 100).toFixed(0)}%. Pitting under SC cuts loss to just ~12s.`
+                : "Safety Car risk is moderate. Stay alert for VSC pit windows.",
+              icon: "⚠️"
+            }
+          ].map((qa, idx) => (
+            <div key={idx} className="panel" style={{ padding: "1.25rem", borderLeft: "3px solid var(--accent-primary)", background: "rgba(255,255,255,0.01)" }}>
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
+                <span style={{ fontSize: "1rem" }}>{qa.icon}</span>
+                <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--accent-primary)", fontWeight: "bold", letterSpacing: "0.08em" }}>
+                  Q: {qa.q}
+                </span>
+              </div>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.5" }}>
+                <strong>A:</strong> {qa.a}
+              </p>
+            </div>
+          ))}
+        </div>
+
         {/* Visual Timeline */}
         <div className="panel panel-scanner" style={{ padding: "1.5rem" }}>
           <div className="section-header" style={{ marginBottom: "1rem" }}>
@@ -236,7 +401,6 @@ export default function PitWallPlanner({ season }: { season: number }) {
           </div>
 
           <div style={{ position: "relative", height: "60px", background: "var(--bg-elevated)", borderRadius: "4px", overflow: "hidden" }}>
-            {/* Gradient track background */}
             <div
               style={{
                 position: "absolute",
@@ -246,7 +410,6 @@ export default function PitWallPlanner({ season }: { season: number }) {
               }}
             />
 
-            {/* Strategy markers */}
             {recommendations.map((rec) => (
               <div
                 key={rec.pit_lap}
@@ -267,7 +430,6 @@ export default function PitWallPlanner({ season }: { season: number }) {
               />
             ))}
 
-            {/* Actual executed stop marker */}
             {driverActualStop && (
               <div
                 style={{
@@ -285,7 +447,6 @@ export default function PitWallPlanner({ season }: { season: number }) {
               />
             )}
 
-            {/* Current lap marker */}
             <div
               style={{
                 position: "absolute",

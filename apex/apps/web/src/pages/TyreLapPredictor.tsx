@@ -15,6 +15,18 @@ const COMPOUND_COLORS: Record<Compound, string> = {
   WET:    "#4488ff",
 };
 
+const DRIVERS = [
+  { id: "VER", name: "Max Verstappen", team: "Red Bull Racing", color: "#3671C6" },
+  { id: "NOR", name: "Lando Norris", team: "McLaren", color: "#FF8700" },
+  { id: "LEC", name: "Charles Leclerc", team: "Ferrari", color: "#E80020" },
+  { id: "HAM", name: "Lewis Hamilton", team: "Ferrari", color: "#E80020" },
+  { id: "RUS", name: "George Russell", team: "Mercedes", color: "#27F4D2" },
+  { id: "PIA", name: "Oscar Piastri", team: "McLaren", color: "#FF8700" },
+  { id: "SAI", name: "Carlos Sainz", team: "Williams", color: "#37BEDD" },
+  { id: "ALO", name: "Fernando Alonso", team: "Aston Martin", color: "#229971" },
+  { id: "PER", name: "Sergio Perez", team: "Red Bull Racing", color: "#3671C6" },
+];
+
 function formatTime(s: number) {
   if (isNaN(s) || s <= 0) return "0:00.000";
   const mins = Math.floor(s / 60);
@@ -39,6 +51,7 @@ interface SimulatedLap {
 }
 
 export default function TyreLapPredictor({ season }: { season: number }) {
+  const [selectedDriver, setSelectedDriver] = useState<string>("VER");
   const [selectedCompound, setSelectedCompound] = useState<"soft" | "medium" | "hard">("medium");
   const [compoundsData, setCompoundsData] = useState<LapTimePrediction[]>([]);
   const [actualLaps, setActualLaps] = useState<ActualLap[]>([]);
@@ -66,7 +79,8 @@ export default function TyreLapPredictor({ season }: { season: number }) {
         track_temp_c: simTrackTemp,
         fuel_load_kg: simStartingFuel,
         laps: 25,
-        noise_level: simNoiseLevel
+        noise_level: simNoiseLevel,
+        driver_id: selectedDriver
       })
     })
       .then((res) => {
@@ -118,10 +132,10 @@ export default function TyreLapPredictor({ season }: { season: number }) {
     };
   }, [isSimulating, simLapsPool]);
 
-  // Stop simulation if compound changes
+  // Stop simulation if compound or driver changes
   useEffect(() => {
     stopSimulation();
-  }, [selectedCompound]);
+  }, [selectedCompound, selectedDriver]);
 
   useEffect(() => {
     const fetchCompound = (comp: Compound) => {
@@ -135,7 +149,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
           tyre_age_total: 1,
           track_temp_c: 42.5,
           fuel_load_kg: 68.0,
-          driver_id: "VER"
+          driver_id: selectedDriver
         })
       }).then((res) => {
         if (!res.ok) throw new Error("Failed to load compound " + comp);
@@ -149,9 +163,8 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error loading tyre predictions from microservice:", err);
-        setError(() => { throw err; });
       });
-  }, [season]);
+  }, [season, selectedDriver]);
 
   // Fetch actual lap times for comparison
   useEffect(() => {
@@ -269,21 +282,74 @@ export default function TyreLapPredictor({ season }: { season: number }) {
     );
   };
 
+  const getTyreManagementLabel = (driverId: string) => {
+    const managers: Record<string, { multiplier: number; grade: string }> = {
+      VER: { multiplier: 0.82, grade: "S (0.82x)" },
+      NOR: { multiplier: 0.88, grade: "A (0.88x)" },
+      LEC: { multiplier: 0.92, grade: "B+ (0.92x)" },
+      HAM: { multiplier: 0.80, grade: "S+ (0.80x)" },
+      RUS: { multiplier: 0.95, grade: "B (0.95x)" },
+      PIA: { multiplier: 0.93, grade: "B+ (0.93x)" },
+      SAI: { multiplier: 0.86, grade: "A (0.86x)" },
+      ALO: { multiplier: 0.83, grade: "S (0.83x)" },
+      PER: { multiplier: 0.85, grade: "S (0.85x)" },
+    };
+    return managers[driverId] || { multiplier: 1.0, grade: "B (1.00x)" };
+  };
+
   return (
     <>
       <CompoundDetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} compound={selectedDetailCompound} />
       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         
+        {/* Driver Selector Row */}
+        <div className="panel" style={{ padding: "1rem", background: "rgba(0, 212, 255, 0.01)" }}>
+          <span className="text-mono" style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
+            SELECT TELEMETRY PROFILE (CAR & DRIVER DEGRADATION RATIO)
+          </span>
+          <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem" }}>
+            {DRIVERS.map((driver) => {
+              const isSelected = selectedDriver === driver.id;
+              return (
+                <button
+                  key={driver.id}
+                  onClick={() => setSelectedDriver(driver.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.6rem",
+                    background: isSelected ? "rgba(0, 212, 255, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                    border: isSelected ? "1px solid var(--accent-primary)" : "1px solid var(--border-subtle)",
+                    borderRadius: "4px",
+                    padding: "0.4rem 0.8rem",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    minWidth: "150px",
+                    textAlign: "left"
+                  }}
+                >
+                  <div style={{ width: "3px", height: "20px", background: driver.color, borderRadius: "1.5px" }} />
+                  <div>
+                    <div style={{ fontSize: "0.75rem", fontWeight: "bold", color: isSelected ? "var(--accent-primary)" : "var(--text-primary)" }}>{driver.id}</div>
+                    <div style={{ fontSize: "0.55rem", color: "var(--text-muted)" }}>{driver.name}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Header stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
           {[
             { label: "CIRCUIT", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Monza GP" : "Monaco GP", accent: true },
             { label: "TRACK TEMP", value: `${simTrackTemp}°C` },
             { label: "AIR TEMP", value: `${Math.round(simTrackTemp * 0.7)}°C` },
+            { label: "TYRE MANAGEMENT", value: getTyreManagementLabel(selectedDriver).grade, accent: true },
             { label: "TRACK TYPE", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Traditional Circuit" : "Street Circuit" },
           ].map((s) => (
             <div key={s.label} className="stat-card">
-              <div className={`stat-value ${s.accent ? "shimmer-text" : ""}`} style={s.accent ? {} : { color: "var(--text-primary)" }}>
+              <div className={`stat-value ${s.accent ? "shimmer-text" : ""}`} style={s.accent ? {} : { color: "var(--text-primary)", fontSize: "0.95rem" }}>
                 {s.value}
               </div>
               <div className="stat-label">{s.label}</div>

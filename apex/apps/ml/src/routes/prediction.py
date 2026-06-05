@@ -7,6 +7,9 @@ from src.models.strategy import PitStopStrategy
 from src.models.simulation import ChampionshipSimulation
 from src.models.driver_form import DriverFormIndex
 from src.models.weather import WeatherImpactModel
+from src.models.race_outcome import RaceOutcomePredictor
+from src.models.dnf_risk import DNFRiskPredictor
+from src.models.qualifying import QualifyingPredictor
 
 router = APIRouter(
     prefix="/predict",
@@ -20,6 +23,9 @@ strategy_engine = PitStopStrategy()
 sim_engine = ChampionshipSimulation()
 form_index_model = DriverFormIndex()
 weather_model = WeatherImpactModel()
+race_outcome_model = RaceOutcomePredictor()
+dnf_risk_model = DNFRiskPredictor()
+qualifying_model = QualifyingPredictor()
 
 # ============================================================================
 # PYDANTIC SCHEMAS
@@ -119,6 +125,11 @@ class ActualPitStopItem(BaseModel):
     pit_lap: int
     pace_loss_s: float = 0.0
 
+class ActualPitStopsPayload(BaseModel):
+    season: int
+    circuit_id: str
+    stops: List[ActualPitStopItem]
+
 class DriverFormUpdateInput(BaseModel):
     driver_id: str = Field(..., examples=["VER"])
     lap_times: List[float] = Field(..., examples=[82.1, 82.3, 82.5, 82.2, 82.4])
@@ -132,6 +143,70 @@ class WeatherImpactInput(BaseModel):
     humidity: float = Field(50.0, ge=0.0, le=100.0, examples=[45.0])
     rain_probability: float = Field(0.0, ge=0.0, le=1.0, examples=[0.1])
     wind_speed_kmh: float = Field(10.0, ge=0.0, le=100.0, examples=[12.0])
+
+# --- PHASE 2 MODELS SCHEMAS ---
+
+class RaceOutcomeDriverInput(BaseModel):
+    driver_id: str = Field(..., examples=["VER"])
+    grid_position: int = Field(..., ge=1, le=22, examples=[1])
+    driver_elo: float = Field(..., examples=[1800.0])
+    driver_form: float = Field(..., examples=[85.0])
+    teammate_elo: float = Field(..., examples=[1750.0])
+    constructor_affinity: Optional[float] = Field(1.0, ge=0.0, le=2.0)
+
+class RaceOutcomeGridRequest(BaseModel):
+    circuit_type: str = Field(..., examples=["high_speed"])
+    drivers: List[RaceOutcomeDriverInput]
+
+class RaceOutcomeTrainItem(BaseModel):
+    grid_position: int = Field(..., ge=1, le=22)
+    driver_elo: float = Field(...)
+    driver_form: float = Field(...)
+    teammate_elo: float = Field(...)
+    constructor_affinity: float = Field(...)
+    finish_position: int = Field(..., ge=1, le=22)
+
+class RaceOutcomeTrainInput(BaseModel):
+    historical_results: List[RaceOutcomeTrainItem]
+
+class DnfRiskDriverInput(BaseModel):
+    driver_id: str = Field(..., examples=["VER"])
+    constructor_id: str = Field(..., examples=["red_bull"])
+    grid_position: int = Field(..., ge=1, le=22, examples=[1])
+
+class DnfRiskGridRequest(BaseModel):
+    circuit_type: str = Field(..., examples=["street_circuit"])
+    total_laps: int = Field(..., ge=1, le=100, examples=[58])
+    drivers: List[DnfRiskDriverInput]
+
+class DnfRiskTrainItem(BaseModel):
+    driver_id: str
+    constructor_id: str
+    status: str
+
+class DnfRiskTrainInput(BaseModel):
+    historical_results: List[DnfRiskTrainItem]
+
+class QualifyingDriverInput(BaseModel):
+    driver_id: str = Field(..., examples=["VER"])
+    constructor_id: str = Field(..., examples=["red_bull"])
+
+class QualifyingGridRequest(BaseModel):
+    circuit_id: str = Field(..., examples=["monza"])
+    circuit_type: str = Field(..., examples=["high_speed"])
+    track_temp_c: float = Field(30.0, ge=0.0, le=70.0)
+    air_temp_c: float = Field(22.0, ge=0.0, le=50.0)
+    drivers: List[QualifyingDriverInput]
+
+class QualifyingTrainItem(BaseModel):
+    constructor_quali_base: float
+    driver_offset: float
+    track_temp_c: float
+    air_temp_c: float
+    qualifying_position: int
+
+class QualifyingTrainInput(BaseModel):
+    historical_results: List[QualifyingTrainItem]
 
 # ============================================================================
 # API ROUTES
@@ -430,6 +505,7 @@ class LiveStintSimulationInput(BaseModel):
     fuel_load_kg: float = Field(80.0, ge=0.0)
     laps: Optional[int] = Field(25, ge=1, le=50)
     noise_level: Optional[float] = Field(0.15, ge=0.0)
+    driver_id: Optional[str] = Field("VER")
 
 @router.post("/live-stint/simulate")
 def simulate_live_stint(data: LiveStintSimulationInput):
@@ -439,7 +515,8 @@ def simulate_live_stint(data: LiveStintSimulationInput):
             track_temp_c=data.track_temp_c,
             fuel_load_kg=data.fuel_load_kg,
             laps=data.laps or 25,
-            noise_level=data.noise_level if data.noise_level is not None else 0.15
+            noise_level=data.noise_level if data.noise_level is not None else 0.15,
+            driver_id=data.driver_id or "VER"
         )
         return {
             "status": "success",
@@ -514,6 +591,127 @@ def get_driver_wet_rankings():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve wet weather rankings: {str(e)}")
+
+
+# --- RACE OUTCOME ENDPOINTS ---
+
+@router.post("/race-outcome")
+def predict_race_outcome(data: RaceOutcomeGridRequest):
+    try:
+        predictions = []
+        for d in data.drivers:
+            res = race_outcome_model.calculate_outcome(
+                grid_position=d.grid_position,
+                driver_elo=d.driver_elo,
+                driver_form=d.driver_form,
+                teammate_elo=d.teammate_elo,
+                circuit_type=data.circuit_type,
+                constructor_affinity=d.constructor_affinity if d.constructor_affinity is not None else 1.0
+            )
+            predictions.append({
+                "driver_id": d.driver_id,
+                **res
+            })
+        return {
+            "status": "success",
+            "predictions": predictions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate race outcome: {str(e)}")
+
+@router.post("/race-outcome/train")
+def train_race_outcome(data: RaceOutcomeTrainInput):
+    try:
+        historical_list = [item.model_dump() for item in data.historical_results]
+        race_outcome_model.train(historical_list)
+        return {"status": "success", "message": f"Successfully trained race outcome model on {len(data.historical_results)} records."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to train race outcome model: {str(e)}")
+
+
+# --- DNF RISK ENDPOINTS ---
+
+@router.get("/dnf-risk/{driver_id}")
+def get_dnf_risk(
+    driver_id: str,
+    constructor_id: str = Query(...),
+    circuit_type: str = Query(...),
+    total_laps: int = Query(..., ge=1),
+    grid_position: int = Query(..., ge=1)
+):
+    try:
+        res = dnf_risk_model.calculate_risk(
+            driver_id=driver_id,
+            constructor_id=constructor_id,
+            circuit_type=circuit_type,
+            total_laps=total_laps,
+            grid_position=grid_position
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate driver DNF risk: {str(e)}")
+
+@router.post("/dnf-risk/race")
+def predict_dnf_risk_race(data: DnfRiskGridRequest):
+    try:
+        predictions = []
+        for d in data.drivers:
+            res = dnf_risk_model.calculate_risk(
+                driver_id=d.driver_id,
+                constructor_id=d.constructor_id,
+                circuit_type=data.circuit_type,
+                total_laps=data.total_laps,
+                grid_position=d.grid_position
+            )
+            predictions.append(res)
+        return {
+            "status": "success",
+            "predictions": predictions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate race DNF risks: {str(e)}")
+
+@router.post("/dnf-risk/train")
+def train_dnf_risk(data: DnfRiskTrainInput):
+    try:
+        historical_list = [item.model_dump() for item in data.historical_results]
+        dnf_risk_model.train(historical_list)
+        return {"status": "success", "message": f"Successfully trained DNF risk model on {len(data.historical_results)} records."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to train DNF risk model: {str(e)}")
+
+
+# --- QUALIFYING ENDPOINTS ---
+
+@router.post("/qualifying")
+def predict_qualifying_race(data: QualifyingGridRequest):
+    try:
+        predictions = []
+        for d in data.drivers:
+            res = qualifying_model.predict_qualifying(
+                driver_id=d.driver_id,
+                constructor_id=d.constructor_id,
+                circuit_id=data.circuit_id,
+                circuit_type=data.circuit_type,
+                track_temp_c=data.track_temp_c,
+                air_temp_c=data.air_temp_c
+            )
+            predictions.append(res)
+        return {
+            "status": "success",
+            "predictions": predictions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to predict qualifying grid: {str(e)}")
+
+@router.post("/qualifying/train")
+def train_qualifying(data: QualifyingTrainInput):
+    try:
+        historical_list = [item.model_dump() for item in data.historical_results]
+        qualifying_model.train(historical_list)
+        return {"status": "success", "message": f"Successfully trained qualifying model on {len(data.historical_results)} records."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to train qualifying model: {str(e)}")
 
 
 

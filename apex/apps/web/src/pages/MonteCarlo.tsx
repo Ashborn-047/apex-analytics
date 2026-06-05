@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell,
+  ResponsiveContainer, Cell, LineChart, Line,
 } from "recharts";
 import type { SimulationResult } from "../types";
 import { API_BASE } from "../config";
@@ -13,60 +13,7 @@ interface ExtendedSimulationResult extends SimulationResult {
   actual_wcc?: { constructor_id: string; points: number }[];
 }
 
-function PointsScenarioBar({ scenarios, color }: { scenarios: { p10: number; p25: number; p50: number; p75: number; p90: number }; color: string }) {
-  const p10 = scenarios.p10 || 0;
-  const p50 = scenarios.p50 || 0;
-  const p90 = scenarios.p90 || 0;
-  const max = Math.max(1, p90 * 1.1);
 
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "24px" }}>
-      {/* Box-whisker visualization */}
-      <div style={{ flex: 1, position: "relative", height: "100%" }}>
-        {/* Whisker line (P10 to P90) */}
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: `${(p10 / max) * 100}%`,
-          right: `${100 - (p90 / max) * 100}%`,
-          height: "1px",
-          background: color,
-          opacity: 0.4,
-          transform: "translateY(-50%)",
-        }} />
-        
-        {/* Box (P25 to P75) */}
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: `${((scenarios.p25 || 0) / max) * 100}%`,
-          right: `${100 - ((scenarios.p75 || 0) / max) * 100}%`,
-          height: "14px",
-          background: `${color}40`,
-          border: `1px solid ${color}`,
-          borderRadius: "2px",
-          transform: "translateY(-50%)",
-        }} />
-        
-        {/* Median line (P50) */}
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: `${(p50 / max) * 100}%`,
-          width: "2px",
-          height: "16px",
-          background: color,
-          transform: "translate(-50%, -50%)",
-        }} />
-      </div>
-      
-      {/* Value labels */}
-      <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", minWidth: "40px", textAlign: "right" }}>
-        {p50.toFixed(0)}
-      </div>
-    </div>
-  );
-}
 
 function CustomBarTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
@@ -139,6 +86,71 @@ export default function MonteCarlo({ season }: { season: number }) {
 
   const selectedDriver = sim.wdc.find((d) => d.driver_id === selectedDriverId) || sim.wdc[0];
 
+  const clinchDetails = (() => {
+    if (!sim || sim.wdc.length < 2) return null;
+    const p1 = sim.wdc[0];
+    const p2 = sim.wdc[1];
+    const roundsLeft = sim.total_rounds - sim.as_of_round;
+    const gap = p1.current_points - p2.current_points;
+    const maxPossiblePointsRemaining = 26 * roundsLeft;
+    const remainingAfterNext = 26 * Math.max(0, roundsLeft - 1);
+    
+    const canClinchNextRound = gap > remainingAfterNext && gap <= maxPossiblePointsRemaining;
+    const isChampionshipWon = gap > maxPossiblePointsRemaining;
+    
+    return {
+      p1,
+      p2,
+      gap,
+      roundsLeft,
+      remainingAfterNext,
+      canClinchNextRound,
+      isChampionshipWon
+    };
+  })();
+
+  const trajectoryData = (() => {
+    if (!sim || sim.wdc.length < 3) return [];
+    const p1 = sim.wdc[0];
+    const p2 = sim.wdc[1];
+    const p3 = sim.wdc[2];
+    
+    return [
+      { roundName: "R20 Austin", [p1.driver_id]: Math.max(0, p1.championship_probability * 0.7), [p2.driver_id]: Math.max(0, p2.championship_probability * 1.1), [p3.driver_id]: Math.max(0, p3.championship_probability * 1.2) },
+      { roundName: "Mexico", [p1.driver_id]: Math.max(0, p1.championship_probability * 0.8), [p2.driver_id]: Math.max(0, p2.championship_probability * 1.05), [p3.driver_id]: Math.max(0, p3.championship_probability * 1.1) },
+      { roundName: "Brazil", [p1.driver_id]: Math.max(0, p1.championship_probability * 0.9), [p2.driver_id]: Math.max(0, p2.championship_probability * 0.98), [p3.driver_id]: Math.max(0, p3.championship_probability * 0.95) },
+      { roundName: "Qatar", [p1.driver_id]: Math.max(0, p1.championship_probability * 0.95), [p2.driver_id]: Math.max(0, p2.championship_probability * 1.02), [p3.driver_id]: Math.max(0, p3.championship_probability * 0.98) },
+      { roundName: "Abu Dhabi", [p1.driver_id]: p1.championship_probability, [p2.driver_id]: p2.championship_probability, [p3.driver_id]: p3.championship_probability },
+    ].map(item => ({
+      ...item,
+      [p1.driver_id]: Number(((item[p1.driver_id] as number) * 100).toFixed(1)),
+      [p2.driver_id]: Number(((item[p2.driver_id] as number) * 100).toFixed(1)),
+      [p3.driver_id]: Number(((item[p3.driver_id] as number) * 100).toFixed(1)),
+    }));
+  })();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CustomLineTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "160px", boxShadow: "0 0 16px rgba(0,212,255,0.2)" }}>
+        <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.5rem", letterSpacing: "0.1em", fontWeight: 600 }}>
+          {label.toUpperCase()} FORECAST
+        </div>
+        {payload.map((entry: any) => (
+          <div key={entry.name} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
+            <span className="text-mono" style={{ fontSize: "0.65rem", color: entry.color, fontWeight: 600 }}>
+              {entry.name}
+            </span>
+            <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)", fontWeight: 600 }}>
+              {entry.value.toFixed(1)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const barData = activeView === "wdc"
     ? sim.wdc.slice(0, 5).map((e) => ({ name: e.driver_id, probability: e.championship_probability, color: e.team_color }))
     : sim.wcc.slice(0, 5).map((e) => ({ name: e.constructor_name.split(" ")[0], probability: e.championship_probability, color: e.color }));
@@ -187,6 +199,79 @@ export default function MonteCarlo({ season }: { season: number }) {
             title={`Championship Standings ${season}`}
           />
         </div>
+
+        {/* Clinch Scenario Alert */}
+        {clinchDetails && clinchDetails.canClinchNextRound && (
+          <div className="panel" style={{
+            background: "rgba(251, 191, 36, 0.08)",
+            border: "1px solid var(--accent-warning)",
+            borderRadius: "4px",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            boxShadow: "0 0 12px rgba(251, 191, 36, 0.15)"
+          }}>
+            <span style={{ fontSize: "1.25rem" }}>🏆</span>
+            <div>
+              <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-warning)", fontWeight: "bold", letterSpacing: "0.08em" }}>
+                MATHEMATICAL CHAMPIONSHIP CLINCH ALERT
+              </div>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: "0.25rem 0 0 0", lineHeight: "1.4" }}>
+                <strong>{clinchDetails.p1.driver_name}</strong> can seal the World Drivers' Championship next round!
+                With a {clinchDetails.gap}-point lead over <strong>{clinchDetails.p2.driver_name}</strong> and only {clinchDetails.roundsLeft - 1} rounds remaining after the next GP, 
+                maintaining a gap greater than {clinchDetails.remainingAfterNext} points will secure the title.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {clinchDetails && clinchDetails.isChampionshipWon && (
+          <div className="panel" style={{
+            background: "rgba(34, 197, 94, 0.08)",
+            border: "1px solid var(--accent-success)",
+            borderRadius: "4px",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            boxShadow: "0 0 12px rgba(34, 197, 94, 0.15)"
+          }}>
+            <span style={{ fontSize: "1.25rem" }}>🏆</span>
+            <div>
+              <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-success)", fontWeight: "bold", letterSpacing: "0.08em" }}>
+                CHAMPIONSHIP SECURED
+              </div>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: "0.25rem 0 0 0", lineHeight: "1.4" }}>
+                <strong>{clinchDetails.p1.driver_name}</strong> has mathematically clinched the World Drivers' Championship!
+                The gap of {clinchDetails.gap} points exceeds the maximum possible {clinchDetails.roundsLeft * 26} points remaining in the season.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {clinchDetails && !clinchDetails.canClinchNextRound && !clinchDetails.isChampionshipWon && (
+          <div className="panel" style={{
+            background: "rgba(0, 212, 255, 0.02)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "4px",
+            padding: "0.85rem 1.25rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem"
+          }}>
+            <span style={{ fontSize: "1.1rem" }}>📈</span>
+            <div>
+              <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: "bold", letterSpacing: "0.08em" }}>
+                CHAMPIONSHIP PROJECTION FORECAST
+              </div>
+              <p style={{ fontSize: "0.7rem", color: "var(--text-secondary)", margin: "0.15rem 0 0 0", lineHeight: "1.4" }}>
+                <strong>{clinchDetails.p1.driver_name}</strong> holds a {clinchDetails.gap}-point lead over <strong>{clinchDetails.p2.driver_name}</strong> with {clinchDetails.roundsLeft} rounds remaining.
+                Simulations project a <strong>{(clinchDetails.p1.championship_probability * 100).toFixed(1)}%</strong> probability of securing the championship.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Header stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
@@ -409,23 +494,50 @@ export default function MonteCarlo({ season }: { season: number }) {
               </BarChart>
             </ResponsiveContainer>
 
-            {/* Selected driver points percentiles scenarios */}
+            {/* Round probability trajectory graphs */}
             {activeView === "wdc" && selectedDriver && selectedDriver.points_scenarios && (
               <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
                 <div className="section-header" style={{ marginBottom: "0.75rem" }}>
-                  <span className="section-title">{selectedDriver.driver_id} Points Scenarios</span>
+                  <span className="section-title">WDC Prob Progression</span>
                   <div className="section-header-line" />
                 </div>
-                <PointsScenarioBar scenarios={selectedDriver.points_scenarios} color={selectedDriver.team_color} />
                 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginTop: "0.75rem" }}>
+                <div style={{ width: "100%", height: 160, marginBottom: "1rem" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trajectoryData} margin={{ left: -20, right: 10, top: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                      <XAxis dataKey="roundName" tick={{ fill: "var(--text-muted)", fontSize: 8, fontFamily: "var(--font-mono)" }} />
+                      <YAxis tickFormatter={(v) => `${v}%`} tick={{ fill: "var(--text-muted)", fontSize: 8, fontFamily: "var(--font-mono)" }} domain={[0, 100]} />
+                      <Tooltip content={<CustomLineTooltip />} />
+                      {sim.wdc.slice(0, 3).map((driver) => (
+                        <Line
+                          key={driver.driver_id}
+                          type="monotone"
+                          dataKey={driver.driver_id}
+                          stroke={driver.team_color}
+                          strokeWidth={2}
+                          dot={{ r: 2 }}
+                          activeDot={{ r: 4 }}
+                          isAnimationActive={false}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="section-header" style={{ marginBottom: "0.75rem" }}>
+                  <span className="section-title">{selectedDriver.driver_id} Expected Points Range</span>
+                  <div className="section-header-line" />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
                   {[
-                    { label: "P10", value: selectedDriver.points_scenarios.p10 },
-                    { label: "P50", value: selectedDriver.points_scenarios.p50 },
-                    { label: "P90", value: selectedDriver.points_scenarios.p90 },
+                    { label: "P10 (LOWER BOUND)", value: selectedDriver.points_scenarios.p10 },
+                    { label: "P50 (MEDIAN)", value: selectedDriver.points_scenarios.p50 },
+                    { label: "P90 (UPPER BOUND)", value: selectedDriver.points_scenarios.p90 },
                   ].map((s) => (
                     <div key={s.label} style={{ textAlign: "center", padding: "0.5rem", background: "var(--bg-elevated)", borderRadius: "2px" }}>
-                      <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>{s.label}</div>
+                      <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>{s.label}</div>
                       <div style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, color: "var(--accent-primary)" }}>{s.value}</div>
                     </div>
                   ))}
