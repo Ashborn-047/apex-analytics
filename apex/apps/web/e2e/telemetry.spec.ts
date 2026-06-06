@@ -316,7 +316,13 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
 
     // Verify detail headers for Elo ratings load
     await expect(page.locator('text=SCOPE: ML-SCOPE-01')).toBeVisible();
+
+    // Click Logic & Math sub-tab and verify steps are visible
+    await page.click('text=Logic & Math', { force: true });
     await expect(page.locator('text=Algorithmic Execution Steps')).toBeVisible();
+
+    // Click Sandbox Playground sub-tab and verify sandbox content loads
+    await page.click('text=Sandbox Playground', { force: true });
     await expect(page.locator('text=PROBABILITY A')).toBeVisible();
   });
 });

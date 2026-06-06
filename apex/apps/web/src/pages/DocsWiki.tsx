@@ -15,6 +15,14 @@ type Topic =
 
 export default function DocsWiki() {
   const [activeTopic, setActiveTopic] = useState<Topic>("overview");
+  const [activeSubTab, setActiveSubTab] = useState<"concept" | "logic" | "features" | "sandbox">("concept");
+  const [conceptStep, setConceptStep] = useState<"what" | "why" | "when" | "how">("what");
+
+  const handleTopicChange = (topic: Topic) => {
+    setActiveTopic(topic);
+    setActiveSubTab("concept");
+    setConceptStep("what");
+  };
 
   // State for Interactive Sandboxes
   // 1. Elo Sandbox
@@ -127,7 +135,7 @@ export default function DocsWiki() {
             ].map((m) => (
               <button
                 key={m.id}
-                onClick={() => setActiveTopic(m.id as Topic)}
+                onClick={() => handleTopicChange(m.id as Topic)}
                 className="text-mono"
                 style={{
                   width: "100%",
@@ -249,338 +257,643 @@ export default function DocsWiki() {
                   </div>
                 </div>
 
-                {/* Brief Summary */}
-                <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                  {data.summary}
-                </div>
-
-                {/* What / Why / When row of cards */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
-                  <div style={{ flex: "1 1 240px", padding: "1rem", background: "var(--bg-elevated)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
-                      <span style={{ fontSize: "1rem", color: "var(--accent-primary)" }}>🔎</span>
-                      <h4 style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: 0, textTransform: "uppercase" }}>What is it?</h4>
-                    </div>
-                    <p style={{ fontSize: "0.68rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{data.what}</p>
-                  </div>
-
-                  <div style={{ flex: "1 1 240px", padding: "1rem", background: "var(--bg-elevated)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
-                      <span style={{ fontSize: "1rem", color: "var(--accent-primary)" }}>🎯</span>
-                      <h4 style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: 0, textTransform: "uppercase" }}>Why do we use it?</h4>
-                    </div>
-                    <p style={{ fontSize: "0.68rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{data.why}</p>
-                  </div>
-
-                  <div style={{ flex: "1 1 240px", padding: "1rem", background: "var(--bg-elevated)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
-                      <span style={{ fontSize: "1rem", color: "var(--accent-primary)" }}>⚡</span>
-                      <h4 style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: 0, textTransform: "uppercase" }}>When does it run?</h4>
-                    </div>
-                    <p style={{ fontSize: "0.68rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{data.when}</p>
-                  </div>
-                </div>
-
-                {/* Deep Dive How It Works */}
-                <div style={{ padding: "1.25rem", background: "var(--bg-void)", border: "1px solid var(--border-subtle)", borderRadius: "4px" }}>
-                  <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.75rem", fontWeight: 700 }}>
-                    DETAILED MODEL METHODOLOGY (HOW IT WORKS)
-                  </div>
-                  <p style={{ fontSize: "0.7rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>{data.how}</p>
-                </div>
-
-                {/* Split layout: left steps, right formula */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem" }}>
-                  <div style={{ flex: "1.2 1 300px" }}>
-                    <div className="section-header" style={{ marginBottom: "0.75rem" }}>
-                      <span className="section-title">Algorithmic Execution Steps</span>
-                      <div className="section-header-line" />
-                    </div>
-                    <ul style={{ paddingLeft: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                      {data.logicSteps.map((s, idx) => (
-                        <li key={idx} style={{ fontSize: "0.7rem", color: "var(--text-secondary)", listStyleType: "square" }}>
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div style={{ flex: "0.8 1 250px" }}>
-                    <div className="section-header" style={{ marginBottom: "0.75rem" }}>
-                      <span className="section-title">Mathematical Formulation</span>
-                      <div className="section-header-line" />
-                    </div>
-                    <pre
+                {/* Sub-tabs Segmented Navigation */}
+                <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.25rem" }}>
+                  {[
+                    { id: "concept", label: "📖 Concept Overview" },
+                    { id: "logic", label: "⚙️ Logic & Math" },
+                    { id: "features", label: "📋 Ingest Registry" },
+                    { id: "sandbox", label: "⚡ Sandbox Playground" }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveSubTab(tab.id as any)}
+                      className="text-mono"
                       style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "0.65rem",
-                        background: "var(--bg-void)",
-                        padding: "1rem",
-                        borderRadius: "3px",
-                        border: "1px solid var(--border-subtle)",
-                        color: "var(--accent-primary)",
-                        overflowX: "auto",
-                        margin: 0
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: activeSubTab === tab.id ? "2px solid var(--accent-primary)" : "2px solid transparent",
+                        color: activeSubTab === tab.id ? "var(--accent-primary)" : "var(--text-muted)",
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.75rem",
+                        fontWeight: activeSubTab === tab.id ? "bold" : "normal",
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (activeSubTab !== tab.id) {
+                          e.currentTarget.style.color = "var(--text-primary)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (activeSubTab !== tab.id) {
+                          e.currentTarget.style.color = "var(--text-muted)";
+                        }
                       }}
                     >
-                      {data.formula}
-                    </pre>
-                  </div>
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Feature Registry Table */}
-                <div>
-                  <div className="section-header" style={{ marginBottom: "0.75rem" }}>
-                    <span className="section-title">Feature Inputs Registry</span>
-                    <div className="section-header-line" />
-                  </div>
-                  <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "3px", overflowX: "auto" }}>
-                    <div style={{ minWidth: "550px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1.5fr 1fr", background: "var(--bg-elevated)", padding: "0.4rem 0.75rem", borderBottom: "1px solid var(--border-subtle)" }}>
-                        {["FEATURE CODE", "DATA TYPE", "DATABASE FEED SOURCE", "MODEL WEIGHT"].map((h) => (
-                          <span key={h} className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", fontWeight: 700 }}>
-                            {h}
-                          </span>
-                        ))}
+                {/* Sub-tab Content Area */}
+                <div style={{ marginTop: "1rem" }}>
+                  {activeSubTab === "concept" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                      {/* Short summary banner */}
+                      <div style={{ fontSize: "0.95rem", color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.6, borderLeft: "3px solid var(--accent-primary)", paddingLeft: "1rem", fontStyle: "italic", background: "rgba(0, 212, 255, 0.02)", padding: "0.75rem 1rem", borderRadius: "0 4px 4px 0" }}>
+                        "{data.summary}"
                       </div>
-                      {data.features.map((f, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1.5fr 1fr", padding: "0.5rem 0.75rem", borderBottom: i < data.features.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
-                          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)" }}>{f.code}</span>
-                          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-primary)" }}>{f.type}</span>
-                          <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>{f.source}</span>
-                          <span className="text-mono" style={{ fontSize: "0.65rem", color: f.weight.includes("Critical") || f.weight.includes("High") ? "var(--accent-warning)" : "var(--text-muted)" }}>{f.weight}</span>
+
+                      {/* Progressive Guided Stepper Bar */}
+                      <div style={{ display: "flex", alignItems: "center", width: "100%", margin: "1rem 0 1.5rem 0", flexWrap: "wrap", gap: "1rem" }}>
+                        {[
+                          { id: "what", title: "Definition" },
+                          { id: "why", title: "Purpose" },
+                          { id: "when", title: "Trigger" },
+                          { id: "how", title: "Deep Dive" }
+                        ].map((step, index) => {
+                          const isCurrent = conceptStep === step.id;
+                          const stepsOrder = ["what", "why", "when", "how"];
+                          const currentIdx = stepsOrder.indexOf(conceptStep);
+                          const stepIdx = stepsOrder.indexOf(step.id);
+                          const isCompleted = stepIdx < currentIdx;
+
+                          return (
+                            <div key={step.id} style={{ display: "flex", alignItems: "center", flex: index < 3 ? "1 1 120px" : "none" }}>
+                              <button
+                                onClick={() => setConceptStep(step.id as any)}
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: 0,
+                                  textAlign: "left",
+                                  outline: "none"
+                                }}
+                              >
+                                <div style={{
+                                  width: "22px",
+                                  height: "22px",
+                                  borderRadius: "50%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  background: isCurrent ? "var(--accent-primary)" : (isCompleted ? "rgba(0, 212, 255, 0.15)" : "var(--bg-elevated)"),
+                                  border: isCurrent ? "2px solid var(--accent-primary)" : `1px solid ${isCompleted ? "var(--accent-primary)" : "var(--border-subtle)"}`,
+                                  color: isCurrent ? "var(--bg-void)" : (isCompleted ? "var(--accent-primary)" : "var(--text-muted)"),
+                                  fontSize: "0.65rem",
+                                  fontWeight: "bold",
+                                  boxShadow: isCurrent ? "0 0 8px var(--accent-dim)" : "none",
+                                  transition: "all 0.2s"
+                                }}>
+                                  {index + 1}
+                                </div>
+                                <span className="text-mono" style={{
+                                  fontSize: "0.75rem",
+                                  fontWeight: isCurrent ? "bold" : 600,
+                                  color: isCurrent ? "var(--accent-primary)" : (isCompleted ? "var(--text-primary)" : "var(--text-muted)"),
+                                  letterSpacing: "0.05em"
+                                }}>
+                                  {step.title}
+                                </span>
+                              </button>
+                              
+                              {index < 3 && (
+                                <div style={{
+                                  flex: 1,
+                                  height: "1px",
+                                  background: isCompleted ? "var(--accent-primary)" : "var(--border-subtle)",
+                                  margin: "0 0.75rem",
+                                  opacity: 0.5,
+                                  transition: "background 0.3s ease",
+                                  minWidth: "20px"
+                                }} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Content Panels with Sequential Action Flow Buttons */}
+                      {conceptStep === "what" && (
+                        <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                          <div style={{ background: "rgba(0, 212, 255, 0.015)", borderLeft: "3px solid var(--accent-primary)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
+                            <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "0.5rem" }}>
+                              01 // CORE CONCEPT & DEFINITION
+                            </div>
+                            <h3 style={{ fontSize: "1.3rem", color: "var(--text-primary)", margin: "0 0 0.75rem 0", letterSpacing: "0.02em" }}>
+                              What is the {data.title}?
+                            </h3>
+                            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, margin: 0, fontWeight: 400 }}>
+                              {data.what}
+                            </p>
+                          </div>
+                          
+                          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
+                            <button
+                              onClick={() => setConceptStep("why")}
+                              className="btn-primary"
+                              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                            >
+                              Next: Purpose ➜
+                            </button>
+                          </div>
                         </div>
-                      ))}
+                      )}
+
+                      {conceptStep === "why" && (
+                        <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                          <div style={{ background: "rgba(251, 191, 36, 0.015)", borderLeft: "3px solid var(--accent-warning)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
+                            <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-warning)", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "0.5rem" }}>
+                              02 // ANALYTICAL VALUE & PURPOSE
+                            </div>
+                            <h3 style={{ fontSize: "1.3rem", color: "var(--text-primary)", margin: "0 0 0.75rem 0", letterSpacing: "0.02em" }}>
+                              Why do we use this model?
+                            </h3>
+                            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, margin: 0, fontWeight: 400 }}>
+                              {data.why}
+                            </p>
+                          </div>
+                          
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
+                            <button
+                              onClick={() => setConceptStep("what")}
+                              className="text-mono"
+                              style={{
+                                background: "transparent",
+                                border: "1px solid var(--border-subtle)",
+                                color: "var(--text-secondary)",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                letterSpacing: "0.1em",
+                                textTransform: "uppercase",
+                                padding: "0.5rem 1.25rem",
+                                cursor: "pointer",
+                                borderRadius: "2px"
+                              }}
+                            >
+                              ⬅ Back: Definition
+                            </button>
+                            <button
+                              onClick={() => setConceptStep("when")}
+                              className="btn-primary"
+                              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                            >
+                              Next: Trigger ➜
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {conceptStep === "when" && (
+                        <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                          <div style={{ background: "rgba(34, 197, 94, 0.015)", borderLeft: "3px solid var(--accent-success)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
+                            <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-success)", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "0.5rem" }}>
+                              03 // SYSTEM INTEGRATION & TRIGGER
+                            </div>
+                            <h3 style={{ fontSize: "1.3rem", color: "var(--text-primary)", margin: "0 0 0.75rem 0", letterSpacing: "0.02em" }}>
+                              When does it run?
+                            </h3>
+                            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, margin: 0, fontWeight: 400 }}>
+                              {data.when}
+                            </p>
+                          </div>
+                          
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
+                            <button
+                              onClick={() => setConceptStep("why")}
+                              className="text-mono"
+                              style={{
+                                background: "transparent",
+                                border: "1px solid var(--border-subtle)",
+                                color: "var(--text-secondary)",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                letterSpacing: "0.1em",
+                                textTransform: "uppercase",
+                                padding: "0.5rem 1.25rem",
+                                cursor: "pointer",
+                                borderRadius: "2px"
+                              }}
+                            >
+                              ⬅ Back: Purpose
+                            </button>
+                            <button
+                              onClick={() => setConceptStep("how")}
+                              className="btn-primary"
+                              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                            >
+                              Next: Deep Dive ➜
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {conceptStep === "how" && (
+                        <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                          <div style={{ background: "rgba(0, 212, 255, 0.015)", borderLeft: "3px solid var(--accent-primary)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
+                            <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "0.5rem" }}>
+                              04 // METHODOLOGY & DETAILS
+                            </div>
+                            <h3 style={{ fontSize: "1.3rem", color: "var(--text-primary)", margin: "0 0 0.75rem 0", letterSpacing: "0.02em" }}>
+                              Methodology Deep Dive
+                            </h3>
+                            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, margin: 0, fontWeight: 400 }}>
+                              {data.how}
+                            </p>
+                          </div>
+                          
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
+                            <button
+                              onClick={() => setConceptStep("when")}
+                              className="text-mono"
+                              style={{
+                                background: "transparent",
+                                border: "1px solid var(--border-subtle)",
+                                color: "var(--text-secondary)",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                letterSpacing: "0.1em",
+                                textTransform: "uppercase",
+                                padding: "0.5rem 1.25rem",
+                                cursor: "pointer",
+                                borderRadius: "2px"
+                              }}
+                            >
+                              ⬅ Back: Trigger
+                            </button>
+                            <button
+                              onClick={() => setActiveSubTab("logic")}
+                              className="btn-primary"
+                              style={{ display: "flex", alignItems: "center", gap: "0.5rem", border: "1px solid var(--accent-primary)", background: "rgba(0, 212, 255, 0.08)" }}
+                            >
+                              Explore Logic & Math ➜
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Interactive Physics Sandbox Widget */}
-                <div style={{ marginTop: "0.5rem" }}>
-                  <div className="section-header" style={{ marginBottom: "0.75rem" }}>
-                    <span className="section-title">Interactive Model Sandbox Playground</span>
-                    <div className="section-header-line" />
-                  </div>
-
-                  <div className="panel" style={{ padding: "1.25rem", background: "rgba(0, 212, 255, 0.01)" }}>
-                    {activeTopic === "elo" && (
+                  {activeSubTab === "logic" && (
+                    <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
-                        {/* Sliders */}
-                        <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: "1rem" }}>
-                          <div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>Driver A Elo</span>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: "bold" }}>{eloDriverA}</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="1400"
-                              max="2100"
-                              value={eloDriverA}
-                              onChange={(e) => setEloDriverA(Number(e.target.value))}
-                              style={{ width: "100%", accentColor: "var(--accent-primary)" }}
-                            />
+                        <div style={{ flex: "1.2 1 300px" }}>
+                          <div className="section-header" style={{ marginBottom: "1rem" }}>
+                            <span className="section-title" style={{ fontSize: "0.75rem" }}>Algorithmic Execution Steps</span>
+                            <div className="section-header-line" />
                           </div>
-
-                          <div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>Driver B Elo</span>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{eloDriverB}</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="1400"
-                              max="2100"
-                              value={eloDriverB}
-                              onChange={(e) => setEloDriverB(Number(e.target.value))}
-                              style={{ width: "100%", accentColor: "var(--accent-warning)" }}
-                            />
-                          </div>
+                          <ul style={{ paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                            {data.logicSteps.map((s, idx) => (
+                              <li key={idx} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.6, listStyleType: "square" }}>
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
 
-                        {/* Interactive SVG Probability Gauge */}
-                        <div style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                          <svg viewBox="0 0 240 90" style={{ width: "100%", height: "auto", maxWidth: "240px" }}>
-                            {/* Background track */}
-                            <path d="M 20 80 A 100 100 0 0 1 220 80" fill="none" stroke="var(--border-subtle)" strokeWidth="8" strokeLinecap="round" />
-                            {/* Driver A segment */}
-                            <path
-                              d="M 20 80 A 100 100 0 0 1 220 80"
-                              fill="none"
-                              stroke="var(--accent-primary)"
-                              strokeWidth="8"
-                              strokeDasharray={`${probA * 314} 314`}
-                              strokeLinecap="round"
-                            />
-                            {/* Divider indicator pin */}
-                            <line
-                              x1="120"
-                              y1="80"
-                              x2={120 - 70 * Math.cos(probA * Math.PI)}
-                              y2={80 - 70 * Math.sin(probA * Math.PI)}
-                              stroke="var(--text-primary)"
-                              strokeWidth="3"
-                            />
-                            <circle cx="120" cy="80" r="4" fill="var(--text-primary)" />
-                          </svg>
-                          <div style={{ display: "flex", gap: "2rem", marginTop: "0.5rem" }}>
-                            <div style={{ textAlign: "center" }}>
-                              <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)" }}>PROBABILITY A</div>
-                              <div className="text-mono" style={{ fontSize: "1rem", fontWeight: "bold", color: "var(--accent-primary)" }}>{(probA * 100).toFixed(1)}%</div>
-                            </div>
-                            <div style={{ textAlign: "center" }}>
-                              <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)" }}>PROBABILITY B</div>
-                              <div className="text-mono" style={{ fontSize: "1rem", fontWeight: "bold", color: "var(--accent-warning)" }}>{(probB * 100).toFixed(1)}%</div>
-                            </div>
+                        <div style={{ flex: "0.8 1 250px" }}>
+                          <div className="section-header" style={{ marginBottom: "1rem" }}>
+                            <span className="section-title" style={{ fontSize: "0.75rem" }}>Mathematical Formulation</span>
+                            <div className="section-header-line" />
                           </div>
+                          <pre
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "0.75rem",
+                              background: "var(--bg-void)",
+                              padding: "1.25rem",
+                              borderRadius: "3px",
+                              border: "1px solid var(--border-subtle)",
+                              color: "var(--accent-primary)",
+                              overflowX: "auto",
+                              margin: 0,
+                              lineHeight: 1.6
+                            }}
+                          >
+                            {data.formula}
+                          </pre>
                         </div>
                       </div>
-                    )}
 
-                    {activeTopic === "dnf" && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
-                        {/* Sliders */}
-                        <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: "1rem" }}>
-                          <div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>Track Severity</span>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-danger)", fontWeight: "bold" }}>{(trackSeverity * 100).toFixed(0)}%</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.1"
-                              value={trackSeverity}
-                              onChange={(e) => setTrackSeverity(Number(e.target.value))}
-                              style={{ width: "100%", accentColor: "var(--accent-danger)" }}
-                            />
-                          </div>
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+                        <button
+                          onClick={() => setActiveSubTab("features")}
+                          className="btn-primary"
+                          style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                        >
+                          Next Tab: Ingest Registry ➜
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                          <div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>PU Component Reliability</span>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-success)", fontWeight: "bold" }}>{(puReliability * 100).toFixed(0)}%</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0.3"
-                              max="1"
-                              step="0.05"
-                              value={puReliability}
-                              onChange={(e) => setPuReliability(Number(e.target.value))}
-                              style={{ width: "100%", accentColor: "var(--accent-success)" }}
-                            />
-                          </div>
+                  {activeSubTab === "features" && (
+                    <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                      <div>
+                        <div className="section-header" style={{ marginBottom: "1rem" }}>
+                          <span className="section-title" style={{ fontSize: "0.75rem" }}>Feature Inputs Registry</span>
+                          <div className="section-header-line" />
                         </div>
-
-                        {/* Interactive Weibull Survival Curve Plot */}
-                        <div style={{ flex: "1 1 280px" }}>
-                          <span className="text-mono" style={{ display: "block", fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
-                            PROJECTED SURVIVAL PROBABILITY (CLASSIFIED %) BY LAP
-                          </span>
-                          <div style={{ display: "flex", alignItems: "flex-end", height: "100px", gap: "4px", borderBottom: "1px solid var(--border-subtle)", borderLeft: "1px solid var(--border-subtle)", paddingLeft: "0.5rem" }}>
-                            {dnfLaps.map((pt) => (
-                              <div key={pt.lap} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                <div
-                                  style={{
-                                    width: "100%",
-                                    height: `${pt.survival}px`,
-                                    background: pt.survival > 75 ? "rgba(34,197,94,0.3)" : (pt.survival > 40 ? "rgba(251,191,36,0.3)" : "rgba(239,68,68,0.3)"),
-                                    borderTop: `2px solid ${pt.survival > 75 ? "var(--accent-success)" : (pt.survival > 40 ? "var(--accent-warning)" : "var(--accent-danger)")}`,
-                                    borderRadius: "1px 1px 0 0"
-                                  }}
-                                />
-                                <span className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>L{pt.lap}</span>
+                        <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "3px", overflowX: "auto" }}>
+                          <div style={{ minWidth: "550px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1.5fr 1fr", background: "var(--bg-elevated)", padding: "0.6rem 1rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                              {["FEATURE CODE", "DATA TYPE", "DATABASE FEED SOURCE", "MODEL WEIGHT"].map((h) => (
+                                <span key={h} className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700 }}>
+                                  {h}
+                                </span>
+                              ))}
+                            </div>
+                            {data.features.map((f, i) => (
+                              <div key={i} style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1.5fr 1fr", padding: "0.75rem 1rem", borderBottom: i < data.features.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
+                                <span className="text-mono" style={{ fontSize: "0.75rem", color: "var(--accent-primary)" }}>{f.code}</span>
+                                <span className="text-mono" style={{ fontSize: "0.75rem", color: "var(--text-primary)" }}>{f.type}</span>
+                                <span className="text-mono" style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{f.source}</span>
+                                <span className="text-mono" style={{ fontSize: "0.75rem", color: f.weight.includes("Critical") || f.weight.includes("High") ? "var(--accent-warning)" : "var(--text-muted)" }}>{f.weight}</span>
                               </div>
                             ))}
                           </div>
                         </div>
                       </div>
-                    )}
 
-                    {activeTopic === "laptime" && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
-                        {/* Sliders */}
-                        <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: "1rem" }}>
-                          <div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>Track Temperature</span>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{tyreTrackTemp}°C</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="15"
-                              max="55"
-                              value={tyreTrackTemp}
-                              onChange={(e) => setTyreTrackTemp(Number(e.target.value))}
-                              style={{ width: "100%", accentColor: "var(--accent-warning)" }}
-                            />
-                          </div>
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+                        <button
+                          onClick={() => setActiveSubTab("sandbox")}
+                          className="btn-primary"
+                          style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                        >
+                          Next Tab: Sandbox Playground ➜
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                          <div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>Starting Fuel Load</span>
-                              <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: "bold" }}>{tyreFuelLoad} kg</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="10"
-                              max="110"
-                              value={tyreFuelLoad}
-                              onChange={(e) => setTyreFuelLoad(Number(e.target.value))}
-                              style={{ width: "100%", accentColor: "var(--accent-primary)" }}
-                            />
-                          </div>
+                  {activeSubTab === "sandbox" && (
+                    <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                      <div>
+                        <div className="section-header" style={{ marginBottom: "1rem" }}>
+                          <span className="section-title" style={{ fontSize: "0.75rem" }}>Interactive Model Sandbox Playground</span>
+                          <div className="section-header-line" />
                         </div>
 
-                        {/* Interactive Degradation Curves Map SVG */}
-                        <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                          <svg viewBox="0 0 320 130" style={{ width: "100%", height: "auto", maxWidth: "320px" }}>
-                            {/* Grid lines */}
-                            <line x1="20" y1="20" x2="300" y2="20" stroke="var(--border-subtle)" strokeDasharray="2 2" />
-                            <line x1="20" y1="70" x2="300" y2="70" stroke="var(--border-subtle)" strokeDasharray="2 2" />
-                            <line x1="20" y1="120" x2="300" y2="120" stroke="var(--border-subtle)" />
+                        <div className="panel" style={{ padding: "1.5rem", background: "rgba(0, 212, 255, 0.01)" }}>
+                          {activeTopic === "elo" && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
+                              {/* Sliders */}
+                              <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                                <div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                                    <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Driver A Elo</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-primary)", fontWeight: "bold" }}>{eloDriverA}</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="1400"
+                                    max="2100"
+                                    value={eloDriverA}
+                                    onChange={(e) => setEloDriverA(Number(e.target.value))}
+                                    style={{ width: "100%", accentColor: "var(--accent-primary)", cursor: "pointer" }}
+                                  />
+                                </div>
 
-                            {/* SOFT spline */}
-                            <path
-                              d={`M ${softCurve.map((c, i) => `${20 + i * 28} ${scalePace(c.pace)}`).join(" L ")}`}
-                              fill="none"
-                              stroke="#ff4466"
-                              strokeWidth="2.5"
-                            />
-                            {/* MEDIUM spline */}
-                            <path
-                              d={`M ${mediumCurve.map((c, i) => `${20 + i * 28} ${scalePace(c.pace)}`).join(" L ")}`}
-                              fill="none"
-                              stroke="#ffcc00"
-                              strokeWidth="2.5"
-                            />
-                            {/* HARD spline */}
-                            <path
-                              d={`M ${hardCurve.map((c, i) => `${20 + i * 28} ${scalePace(c.pace)}`).join(" L ")}`}
-                              fill="none"
-                              stroke="#cccccc"
-                              strokeWidth="2"
-                            />
-                          </svg>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.25rem", padding: "0 10px" }}>
-                            <span className="text-mono" style={{ fontSize: "0.55rem", color: "#ff4466" }}>SOFT</span>
-                            <span className="text-mono" style={{ fontSize: "0.55rem", color: "#ffcc00" }}>MEDIUM</span>
-                            <span className="text-mono" style={{ fontSize: "0.55rem", color: "#cccccc" }}>HARD</span>
-                          </div>
+                                <div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                                    <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Driver B Elo</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{eloDriverB}</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="1400"
+                                    max="2100"
+                                    value={eloDriverB}
+                                    onChange={(e) => setEloDriverB(Number(e.target.value))}
+                                    style={{ width: "100%", accentColor: "var(--accent-warning)", cursor: "pointer" }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Interactive SVG Probability Gauge */}
+                              <div style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                                <svg viewBox="0 0 240 90" style={{ width: "100%", height: "auto", maxWidth: "240px" }}>
+                                  {/* Background track */}
+                                  <path d="M 20 80 A 100 100 0 0 1 220 80" fill="none" stroke="var(--border-subtle)" strokeWidth="8" strokeLinecap="round" />
+                                  {/* Driver A segment */}
+                                  <path
+                                    d="M 20 80 A 100 100 0 0 1 220 80"
+                                    fill="none"
+                                    stroke="var(--accent-primary)"
+                                    strokeWidth="8"
+                                    strokeDasharray={`${probA * 314} 314`}
+                                    strokeLinecap="round"
+                                  />
+                                  {/* Divider indicator pin */}
+                                  <line
+                                    x1="120"
+                                    y1="80"
+                                    x2={120 - 70 * Math.cos(probA * Math.PI)}
+                                    y2={80 - 70 * Math.sin(probA * Math.PI)}
+                                    stroke="var(--text-primary)"
+                                    strokeWidth="3"
+                                  />
+                                  <circle cx="120" cy="80" r="4" fill="var(--text-primary)" />
+                                </svg>
+                                <div style={{ display: "flex", gap: "2rem", marginTop: "0.75rem" }}>
+                                  <div style={{ textAlign: "center" }}>
+                                    <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>PROBABILITY A</div>
+                                    <div className="text-mono" style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--accent-primary)" }}>{(probA * 100).toFixed(1)}%</div>
+                                  </div>
+                                  <div style={{ textAlign: "center" }}>
+                                    <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>PROBABILITY B</div>
+                                    <div className="text-mono" style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--accent-warning)" }}>{(probB * 100).toFixed(1)}%</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTopic === "dnf" && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
+                              {/* Sliders */}
+                              <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                                <div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                                    <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Track Severity</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-danger)", fontWeight: "bold" }}>{(trackSeverity * 100).toFixed(0)}%</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.1"
+                                    value={trackSeverity}
+                                    onChange={(e) => setTrackSeverity(Number(e.target.value))}
+                                    style={{ width: "100%", accentColor: "var(--accent-danger)", cursor: "pointer" }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                                    <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>PU Component Reliability</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-success)", fontWeight: "bold" }}>{(puReliability * 100).toFixed(0)}%</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="0.3"
+                                    max="1"
+                                    step="0.05"
+                                    value={puReliability}
+                                    onChange={(e) => setPuReliability(Number(e.target.value))}
+                                    style={{ width: "100%", accentColor: "var(--accent-success)", cursor: "pointer" }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Interactive Weibull Survival Curve Plot */}
+                              <div style={{ flex: "1 1 280px" }}>
+                                <span className="text-mono" style={{ display: "block", fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
+                                  PROJECTED SURVIVAL PROBABILITY (CLASSIFIED %) BY LAP
+                                </span>
+                                <div style={{ display: "flex", alignItems: "flex-end", height: "100px", gap: "4px", borderBottom: "1px solid var(--border-subtle)", borderLeft: "1px solid var(--border-subtle)", paddingLeft: "0.5rem" }}>
+                                  {dnfLaps.map((pt) => (
+                                    <div key={pt.lap} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                      <div
+                                        style={{
+                                          width: "100%",
+                                          height: `${pt.survival}px`,
+                                          background: pt.survival > 75 ? "rgba(34,197,94,0.3)" : (pt.survival > 40 ? "rgba(251,191,36,0.3)" : "rgba(239,68,68,0.3)"),
+                                          borderTop: `2px solid ${pt.survival > 75 ? "var(--accent-success)" : (pt.survival > 40 ? "var(--accent-warning)" : "var(--accent-danger)")}`,
+                                          borderRadius: "1px 1px 0 0"
+                                        }}
+                                      />
+                                      <span className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>L{pt.lap}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTopic === "laptime" && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
+                              {/* Sliders */}
+                              <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                                <div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                                    <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Track Temperature</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{tyreTrackTemp}°C</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="15"
+                                    max="55"
+                                    value={tyreTrackTemp}
+                                    onChange={(e) => setTyreTrackTemp(Number(e.target.value))}
+                                    style={{ width: "100%", accentColor: "var(--accent-warning)", cursor: "pointer" }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                                    <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Starting Fuel Load</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-primary)", fontWeight: "bold" }}>{tyreFuelLoad} kg</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="10"
+                                    max="110"
+                                    value={tyreFuelLoad}
+                                    onChange={(e) => setTyreFuelLoad(Number(e.target.value))}
+                                    style={{ width: "100%", accentColor: "var(--accent-primary)", cursor: "pointer" }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Interactive Degradation Curves Map SVG */}
+                              <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                <svg viewBox="0 0 320 130" style={{ width: "100%", height: "auto", maxWidth: "320px" }}>
+                                  {/* Grid lines */}
+                                  <line x1="20" y1="20" x2="300" y2="20" stroke="var(--border-subtle)" strokeDasharray="2 2" />
+                                  <line x1="20" y1="70" x2="300" y2="70" stroke="var(--border-subtle)" strokeDasharray="2 2" />
+                                  <line x1="20" y1="120" x2="300" y2="120" stroke="var(--border-subtle)" />
+
+                                  {/* SOFT spline */}
+                                  <path
+                                    d={`M ${softCurve.map((c, i) => `${20 + i * 28} ${scalePace(c.pace)}`).join(" L ")}`}
+                                    fill="none"
+                                    stroke="#ff4466"
+                                    strokeWidth="2.5"
+                                  />
+                                  {/* MEDIUM spline */}
+                                  <path
+                                    d={`M ${mediumCurve.map((c, i) => `${20 + i * 28} ${scalePace(c.pace)}`).join(" L ")}`}
+                                    fill="none"
+                                    stroke="#ffcc00"
+                                    strokeWidth="2.5"
+                                  />
+                                  {/* HARD spline */}
+                                  <path
+                                    d={`M ${hardCurve.map((c, i) => `${20 + i * 28} ${scalePace(c.pace)}`).join(" L ")}`}
+                                    fill="none"
+                                    stroke="#cccccc"
+                                    strokeWidth="2"
+                                  />
+                                </svg>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.4rem", padding: "0 10px" }}>
+                                  <span className="text-mono" style={{ fontSize: "0.6rem", color: "#ff4466" }}>SOFT</span>
+                                  <span className="text-mono" style={{ fontSize: "0.6rem", color: "#ffcc00" }}>MEDIUM</span>
+                                  <span className="text-mono" style={{ fontSize: "0.6rem", color: "#cccccc" }}>HARD</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {!["elo", "dnf", "laptime"].includes(activeTopic) && (
+                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80px" }}>
+                              <span className="text-mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                ⚡ Model playground loaded. Sliders configured on FastAPI python microservice.
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    )}
 
-                    {!["elo", "dnf", "laptime"].includes(activeTopic) && (
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80px" }}>
-                        <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
-                          ⚡ Model playground loaded. Sliders configured on FastAPI python microservice.
-                        </span>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem" }}>
+                        <button
+                          onClick={() => handleTopicChange(activeTopic)}
+                          className="text-mono"
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--border-subtle)",
+                            color: "var(--text-secondary)",
+                            fontSize: "0.75rem",
+                            padding: "0.5rem 1.25rem",
+                            cursor: "pointer",
+                            borderRadius: "2px"
+                          }}
+                        >
+                          ↺ Restart Guide
+                        </button>
+                        <button
+                          onClick={() => setActiveTopic("overview")}
+                          className="text-mono"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--accent-primary)",
+                            fontSize: "0.75rem",
+                            cursor: "pointer",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          Back to System Overview ➜
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
