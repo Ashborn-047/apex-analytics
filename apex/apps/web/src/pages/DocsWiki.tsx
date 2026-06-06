@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { TOPIC_REGISTRY } from "./DocsData";
 
-// Types for routing and topics
 type Topic =
   | "overview"
   | "elo"
@@ -12,25 +12,6 @@ type Topic =
   | "outcome"
   | "dnf"
   | "quali";
-
-interface FeatureRow {
-  code: string;
-  type: string;
-  source: string;
-  weight: string;
-}
-
-interface TopicData {
-  title: string;
-  scope: string;
-  version: string;
-  runMode: string;
-  apiPath: string;
-  summary: string;
-  formula: string;
-  logicSteps: string[];
-  features: FeatureRow[];
-}
 
 export default function DocsWiki() {
   const [activeTopic, setActiveTopic] = useState<Topic>("overview");
@@ -97,195 +78,7 @@ export default function DocsWiki() {
     return 120 - ((pace - minPace) / range) * 100;
   };
 
-  const TOPIC_REGISTRY: Record<Exclude<Topic, "overview">, TopicData> = {
-    elo: {
-      title: "Driver Elo Rating Engine",
-      scope: "ML-SCOPE-01",
-      version: "v1.2.4",
-      runMode: "LIVE SESSION CRON",
-      apiPath: "/api/predict/elo/rankings",
-      summary: "Isolates driver skill from constructor performance by scoring head-to-head qualifying and race results specifically against same-car teammates.",
-      formula: "E_A = 1 / (1 + 10^((R_B - R_A) / 400)) \n\nR'_A = R_A + K * (S_A - E_A)",
-      logicSteps: [
-        "Identifies all active same-constructor teammate pairs for each session.",
-        "Extracts lap time deltas for qualifying and grid finish positions for races.",
-        "Applies a sigmoid mapping to scale margins: larger deltas yield larger Elo adjustments.",
-        "Updates ratings using a dynamic K-factor based on career experience (lower K for veterans, higher K for rookies).",
-        "Tracks uncertainty bounds (standard deviation) which decrease asymptotically with session coverage."
-      ],
-      features: [
-        { code: "teammate_id", type: "Categorical (String)", source: "Postgres (results)", weight: "High (Base Reference)" },
-        { code: "quali_delta_s", type: "Continuous (Float)", source: "Postgres (qualifying)", weight: "Medium (Quali Elo)" },
-        { code: "finish_delta_pos", type: "Integer (Grid Diff)", source: "Postgres (results)", weight: "High (Race Elo)" },
-        { code: "experience_laps", type: "Integer (Cumulative)", source: "Postgres (lap_times)", weight: "Low (K-factor scaling)" }
-      ]
-    },
-    laptime: {
-      title: "Tyre Degradation & Stint Regressor",
-      scope: "ML-SCOPE-02",
-      version: "v2.0.1",
-      runMode: "ON-DEMAND INFERENCE",
-      apiPath: "/api/predict/lap-time",
-      summary: "Trains Ridge and XGBoost regressors on historical stint lap times to model compound decay curves adjusted for track temperature and fuel load.",
-      formula: "T_pred = T_base + α * (StintLap)^2 + β * (TrackTemp) - 0.03 * (FuelLoad)",
-      logicSteps: [
-        "Filters out safety cars, virtual safety cars, out-laps, and pit-in laps from the historical dataset.",
-        "Applies a linear fuel-burn rate correction (-0.03s per kg of fuel burned) to isolate the true chemical tyre wear.",
-        "Fits polynomial coefficients (α) for SOFT, MEDIUM, and HARD compounds on dry sessions.",
-        "Adjusts base pace linearly using active track temperature and constructor-specific baseline offsets.",
-        "Flags the onset of the thermal 'tyre cliff' when stint pace standard deviation exceeds 2.2σ."
-      ],
-      features: [
-        { code: "compound", type: "One-Hot (SOFT/MED/HARD)", source: "Postgres (pit_stops)", weight: "Critical" },
-        { code: "stint_lap", type: "Integer (1 to 50)", source: "Postgres (lap_times)", weight: "High (Quadratic wear)" },
-        { code: "track_temp_c", type: "Continuous (Float)", source: "OpenF1 (Telemetry)", weight: "High (Thermal decay)" },
-        { code: "fuel_load_kg", type: "Continuous (Calculated)", source: "Postgres (Session)", weight: "Medium (Weight offset)" }
-      ]
-    },
-    strategy: {
-      title: "Optimal Pit Stop Strategy Solver",
-      scope: "ML-SCOPE-03",
-      version: "v1.5.0",
-      runMode: "ON-DEMAND SOLVER",
-      apiPath: "/api/predict/strategy/pit-window/:id",
-      summary: "Performs O(N²) stint searches to find the fastest combination of tyre compounds and pit stops that minimizes overall race duration.",
-      formula: "T_total = Sum(LapTimes_c) + N_stops * PitLaneLoss + Sum(TrafficDelay)",
-      logicSteps: [
-        "Generates all valid combinations of tyre stints (e.g. Medium-Hard, Soft-Medium-Hard) complying with the F1 rule requiring at least two different dry compounds.",
-        "Integrates a safety car rate Poisson distribution per track, downweighting pit lane loss by 50% during high-risk windows.",
-        "Calculates undercut/overcut deltas based on opponent stint degradation slope differences.",
-        "Applies a dirty-air traffic penalty (+0.35s/lap) if the driver is projected to emerge in a tight gap (<3.0s) behind other runners."
-      ],
-      features: [
-        { code: "pit_loss_s", type: "Continuous (Track Const)", source: "Registry (Static)", weight: "High" },
-        { code: "sc_probability", type: "Probability (0 to 1)", source: "Postgres (Historical SC)", weight: "Medium (Loss discount)" },
-        { code: "traffic_gap_s", type: "Continuous (Dynamic)", source: "SpacetimeDB (live_positions)", weight: "High (Merge penalty)" },
-        { code: "crossover_lap", type: "Integer (Lap number)", source: "ML Regressor", weight: "Critical" }
-      ]
-    },
-    montecarlo: {
-      title: "Monte Carlo Championship Simulator",
-      scope: "ML-SCOPE-04",
-      version: "v1.8.2",
-      runMode: "BATCH SCHEDULED",
-      apiPath: "/api/predict/simulation/championship",
-      summary: "Runs 50,000 seasonal projections utilizing current points standings, remaining schedules, and driver/constructor skill probability densities.",
-      formula: "Skill_D = Elo_D + Gumbel(μ, β) \n\nP_finish = Softmax(Skill_D + CircuitAffinity)",
-      logicSteps: [
-        "Extracts current championship points standings and the count of remaining rounds.",
-        "Models race outcomes by adding Gumbel extreme-value noise to driver Elo ratings to simulate DNFs, crashes, and rain anomalies.",
-        "Adjusts team base pace according to circuit classification (e.g., Monza rewards low drag, Monaco rewards high downforce).",
-        "Calculates points distributed for each iteration (including sprint rounds and fastest lap bonuses) and tabulates finishing ranges.",
-        "Computes mathematical clinch margins and elimination rounds across the iterations."
-      ],
-      features: [
-        { code: "current_points", type: "Integer", source: "Postgres (results)", weight: "Critical" },
-        { code: "circuit_type", type: "Categorical", source: "Postgres (circuits)", weight: "High (Affinities)" },
-        { code: "elo_rating", type: "Continuous", source: "ML Elo System", weight: "Critical" },
-        { code: "rounds_remaining", type: "Integer", source: "Postgres (races)", weight: "High" }
-      ]
-    },
-    form: {
-      title: "Driver Form Index",
-      scope: "ML-SCOPE-05",
-      version: "v1.0.1",
-      runMode: "LIVE SESSION CRON",
-      apiPath: "/api/predict/driver-form/:driver_id",
-      summary: "Computes a rolling 0-100 rating of recent driver form using Exponentially Weighted Moving Average (EWMA) to weight recent races higher.",
-      formula: "Y_t = λ * X_t + (1 - λ) * Y_(t-1)  (where λ = 0.08)",
-      logicSteps: [
-        "Pulls qualifying position differences and race finish position deltas vs. teammate for the last 10 rounds.",
-        "Applies the EWMA decay filter to reward recent strong outcomes over early-season performances.",
-        "Computes a lap-to-lap pace consistency metric by evaluating standard deviations of lap times within clean stints.",
-        "Outputs form ratings (0-100%) and form trends (IMPROVING, STABLE, DECLINING)."
-      ],
-      features: [
-        { code: "quali_delta", type: "Continuous", source: "Postgres (qualifying)", weight: "Medium" },
-        { code: "finish_delta", type: "Integer", source: "Postgres (results)", weight: "High" },
-        { code: "consistency_idx", type: "Continuous (0-100)", source: "Postgres (lap_times)", weight: "Medium" }
-      ]
-    },
-    weather: {
-      title: "Weather Impact Model",
-      scope: "ML-SCOPE-06",
-      version: "v1.1.0",
-      runMode: "ON-DEMAND INFERENCE",
-      apiPath: "/api/predict/weather-impact",
-      summary: "Calculates lap time offsets and compound crossovers based on track surface wetness, humidity, and temperature.",
-      formula: "LapTimeDelta_w = Poly(TrackTemp) + WetnessGripLoss * Coefficient_D",
-      logicSteps: [
-        "Receives weather inputs: track/air temperature, humidity, and rain probability.",
-        "Calculates wetness grip loss offsets that scale lap times up to +15.0s (Inters) and +25.0s (Full Wets).",
-        "Applies historical driver-specific wet-weather coefficients (e.g. Hamilton, Verstappen have high wet multipliers) to adjust wet pace.",
-        "Generates dry-to-wet compound crossover switch recommendations."
-      ],
-      features: [
-        { code: "track_temp_c", type: "Continuous", source: "OpenF1 / Inputs", weight: "High" },
-        { code: "rain_probability", type: "Probability (0 to 1)", source: "OpenF1 / Inputs", weight: "Critical" },
-        { code: "humidity_pct", type: "Continuous", source: "OpenF1 / Inputs", weight: "Low" }
-      ]
-    },
-    outcome: {
-      title: "Race Outcome Predictor",
-      scope: "ML-SCOPE-07",
-      version: "v2.1.0",
-      runMode: "ON-DEMAND INFERENCE",
-      apiPath: "/predict/race-outcome",
-      summary: "Estimates finish position probability distributions (P1–P10) centered around expected finishes using starting grid slots, teammate Elo margins, driver form, and constructor affinities.",
-      formula: "Prob_finish = Softmax(GridPosition * w_g + EloRating * w_e + FormIndex * w_f)",
-      logicSteps: [
-        "Pulls pre-race starting grid slots for the upcoming session.",
-        "Combines driver Elo ratings, constructor strength metrics, and active driver form ratings.",
-        "Applies an XGBoost Classifier trained on historical grid-to-finish position records to yield position probability ranges.",
-        "Calculates Expected Points by multiplying probabilities by F1 points distributions."
-      ],
-      features: [
-        { code: "grid_position", type: "Integer (1 to 20)", source: "Postgres (qualifying)", weight: "Critical" },
-        { code: "elo_rating", type: "Continuous", source: "ML Elo System", weight: "High" },
-        { code: "form_index", type: "Continuous", source: "ML Form System", weight: "Medium" }
-      ]
-    },
-    dnf: {
-      title: "DNF Risk & Reliability Predictor",
-      scope: "ML-SCOPE-08",
-      version: "v1.4.2",
-      runMode: "BATCH SCHEDULED",
-      apiPath: "/api/predict/dnf-risk/:driver_id",
-      summary: "Evaluates reliability hazard rates over race lap increments using a Weibull survival model tuned to team components and circuit classes.",
-      formula: "S(t) = exp( -(t / L)^k )  (where k = 1.6 shape, L = scale)",
-      logicSteps: [
-        "Analyzes team reliability scales (historical mechanical DNFs) and driver crash factors (collision history).",
-        "Categorizes circuit DNF multipliers (e.g. Monaco street circuits have high collision hazard; Monza high speed mechanical hazard).",
-        "Fits a Weibull survival curve representing lap-by-lap classified finish probabilities.",
-        "Calculates risk classifications (LOW, MEDIUM, HIGH, CRITICAL) and breakdown of failure types."
-      ],
-      features: [
-        { code: "constructor_id", type: "Categorical", source: "Postgres (results)", weight: "High (Mechanical history)" },
-        { code: "circuit_type", type: "Categorical", source: "Postgres (circuits)", weight: "High (Street vs High Speed)" },
-        { code: "driver_crash_multiplier", type: "Continuous", source: "Postgres (results)", weight: "Medium" }
-      ]
-    },
-    quali: {
-      title: "Qualifying Position Predictor",
-      scope: "ML-SCOPE-09",
-      version: "v1.3.1",
-      runMode: "ON-DEMAND INFERENCE",
-      apiPath: "/predict/qualifying",
-      summary: "Predicts expected qualifying positions, Q3 entry probabilities, and pole position chances using constructor power unit ratings and circuit affinities.",
-      formula: "QualiPace_D = TeamPowerUnitRating * w_t + CircuitAffinity_D * w_c",
-      logicSteps: [
-        "Extracts constructor power unit performance ratios (derived from average qualifying times).",
-        "Applies driver circuit affinities (historical qualifying positions at similar track configurations).",
-        "Uses an XGBoost Regressor model to project best Q3 lap times and qualifying grid distributions.",
-        "Outputs Q3 entry likelihood percentages and pole position probabilities."
-      ],
-      features: [
-        { code: "pu_rating", type: "Continuous", source: "Postgres (results)", weight: "Critical" },
-        { code: "circuit_affinity", type: "Continuous", source: "Postgres (qualifying)", weight: "High" },
-        { code: "track_temp_c", type: "Continuous", source: "OpenF1 (Telemetry)", weight: "Medium" }
-      ]
-    }
-  };
+
 
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem" }}>
@@ -459,6 +252,41 @@ export default function DocsWiki() {
                 {/* Brief Summary */}
                 <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
                   {data.summary}
+                </div>
+
+                {/* What / Why / When row of cards */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+                  <div style={{ flex: "1 1 240px", padding: "1rem", background: "var(--bg-elevated)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <span style={{ fontSize: "1rem", color: "var(--accent-primary)" }}>🔎</span>
+                      <h4 style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: 0, textTransform: "uppercase" }}>What is it?</h4>
+                    </div>
+                    <p style={{ fontSize: "0.68rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{data.what}</p>
+                  </div>
+
+                  <div style={{ flex: "1 1 240px", padding: "1rem", background: "var(--bg-elevated)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <span style={{ fontSize: "1rem", color: "var(--accent-primary)" }}>🎯</span>
+                      <h4 style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: 0, textTransform: "uppercase" }}>Why do we use it?</h4>
+                    </div>
+                    <p style={{ fontSize: "0.68rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{data.why}</p>
+                  </div>
+
+                  <div style={{ flex: "1 1 240px", padding: "1rem", background: "var(--bg-elevated)", borderRadius: "3px", border: "1px solid var(--border-subtle)" }}>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <span style={{ fontSize: "1rem", color: "var(--accent-primary)" }}>⚡</span>
+                      <h4 style={{ fontSize: "0.75rem", color: "var(--text-primary)", margin: 0, textTransform: "uppercase" }}>When does it run?</h4>
+                    </div>
+                    <p style={{ fontSize: "0.68rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{data.when}</p>
+                  </div>
+                </div>
+
+                {/* Deep Dive How It Works */}
+                <div style={{ padding: "1.25rem", background: "var(--bg-void)", border: "1px solid var(--border-subtle)", borderRadius: "4px" }}>
+                  <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.75rem", fontWeight: 700 }}>
+                    DETAILED MODEL METHODOLOGY (HOW IT WORKS)
+                  </div>
+                  <p style={{ fontSize: "0.7rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>{data.how}</p>
                 </div>
 
                 {/* Split layout: left steps, right formula */}
