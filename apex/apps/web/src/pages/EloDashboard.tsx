@@ -204,6 +204,11 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
   const [selected, setSelected] = useState<EloRanking | null>(null);
   const [scope, setScope] = useState<"season" | "career">("season");
   const [compareList, setCompareList] = useState<string[]>([]);
+  const [error, setError] = useState<Error | null>(null);
+
+  if (error) {
+    throw error;
+  }
 
   useEffect(() => {
     fetch(`${API_BASE}/api/predict/elo/rankings?season=${season}`)
@@ -246,6 +251,7 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
       })
       .catch((err) => {
         console.error("Error loading ratings from microservice:", err);
+        setError(err);
       });
   }, [season, scope]);
 

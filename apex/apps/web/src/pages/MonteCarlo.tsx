@@ -44,7 +44,11 @@ export default function MonteCarlo({ season }: { season: number }) {
   const [selectedConstructorId, setSelectedConstructorId] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalDriver, setModalDriver] = useState<{ name: string; team: string; points: number } | null>(null);
-  const [, setError] = useState<unknown>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  if (error) {
+    throw error;
+  }
 
   useEffect(() => {
     fetch(`${API_BASE}/api/predict/simulation/championship?season=${season}`)
@@ -63,7 +67,7 @@ export default function MonteCarlo({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error loading Monte Carlo simulation:", err);
-        setError(() => { throw err; });
+        setError(err);
       });
   }, [season]);
 

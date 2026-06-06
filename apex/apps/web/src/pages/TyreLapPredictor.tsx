@@ -57,7 +57,11 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   const [actualLaps, setActualLaps] = useState<ActualLap[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDetailCompound, setSelectedDetailCompound] = useState<Compound | null>(null);
-  const [, setError] = useState<unknown>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  if (error) {
+    throw error;
+  }
 
   // Live Stint Simulator State
   const [simTrackTemp, setSimTrackTemp] = useState<number>(35);
@@ -97,7 +101,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Simulation run failed:", err);
-        setError(() => { throw err; });
+        setError(err);
       });
   };
 
@@ -163,6 +167,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error loading tyre predictions from microservice:", err);
+        setError(err);
       });
   }, [season, selectedDriver]);
 
@@ -180,7 +185,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error fetching actual lap times:", err);
-        setError(() => { throw err; });
+        setError(err);
       });
   }, [season]);
 
@@ -365,6 +370,9 @@ export default function TyreLapPredictor({ season }: { season: number }) {
             <div className="panel panel-accent" style={{ padding: "1.5rem" }}>
               <div className="section-header" style={{ marginBottom: "1rem" }}>
                 <span className="section-title">Tyre Degradation Curves (25 Laps)</span>
+                <span className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginLeft: "1rem" }}>
+                  ACTIVE CONFIGURATION: {selectedCompound.toUpperCase()}
+                </span>
                 <div className="section-header-line" />
               </div>
 

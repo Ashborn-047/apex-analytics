@@ -85,7 +85,11 @@ export default function PitWallPlanner({ season }: { season: number }) {
   const [actualStops, setActualStops] = useState<ActualPitStop[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDetailLap, setSelectedDetailLap] = useState<number | null>(null);
-  const [, setError] = useState<unknown>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  if (error) {
+    throw error;
+  }
   const totalLaps = 53; // Monza race distance
 
   // Dynamic live driver status
@@ -134,7 +138,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error loading pit strategy from microservice:", err);
-        setError(() => { throw err; });
+        setError(err);
       });
   }, [driverId, season]);
 
@@ -152,7 +156,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
       })
       .catch((err) => {
         console.error("Error fetching actual pit stops:", err);
-        setError(() => { throw err; });
+        setError(err);
       });
   }, [season]);
 
