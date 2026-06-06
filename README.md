@@ -205,7 +205,7 @@ The database migration configuration is compatible with vanilla PostgreSQL (as h
 
 ## Implemented Telemetry & Machine Learning Models
 
-APEX is equipped with fully active Python-based machine learning pipelines (`apps/ml`) connected directly to the React dashboard pages:
+APEX is equipped with fully active Python-based machine learning pipelines (`apps/ml`) connected directly to the React dashboard pages, comprising 9 core prediction models:
 
 ### 1. Driver ELO Ratings (`apps/ml/src/models/elo.py`)
 *   **Core Logic:** Isolates driver skill from constructor performance by weighting same-car teammate qualifying and race comparisons.
@@ -226,6 +226,27 @@ APEX is equipped with fully active Python-based machine learning pipelines (`app
 ### 4. Monte Carlo Championship Simulator (`apps/ml/src/models/simulation.py`)
 *   **Core Logic:** Dynamic 50,000-run NumPy-vectorized simulator utilizing active driver points, constructor teams, and average finish positions from the database.
 *   **UI Dashboard:** Displays circular dial gauges for WDC/WCC probabilities, and compares simulated standings side-by-side with actual results for completed seasons (2022-2025).
+
+### 5. Driver Form Index (`apps/ml/src/models/driver_form.py`)
+*   **Core Logic:** Computes a dynamic 0–100 form index per driver using Exponentially Weighted Moving Average (EWMA) of recent pace, qualifying gaps, and expected finish offsets (decay λ = 0.08).
+*   **Features:** Detects form trends (`IMPROVING`, `STABLE`, `DECLINING`), consistency scores (based on lap time variance), and teammate pace deltas.
+*   **UI Dashboard:** Displays form index ratings and trend markers directly inline on the Driver Elo standings.
+
+### 6. Weather Impact Model (`apps/ml/src/models/weather.py`)
+*   **Core Logic:** Computes weather-induced lap time offsets based on track temperature, wind speed, and moisture levels, yielding compound recommendations and wet-weather skill ratios.
+*   **UI Dashboard:** Integrates track/air temperature sliders, safety margin parameters, and grip wetness levels inside the Tyre and Pit Wall planners.
+
+### 7. Race Outcome Predictor (`apps/ml/src/models/race_outcome.py`)
+*   **Core Logic:** Uses an `XGBoost Classifier` to predict finishing position probability distributions (P1–P10) centered around expected finishes using starting grid slots, teammate Elo margins, driver form, and constructor affinities.
+*   **Features:** Calculates Expected Points and Podium Probability.
+
+### 8. DNF Risk & Reliability Predictor (`apps/ml/src/models/dnf_risk.py`)
+*   **Core Logic:** Models reliability scales for constructors, driver crash multipliers, and street circuit coefficients using a Weibull survival distribution model to calculate lap-by-lap survival curves and failure breakdowns (Mechanical, Collision, Other).
+*   **UI Dashboard:** Visualizes survival probability charts inside the Driver detail profile views.
+
+### 9. Qualifying Position Predictor (`apps/ml/src/models/qualifying.py`)
+*   **Core Logic:** Uses an `XGBoost Regressor` to predict qualifying placements, Q3 entries, and pole position probabilities, as well as track-temperature adjusted best lap times.
+*   **UI Dashboard:** Populates qualifying forecast boards on the Race Preview tab.
 
 ---
 
