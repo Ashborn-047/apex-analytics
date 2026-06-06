@@ -303,4 +303,21 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
     await page.click('text=RESET', { force: true });
     await expect(page.locator('text=RUN SIMULATION')).toBeVisible();
   });
+
+  test('should navigate and interact with ML Wiki page', async ({ page }) => {
+    // Navigate to ML Wiki page
+    await page.getByRole('button', { name: 'ML Wiki' }).click();
+
+    // Verify System Overview is visible
+    await expect(page.locator('text=F1 Predictive Modeling Overview')).toBeVisible();
+
+    // Click on Driver Elo Ratings article
+    await page.click('text=Driver Elo Ratings', { force: true });
+
+    // Verify detail headers for Elo ratings load
+    await expect(page.locator('text=SCOPE: ML-SCOPE-01')).toBeVisible();
+    await expect(page.locator('text=Algorithmic Execution Steps')).toBeVisible();
+    await expect(page.locator('text=PROBABILITY A')).toBeVisible();
+  });
 });
+

@@ -6,6 +6,7 @@ import MonteCarlo from "./pages/MonteCarlo";
 import DriverProfile from "./pages/DriverProfile";
 import DriverCompare from "./pages/DriverCompare";
 import RacePreview from "./pages/RacePreview";
+import DocsWiki from "./pages/DocsWiki";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -85,7 +86,7 @@ class PageErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 }
 
-type Tab = "elo" | "tyres" | "pit" | "montecarlo" | "driver-profile" | "compare" | "preview";
+type Tab = "elo" | "tyres" | "pit" | "montecarlo" | "driver-profile" | "compare" | "preview" | "docs";
 
 interface NavItem {
   id: Tab;
@@ -100,6 +101,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "tyres",       label: "Tyre & Lap",     sublabel: "DEGRADATION MODEL", icon: "◎" },
   { id: "pit",         label: "Pit Wall",        sublabel: "STRATEGY PLANNER",  icon: "⬡" },
   { id: "montecarlo",  label: "Monte Carlo",    sublabel: "CHAMPIONSHIP SIM",  icon: "∑" },
+  { id: "docs",        label: "ML Wiki",        sublabel: "DOCUMENTATION",     icon: "📖" },
 ];
 
 function TopNav({
@@ -315,6 +317,7 @@ export default function App() {
         onBack={() => setActiveTab("elo")}
       />
     ),
+    docs: <DocsWiki />,
   };
 
   return (
