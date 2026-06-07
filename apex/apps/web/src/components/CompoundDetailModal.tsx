@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+﻿import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import Modal from "./Modal";
 
 import type { Compound } from "../types";
@@ -91,7 +91,7 @@ function CustomLineTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: 600 }}>
@@ -116,7 +116,7 @@ function CustomBarTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>
@@ -274,3 +274,4 @@ export default function CompoundDetailModal({ isOpen, onClose, compound }: Compo
     </Modal>
   );
 }
+

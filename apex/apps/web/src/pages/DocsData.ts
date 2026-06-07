@@ -5,6 +5,23 @@ export interface FeatureRow {
   weight: string;
 }
 
+export interface MathTerm {
+  symbol: string;
+  name: string;
+  explanation: string;
+}
+
+export interface CompareItem {
+  label: string;
+  text: string;
+}
+
+export interface CompareModel {
+  title: string;
+  badge: string;
+  items: CompareItem[];
+}
+
 export interface TopicData {
   title: string;
   scope: string;
@@ -19,6 +36,9 @@ export interface TopicData {
   formula: string;
   logicSteps: string[];
   features: FeatureRow[];
+  mathTerms: MathTerm[];
+  f1Compare: CompareModel;
+  apexCompare: CompareModel;
 }
 
 export const TOPIC_REGISTRY: Record<string, TopicData> = {
@@ -46,7 +66,29 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "quali_delta_s", type: "Continuous (Float)", source: "Postgres (qualifying)", weight: "Medium (Quali Elo)" },
       { code: "finish_delta_pos", type: "Integer (Grid Diff)", source: "Postgres (results)", weight: "High (Race Elo)" },
       { code: "experience_laps", type: "Integer (Cumulative)", source: "Postgres (lap_times)", weight: "Low (K-factor scaling)" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "E_A", name: "Expected Outcome probability", explanation: "Calculated probability (0.0 to 1.0) that Driver A will outperform their teammate B based on previous Elo baselines." },
+      { symbol: "R_A / R_B", name: "Prior Elo Ratings", explanation: "The intrinsic skill score of both drivers before entering the current session, where a 400-point difference predicts a 91% teammate win rate." },
+      { symbol: "S_A", name: "Actual Session Outcome", explanation: "The zero-sum outcome coordinate: 1.0 for outperforming teammate, 0.0 for finishing behind, 0.5 for ties/mutual DNFs." },
+      { symbol: "K", name: "Dynamic K-Factor", explanation: "The training step multiplier. It is scaled dynamically down for veterans to filter outliers, and up for rookies to accelerate stabilization." }
+    ],
+    f1Compare: {
+      title: "Official F1 Power Rankings",
+      badge: "SUBJECTIVE",
+      items: [
+        { label: "Evaluation Model", text: "A subjective panel of 5 judges scoring drivers out of 10 based on broadcast impressions." },
+        { label: "Constructor Bias", text: "Conflates car superiority with driver speed, resulting in drivers in winning cars always scoring higher." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Intrinsic Elo",
+      badge: "MATHEMATICAL",
+      items: [
+        { label: "Teammate Isolation", text: "Zero-sum teammate head-to-head mapping completely removes constructor mechanical performance differences." },
+        { label: "Outlier Protection", text: "Sigmoid variance thresholds and veteran K-factor decay prevent anomalies from causing rating swings." }
+      ]
+    }
   },
   laptime: {
     title: "Tyre Degradation & Stint Regressor",
@@ -72,7 +114,29 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "stint_lap", type: "Integer (1 to 50)", source: "Postgres (lap_times)", weight: "High (Quadratic wear)" },
       { code: "track_temp_c", type: "Continuous (Float)", source: "OpenF1 (Telemetry)", weight: "High (Thermal decay)" },
       { code: "fuel_load_kg", type: "Continuous (Calculated)", source: "Postgres (Session)", weight: "Medium (Weight offset)" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "T_pred", name: "Predicted Lap Time", explanation: "The calculated target lap time in seconds for the driver on the current stint lap." },
+      { symbol: "T_base", name: "Baseline Pace", explanation: "The driver-car baseline speed on fresh tyres, excluding fuel weight and thermal offsets." },
+      { symbol: "α (Alpha)", name: "Degradation Coefficient", explanation: "Quadratic coefficient fitting wear rate per compound; Softs have the highest coefficient." },
+      { symbol: "β (Beta)", name: "Thermal Sensitivity Factor", explanation: "Pace loss rate scaled by track temperature, modeling tire overheating outside its ideal temperature window." }
+    ],
+    f1Compare: {
+      title: "Pirelli Wear Projections",
+      badge: "STATIC",
+      items: [
+        { label: "Evaluation Model", text: "Generic wear estimations published pre-weekend using standard compound constants." },
+        { label: "Chassis Agnostic", text: "Does not adapt to constructor-specific tire heating dynamics or fuel burn sensitivities." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Spline Regressor",
+      badge: "DYNAMIC",
+      items: [
+        { label: "Fuel Correction", text: "Isolates mechanical wear by subtracting linear fuel-weight burn offsets (-0.03s/lap) first." },
+        { label: "Thermal Telemetry", text: "Runs real-time updates based on temperature sliders and constructor chassis-wear modifiers." }
+      ]
+    }
   },
   strategy: {
     title: "Optimal Pit Stop Strategy Solver",
@@ -80,7 +144,7 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
     version: "v1.5.0",
     runMode: "ON-DEMAND SOLVER",
     apiPath: "/api/predict/strategy/pit-window/:id",
-    summary: "Performs O(N²) stint searches to find the fastest combination of tyre compounds and pit stops that minimizes overall race duration.",
+    summary: "Performs O(N²) stint searches to find the theoretically fastest sequence of tire compounds that minimizes overall race duration.",
     what: "The Pit Stop Strategy Solver is an optimization module that computes the theoretically fastest race plan. It evaluates possible stint lengths and compound sequences (e.g. Medium-Hard, Soft-Medium-Hard) while strictly enforcing F1 sporting regulations (such as using at least two different dry compounds in a dry race).",
     why: "Determining the optimal strategy requires balancing conflicting factors: newer tires yield faster lap times, but pit lane entries cost a fixed time penalty (~20–25s depending on the circuit). The solver evaluates these offsets to prevent drivers from getting stuck in traffic (dirty air) or missing safety car windows.",
     when: "The solver runs on-demand before the race to establish the baseline strategy, and is continually re-run mid-race to adapt to active race incidents, competitor pit stops, and safety car interventions.",
@@ -97,7 +161,29 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "sc_probability", type: "Probability (0 to 1)", source: "Postgres (Historical SC)", weight: "Medium (Loss discount)" },
       { code: "traffic_gap_s", type: "Continuous (Dynamic)", source: "SpacetimeDB (live_positions)", weight: "High (Merge penalty)" },
       { code: "crossover_lap", type: "Integer (Lap number)", source: "ML Regressor", weight: "Critical" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "T_total", name: "Total Race Duration", explanation: "The sum of all predicted clean lap times, pit stop overheads, and dirty-air traffic penalties." },
+      { symbol: "N_stops", name: "Number of Pit Stops", explanation: "Total stop count; each stop incurs a fixed mechanical pit lane transit penalty." },
+      { symbol: "PitLaneLoss", name: "Pit Lane Time Loss", explanation: "Circuit-specific overhead in seconds to drive through the pit lane at the speed limit." },
+      { symbol: "TrafficDelay", name: "Dirty Air Penalty", explanation: "Pace penalty (+0.35s per lap) applied to stints where the driver is within 3.0 seconds of a competitor." }
+    ],
+    f1Compare: {
+      title: "Broadcast Pit Windows",
+      badge: "STATIC PREDICTION",
+      items: [
+        { label: "Static Output", text: "Presents standard 1-stop vs. 2-stop windows calculated before the lights go out." },
+        { label: "Ignore Traffic", text: "Fails to compute dynamic traffic pockets, leading to drivers pit-stopping directly into traffic." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Dynamic Strategy Solver",
+      badge: "GRAPH OPTIMIZATION",
+      items: [
+        { label: "Shortest Path Search", text: "Runs O(N²) graph search matching tire degradation against live traffic merge envelopes." },
+        { label: "Safety Car Hedging", text: "Applies a Poisson safety car overlay to trigger defensive pit windows during high-risk laps." }
+      ]
+    }
   },
   montecarlo: {
     title: "Monte Carlo Championship Simulator",
@@ -123,7 +209,29 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "circuit_type", type: "Categorical", source: "Postgres (circuits)", weight: "High (Affinities)" },
       { code: "elo_rating", type: "Continuous", source: "ML Elo System", weight: "Critical" },
       { code: "rounds_remaining", type: "Integer", source: "Postgres (races)", weight: "High" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "Skill_D", name: "Simulated Driver Skill", explanation: "The dynamic speed rating for a driver in a specific round, representing their pace ceiling." },
+      { symbol: "Gumbel(μ, β)", name: "Gumbel Noise Distribution", explanation: "Asymmetric noise distribution used to model sudden performance dropouts (DNF/accidents)." },
+      { symbol: "CircuitAffinity", name: "Layout Pace Bias", explanation: "Constructor speed modifier based on track layout types (high downforce vs. engine power)." },
+      { symbol: "Softmax", name: "Finishing Probability Scale", explanation: "Mathematical function mapping simulated skill metrics to normalized finish slots (P1 to P20)." }
+    ],
+    f1Compare: {
+      title: "Championship Points Standings",
+      badge: "DETERMINISTIC",
+      items: [
+        { label: "Simple Extrapolation", text: "Multiplies current points averages by remaining races to predict season outcomes." },
+        { label: "Zero Uncertainty", text: "Fails to model DNFs, collisions, mechanical upgrades, or rain-swept grids." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Monte Carlo Engine",
+      badge: "STOCHASTIC",
+      items: [
+        { label: "Random Walks", text: "Performs 50,000 full-season simulations based on Elo distributions and track layouts." },
+        { label: "Clinch Analytics", text: "Extracts clinch rounds and probability densities for mathematical elimination limits." }
+      ]
+    }
   },
   form: {
     title: "Driver Form Index",
@@ -147,7 +255,28 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "quali_delta", type: "Continuous", source: "Postgres (qualifying)", weight: "Medium" },
       { code: "finish_delta", type: "Integer", source: "Postgres (results)", weight: "High" },
       { code: "consistency_idx", type: "Continuous (0-100)", source: "Postgres (lap_times)", weight: "Medium" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "Y_t", name: "Rolling Form Rating", explanation: "The active form percentage coordinate (0-100%) computed after session t." },
+      { symbol: "X_t", name: "Session Raw Score", explanation: "The driver's standardized pace rating vs. teammate in the current session t." },
+      { symbol: "λ (Lambda)", name: "Exponential Decay Weight", explanation: "The smoothing parameter (0.08) determining how rapidly past performances decay in weight." }
+    ],
+    f1Compare: {
+      title: "Media Power Rankings",
+      badge: "NARRATIVE",
+      items: [
+        { label: "Narrative Driven", text: "Relies heavily on recent race highlights, driver interviews, and overtaking counts." },
+        { label: "Pace Agnostic", text: "Ignores clean-air pace consistency, tyre degradation efficiency, or qualify engine maps." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Form Index",
+      badge: "EWMA FILTER",
+      items: [
+        { label: "Teammate EWMA", text: "Weights recent driver metrics exponentially, isolating pace changes over a 10-race window." },
+        { label: "Pace Consistency", text: "Tracks lap-to-lap standard deviations (+/-0.15s) to separate true speed from track position." }
+      ]
+    }
   },
   weather: {
     title: "Weather Impact Model",
@@ -171,7 +300,29 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "track_temp_c", type: "Continuous", source: "OpenF1 / Inputs", weight: "High" },
       { code: "rain_probability", type: "Probability (0 to 1)", source: "OpenF1 / Inputs", weight: "Critical" },
       { code: "humidity_pct", type: "Continuous", source: "OpenF1 / Inputs", weight: "Low" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "LapTimeDelta_w", name: "Wet Lap Time Offset", explanation: "The predicted time in seconds added to the dry baseline lap time due to weather conditions." },
+      { symbol: "Poly(TrackTemp)", name: "Track Temperature Polynomial", explanation: "Fitted polynomial mapping track temperature to dry-slick tire grip efficiency curves." },
+      { symbol: "WetnessGripLoss", name: "Friction Loss Index", explanation: "Linear coefficient scaling pace loss as track surface water accumulation levels rise." },
+      { symbol: "Coefficient_D", name: "Driver Wet Multiplier", explanation: "Driver-specific scaling factor; elite wet-weather drivers have a lower multiplier (less grip loss)." }
+    ],
+    f1Compare: {
+      title: "AWS Rain Risk Chart",
+      badge: "RADAR PROBABILITY",
+      items: [
+        { label: "Distance Projection", text: "Computes rain arrival probabilities based purely on weather radar distance velocity." },
+        { label: "No Grip Modeling", text: "Fails to predict grip degradation, slick tire thresholds, or intermediate crossover points." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Weather Physics",
+      badge: "FRICTION REGRESSOR",
+      items: [
+        { label: "Grip Loss Engine", text: "Regresses surface water levels against driver-specific wet speed coefficients." },
+        { label: "Crossover Solver", text: "Provides precise lap windows where Slick pace overlaps with Intermediate pace curves." }
+      ]
+    }
   },
   outcome: {
     title: "Race Outcome Predictor",
@@ -195,7 +346,28 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "grid_position", type: "Integer (1 to 20)", source: "Postgres (qualifying)", weight: "Critical" },
       { code: "elo_rating", type: "Continuous", source: "ML Elo System", weight: "High" },
       { code: "form_index", type: "Continuous", source: "ML Form System", weight: "Medium" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "Prob_finish", name: "Finish Probability Matrix", explanation: "Normalized vector of probabilities (0.0 to 1.0) representing finishing in positions P1 through P20." },
+      { symbol: "GridPosition", name: "Starting Grid Slot", explanation: "The qualified grid starting slot; the strongest statistical predictor of final finish position." },
+      { symbol: "w_g, w_e, w_f", name: "Model Feature Weights", explanation: "Trained XGBoost weights balancing starting grid, prior Elo, and rolling form momentum." }
+    ],
+    f1Compare: {
+      title: "F1 TV Grid Projections",
+      badge: "HISTORICAL INDEX",
+      items: [
+        { label: "Static Averages", text: "Displays raw average finish position from that grid slot over the last 10 seasons." },
+        { label: "Ignore Active Pace", text: "Fails to reflect active driver Elo, team upgrades, engine health, or active form index." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Outcome Predictor",
+      badge: "XGBOOST MULTICLASS",
+      items: [
+        { label: "Multiclass Probability", text: "Generates full probability distribution vectors rather than singular deterministic finishes." },
+        { label: "Expected Points", text: "Multiplies likelihood curves by official F1 points to optimize strategy layouts." }
+      ]
+    }
   },
   dnf: {
     title: "DNF Risk & Reliability Predictor",
@@ -219,7 +391,28 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "constructor_id", type: "Categorical", source: "Postgres (results)", weight: "High (Mechanical history)" },
       { code: "circuit_type", type: "Categorical", source: "Postgres (circuits)", weight: "High (Street vs High Speed)" },
       { code: "driver_crash_multiplier", type: "Continuous", source: "Postgres (results)", weight: "Medium" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "S(t)", name: "Survival Probability Function", explanation: "Probability that a car survives (does not suffer DNF) up to lap t." },
+      { symbol: "k", name: "Weibull Shape Parameter", explanation: "Shape coefficient (1.6) fitting increasing hazard wear rates as stint mileage accumulates." },
+      { symbol: "L", name: "Weibull Scale Parameter", explanation: "Component expected life duration in laps, scaled by track roughness and cooling limits." }
+    ],
+    f1Compare: {
+      title: "Historical DNF Percentages",
+      badge: "STATIC COUNT",
+      items: [
+        { label: "Flat Ratio", text: "Simple ratio of career starts divided by total DNFs, showing a single flat percentage." },
+        { label: "No Mileage Tracking", text: "Fails to track component wear, lap increments, street kerb vibration, or cooling stresses." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Weibull Survival",
+      badge: "HAZARD RATIO",
+      items: [
+        { label: "Survival Modeling", text: "Fits dynamic Weibull survival distributions to compute hazard rates for every single lap." },
+        { label: "Bumpy street offset", text: "Tunes component scale thresholds using street circuit bumpy load sensors and thermal telemetry." }
+      ]
+    }
   },
   quali: {
     title: "Qualifying Position Predictor",
@@ -243,6 +436,27 @@ export const TOPIC_REGISTRY: Record<string, TopicData> = {
       { code: "pu_rating", type: "Continuous", source: "Postgres (results)", weight: "Critical" },
       { code: "circuit_affinity", type: "Continuous", source: "Postgres (qualifying)", weight: "High" },
       { code: "track_temp_c", type: "Continuous", source: "OpenF1 (Telemetry)", weight: "Medium" }
-    ]
+    ],
+    mathTerms: [
+      { symbol: "QualiPace_D", name: "Projected Qualifying Pace", explanation: "The predicted single-lap time index representing the absolute ceiling of the package." },
+      { symbol: "TeamPowerUnitRating", name: "Engine Power Quotient", explanation: "GPS telemetry speed-trap quotient isolating constructor engine qualify mode ('party mode')." },
+      { symbol: "CircuitAffinity_D", name: "Driver Layout Profile", explanation: "Driver speed ranking at track configuration types (street circuits vs. high-speed sweeps)." }
+    ],
+    f1Compare: {
+      title: "AWS Qualifying Predictions",
+      badge: "PRACTICE EXTRAPOLATION",
+      items: [
+        { label: "FP3 Speed Maps", text: "Extrapolates Q3 speed profiles directly from FP3 soft-tyre qualifying simulation runs." },
+        { label: "Engine Map Ignorance", text: "Fails to isolate high-power engine modes run in practice, distorting baseline pace." }
+      ]
+    },
+    apexCompare: {
+      title: "APEX Quali Regressor",
+      badge: "GPS SPEED ISOLATION",
+      items: [
+        { label: "GPS Power Isolation", text: "Isolates true power quotients by comparing straight-line telemetry speed trap velocity maps." },
+        { label: "Track Rubber Evolution", text: "Applies real-time track evolution offsets to adjust threshold gaps as rubber is laid down." }
+      ]
+    }
   }
 };

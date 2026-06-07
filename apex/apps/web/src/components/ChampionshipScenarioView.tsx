@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+﻿import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
 interface ChampionshipScenarioViewProps {
   driver: { name: string; team: string; points: number };
@@ -38,7 +38,7 @@ function CustomScenarioTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>
@@ -60,7 +60,7 @@ function CustomRaceTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
@@ -117,7 +117,7 @@ export default function ChampionshipScenarioView({ driver, onBack }: Championshi
             transition: "all 0.2s",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "rgba(0,212,255,0.08)";
+            (e.currentTarget as HTMLElement).style.background = "var(--accent-tint)";
             (e.currentTarget as HTMLElement).style.boxShadow = "0 0 8px var(--accent-glow)";
           }}
           onMouseLeave={(e) => {
@@ -125,7 +125,7 @@ export default function ChampionshipScenarioView({ driver, onBack }: Championshi
             (e.currentTarget as HTMLElement).style.boxShadow = "none";
           }}
         >
-          ← BACK TO FORECASTS
+          â† BACK TO FORECASTS
         </button>
         <div style={{ flex: 1 }}>
           <h2
@@ -139,7 +139,7 @@ export default function ChampionshipScenarioView({ driver, onBack }: Championshi
               margin: 0,
             }}
           >
-            {driver.name} — Championship Scenarios
+            {driver.name} â€” Championship Scenarios
           </h2>
           <p className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0", letterSpacing: "0.08em" }}>
             Points Distribution & Elimination Analysis
@@ -341,3 +341,4 @@ export default function ChampionshipScenarioView({ driver, onBack }: Championshi
     </div>
   );
 }
+

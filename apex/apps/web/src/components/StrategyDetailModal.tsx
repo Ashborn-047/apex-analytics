@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+﻿import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Modal from "./Modal";
 
 interface StrategyDetailModalProps {
@@ -66,7 +66,7 @@ function CustomLineTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: 600 }}>
@@ -98,7 +98,7 @@ export default function StrategyDetailModal({ isOpen, onClose, lapNumber }: Stra
                 key={strategy.name}
                 style={{
                   padding: "1rem",
-                  background: idx === 0 ? "rgba(0,212,255,0.08)" : "var(--bg-elevated)",
+                  background: idx === 0 ? "var(--accent-tint)" : "var(--bg-elevated)",
                   border: idx === 0 ? "1px solid var(--accent-primary)" : "1px solid var(--border-subtle)",
                   borderRadius: "4px",
                 }}
@@ -263,3 +263,4 @@ export default function StrategyDetailModal({ isOpen, onClose, lapNumber }: Stra
     </Modal>
   );
 }
+

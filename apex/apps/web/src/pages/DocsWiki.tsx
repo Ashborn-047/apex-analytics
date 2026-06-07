@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { TOPIC_REGISTRY } from "./DocsData";
 
 // Premium Inline SVGs
@@ -54,6 +55,13 @@ const SyncIcon = () => (
   </svg>
 );
 
+const DocIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </svg>
+);
+
 type Topic =
   | "overview"
   | "elo"
@@ -66,10 +74,22 @@ type Topic =
   | "dnf"
   | "quali";
 
-export default function DocsWiki() {
+export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | "logic" | "features" | "sandbox" | "changelog" }) {
+  const navigate = useNavigate();
   const [activeTopic, setActiveTopic] = useState<Topic>("overview");
-  const [activeSubTab, setActiveSubTab] = useState<"concept" | "logic" | "features" | "sandbox">("concept");
-  const [conceptStep, setConceptStep] = useState<"what" | "why" | "when" | "how">("what");
+  const [conceptStep, setConceptStep] = useState<"what" | "why" | "when" | "how" | "compare">("what");
+
+  const activeSubTab = subTab;
+  const setActiveSubTab = (tab: "concept" | "logic" | "features" | "sandbox" | "changelog") => {
+    const pathMap = {
+      concept: "/docs",
+      logic: "/docs/math",
+      features: "/docs/sources",
+      sandbox: "/docs/sandbox",
+      changelog: "/docs/changelog"
+    };
+    navigate(pathMap[tab]);
+  };
 
   const handleTopicChange = (topic: Topic) => {
     setActiveTopic(topic);
@@ -155,7 +175,7 @@ export default function DocsWiki() {
             style={{
               width: "100%",
               textAlign: "left",
-              background: activeTopic === "overview" ? "rgba(0,212,255,0.08)" : "transparent",
+              background: activeTopic === "overview" ? "var(--accent-tint)" : "transparent",
               border: activeTopic === "overview" ? "1px solid var(--accent-primary)" : "1px solid transparent",
               color: activeTopic === "overview" ? "var(--accent-primary)" : "var(--text-secondary)",
               padding: "0.5rem 0.75rem",
@@ -166,7 +186,7 @@ export default function DocsWiki() {
               transition: "all 0.2s"
             }}
           >
-            ❖ System Overview
+            â– System Overview
           </button>
         </div>
 
@@ -193,7 +213,7 @@ export default function DocsWiki() {
                 style={{
                   width: "100%",
                   textAlign: "left",
-                  background: activeTopic === m.id ? "rgba(0,212,255,0.08)" : "transparent",
+                  background: activeTopic === m.id ? "var(--accent-tint)" : "transparent",
                   border: activeTopic === m.id ? "1px solid var(--accent-primary)" : "1px solid transparent",
                   color: activeTopic === m.id ? "var(--accent-primary)" : "var(--text-secondary)",
                   padding: "0.45rem 0.75rem",
@@ -205,7 +225,7 @@ export default function DocsWiki() {
                 }}
                 onMouseEnter={(e) => {
                   if (activeTopic !== m.id) {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(0,212,255,0.03)";
+                    (e.currentTarget as HTMLElement).style.background = "var(--accent-tint)";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -214,7 +234,7 @@ export default function DocsWiki() {
                   }
                 }}
               >
-                ⬡ {m.label}
+                â¬¡ {m.label}
               </button>
             ))}
           </div>
@@ -286,7 +306,7 @@ export default function DocsWiki() {
                   <div>
                     <h2 style={{ fontSize: "1.6rem", color: "var(--accent-primary)", margin: 0 }}>{data.title}</h2>
                     <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.25rem", letterSpacing: "0.08em" }}>
-                      SCOPE: {data.scope} · VERSION: {data.version}
+                      SCOPE: {data.scope} Â· VERSION: {data.version}
                     </p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.25rem" }}>
@@ -313,43 +333,39 @@ export default function DocsWiki() {
                 {/* Sub-tabs Segmented Navigation */}
                 <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.25rem" }}>
                   {[
-                    { id: "concept", label: "Concept Overview", icon: <BookIcon /> },
-                    { id: "logic", label: "Logic & Math", icon: <GearIcon /> },
-                    { id: "features", label: "Ingest Registry", icon: <RegistryIcon /> },
-                    { id: "sandbox", label: "Sandbox Playground", icon: <LightningIcon /> }
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveSubTab(tab.id as any)}
-                      className="text-mono"
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        borderBottom: activeSubTab === tab.id ? "2px solid var(--accent-primary)" : "2px solid transparent",
-                        color: activeSubTab === tab.id ? "var(--accent-primary)" : "var(--text-muted)",
-                        padding: "0.5rem 1rem",
-                        fontSize: "0.75rem",
-                        fontWeight: activeSubTab === tab.id ? "bold" : "normal",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        display: "flex",
-                        alignItems: "center"
-                      }}
-                      onMouseEnter={(e) => {
-                        if (activeSubTab !== tab.id) {
-                          e.currentTarget.style.color = "var(--text-primary)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (activeSubTab !== tab.id) {
-                          e.currentTarget.style.color = "var(--text-muted)";
-                        }
-                      }}
-                    >
-                      {tab.icon}
-                      {tab.label}
-                    </button>
-                  ))}
+                    { id: "concept", label: "Concept Overview", path: "/docs", icon: <BookIcon /> },
+                    { id: "logic", label: "Logic & Math", path: "/docs/math", icon: <GearIcon /> },
+                    { id: "features", label: "Ingest Registry", path: "/docs/sources", icon: <RegistryIcon /> },
+                    { id: "sandbox", label: "Sandbox Playground", path: "/docs/sandbox", icon: <LightningIcon /> },
+                    { id: "changelog", label: "Changelog", path: "/docs/changelog", icon: <DocIcon /> }
+                  ].map((tab) => {
+                    const isActive = activeSubTab === tab.id;
+                    return (
+                      <NavLink
+                        key={tab.id}
+                        to={tab.path}
+                        end={tab.id === "concept"}
+                        className="text-mono"
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          borderBottom: isActive ? "2px solid var(--accent-primary)" : "2px solid transparent",
+                          color: isActive ? "var(--accent-primary)" : "var(--text-muted)",
+                          padding: "0.5rem 1rem",
+                          fontSize: "0.75rem",
+                          fontWeight: isActive ? "bold" : "normal",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          display: "flex",
+                          alignItems: "center",
+                          textDecoration: "none"
+                        }}
+                      >
+                        {tab.icon}
+                        {tab.label}
+                      </NavLink>
+                    );
+                  })}
                 </div>
 
                 {/* Sub-tab Content Area */}
@@ -357,7 +373,7 @@ export default function DocsWiki() {
                   {activeSubTab === "concept" && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                       {/* Short summary banner */}
-                      <div style={{ fontSize: "0.95rem", color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.6, borderLeft: "3px solid var(--accent-primary)", paddingLeft: "1rem", fontStyle: "italic", background: "rgba(0, 212, 255, 0.02)", padding: "0.75rem 1rem", borderRadius: "0 4px 4px 0" }}>
+                      <div style={{ fontSize: "0.95rem", color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.6, borderLeft: "3px solid var(--accent-primary)", paddingLeft: "1rem", fontStyle: "italic", background: "var(--accent-tint)", padding: "0.75rem 1rem", borderRadius: "0 4px 4px 0" }}>
                         "{data.summary}"
                       </div>
 
@@ -367,16 +383,17 @@ export default function DocsWiki() {
                           { id: "what", title: "Definition" },
                           { id: "why", title: "Purpose" },
                           { id: "when", title: "Trigger" },
-                          { id: "how", title: "Deep Dive" }
+                          { id: "how", title: "Deep Dive" },
+                          { id: "compare", title: "Compare F1" }
                         ].map((step, index) => {
                           const isCurrent = conceptStep === step.id;
-                          const stepsOrder = ["what", "why", "when", "how"];
+                          const stepsOrder = ["what", "why", "when", "how", "compare"];
                           const currentIdx = stepsOrder.indexOf(conceptStep);
                           const stepIdx = stepsOrder.indexOf(step.id);
                           const isCompleted = stepIdx < currentIdx;
 
                           return (
-                            <div key={step.id} style={{ display: "flex", alignItems: "center", flex: index < 3 ? "1 1 120px" : "none" }}>
+                            <div key={step.id} style={{ display: "flex", alignItems: "center", flex: index < 4 ? "1 1 120px" : "none" }}>
                               <button
                                 onClick={() => setConceptStep(step.id as any)}
                                 style={{
@@ -398,7 +415,7 @@ export default function DocsWiki() {
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  background: isCurrent ? "var(--accent-primary)" : (isCompleted ? "rgba(0, 212, 255, 0.15)" : "var(--bg-elevated)"),
+                                  background: isCurrent ? "var(--accent-primary)" : (isCompleted ? "rgba(232, 160, 32, 0.15)" : "var(--bg-elevated)"),
                                   border: isCurrent ? "2px solid var(--accent-primary)" : `1px solid ${isCompleted ? "var(--accent-primary)" : "var(--border-subtle)"}`,
                                   color: isCurrent ? "var(--bg-void)" : (isCompleted ? "var(--accent-primary)" : "var(--text-muted)"),
                                   fontSize: "0.65rem",
@@ -418,7 +435,7 @@ export default function DocsWiki() {
                                 </span>
                               </button>
                               
-                              {index < 3 && (
+                              {index < 4 && (
                                 <div style={{
                                   flex: 1,
                                   height: "1px",
@@ -437,7 +454,7 @@ export default function DocsWiki() {
                       {/* Content Panels with Sequential Action Flow Buttons */}
                       {conceptStep === "what" && (
                         <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                          <div style={{ background: "rgba(0, 212, 255, 0.015)", borderLeft: "3px solid var(--accent-primary)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
+                          <div style={{ background: "var(--accent-tint)", borderLeft: "3px solid var(--accent-primary)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
                             <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "0.5rem" }}>
                               01 // CORE CONCEPT & DEFINITION
                             </div>
@@ -455,7 +472,7 @@ export default function DocsWiki() {
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Next: Purpose ➜
+                              Next: Purpose âžœ
                             </button>
                           </div>
                         </div>
@@ -492,14 +509,14 @@ export default function DocsWiki() {
                                 borderRadius: "2px"
                               }}
                             >
-                              ⬅ Back: Definition
+                              â¬… Back: Definition
                             </button>
                             <button
                               onClick={() => setConceptStep("when")}
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Next: Trigger ➜
+                              Next: Trigger âžœ
                             </button>
                           </div>
                         </div>
@@ -536,22 +553,22 @@ export default function DocsWiki() {
                                 borderRadius: "2px"
                               }}
                             >
-                              ⬅ Back: Purpose
+                              â¬… Back: Purpose
                             </button>
                             <button
                               onClick={() => setConceptStep("how")}
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Next: Deep Dive ➜
+                              Next: Deep Dive âžœ
                             </button>
                           </div>
                         </div>
                       )}
 
-                      {conceptStep === "how" && (
+                       {conceptStep === "how" && (
                         <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                          <div style={{ background: "rgba(0, 212, 255, 0.015)", borderLeft: "3px solid var(--accent-primary)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
+                          <div style={{ background: "rgba(232, 160, 32, 0.015)", borderLeft: "3px solid var(--accent-primary)", padding: "1.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", borderLeftWidth: "3px" }}>
                             <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "0.5rem" }}>
                               04 // METHODOLOGY & DETAILS
                             </div>
@@ -580,14 +597,92 @@ export default function DocsWiki() {
                                 borderRadius: "2px"
                               }}
                             >
-                              ⬅ Back: Trigger
+                              â¬… Back: Trigger
+                            </button>
+                            <button
+                              onClick={() => setConceptStep("compare")}
+                              className="btn-primary"
+                              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                            >
+                              Next: Compare F1 âžœ
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {conceptStep === "compare" && (
+                        <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                          <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-subtle)", borderLeft: "3px solid var(--accent-primary)", padding: "1.5rem", borderRadius: "0 4px 4px 0", borderLeftWidth: "3px" }}>
+                            <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "0.5rem" }}>
+                              05 // APEX VS OFFICIAL F1 COMPARISON
+                            </div>
+                            <h3 style={{ fontSize: "1.3rem", color: "var(--text-primary)", margin: "0 0 0.75rem 0", letterSpacing: "0.02em" }}>
+                              APEX vs. Official F1 Ratings
+                            </h3>
+                            <div className="compare-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginTop: "1rem" }}>
+                              {/* Official F1 Model */}
+                              <div className="matrix-card f1" style={{ border: "1px solid var(--border-subtle)", borderTop: "2px solid var(--status-danger)", padding: "1.25rem", borderRadius: "4px" }}>
+                                <div className="matrix-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", fontFamily: "var(--font-display)", fontWeight: "bold" }}>
+                                  <span style={{ color: "var(--text-primary)" }}>{data.f1Compare.title}</span>
+                                  <span style={{ fontSize: "0.6rem", color: "var(--status-danger)", border: "1px solid var(--status-danger)", padding: "0.1rem 0.4rem", borderRadius: "2px", fontFamily: "var(--font-mono)" }}>
+                                    {data.f1Compare.badge}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                                  {data.f1Compare.items.map((item, idx) => (
+                                    <div key={idx} style={{ fontSize: "0.75rem", lineHeight: 1.5 }}>
+                                      <strong style={{ color: "var(--text-primary)", display: "block", marginBottom: "0.15rem" }}>{item.label}:</strong>
+                                      <span style={{ color: "var(--text-secondary)" }}>{item.text}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* APEX Model */}
+                              <div className="matrix-card apex" style={{ border: "1px solid var(--border-subtle)", borderTop: "2px solid var(--accent-primary)", padding: "1.25rem", borderRadius: "4px" }}>
+                                <div className="matrix-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", fontFamily: "var(--font-display)", fontWeight: "bold" }}>
+                                  <span style={{ color: "var(--text-primary)" }}>{data.apexCompare.title}</span>
+                                  <span style={{ fontSize: "0.6rem", color: "var(--accent-primary)", border: "1px solid var(--border-accent)", padding: "0.1rem 0.4rem", borderRadius: "2px", fontFamily: "var(--font-mono)" }}>
+                                    {data.apexCompare.badge}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                                  {data.apexCompare.items.map((item, idx) => (
+                                    <div key={idx} style={{ fontSize: "0.75rem", lineHeight: 1.5 }}>
+                                      <strong style={{ color: "var(--text-primary)", display: "block", marginBottom: "0.15rem" }}>{item.label}:</strong>
+                                      <span style={{ color: "var(--text-secondary)" }}>{item.text}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
+                            <button
+                              onClick={() => setConceptStep("how")}
+                              className="text-mono"
+                              style={{
+                                background: "transparent",
+                                border: "1px solid var(--border-subtle)",
+                                color: "var(--text-secondary)",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                letterSpacing: "0.1em",
+                                textTransform: "uppercase",
+                                padding: "0.5rem 1.25rem",
+                                cursor: "pointer",
+                                borderRadius: "2px"
+                              }}
+                            >
+                              â¬… Back: Deep Dive
                             </button>
                             <button
                               onClick={() => setActiveSubTab("logic")}
                               className="btn-primary"
-                              style={{ display: "flex", alignItems: "center", gap: "0.5rem", border: "1px solid var(--accent-primary)", background: "rgba(0, 212, 255, 0.08)" }}
+                              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Explore Logic & Math ➜
+                              Explore Logic & Math âžœ
                             </button>
                           </div>
                         </div>
@@ -636,13 +731,35 @@ export default function DocsWiki() {
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+                      {/* Math Term Glossary Grid (New in v3.0) */}
+                      {data.mathTerms && data.mathTerms.length > 0 && (
+                        <div style={{ marginTop: "1rem" }}>
+                          <div className="section-header" style={{ marginBottom: "1rem" }}>
+                            <span className="section-title" style={{ fontSize: "0.75rem" }}>Variable Glossary</span>
+                            <div className="section-header-line" />
+                          </div>
+                          <div className="glossary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+                            {data.mathTerms.map((term, idx) => (
+                              <div key={idx} className="glossary-card" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-ghost)", padding: "1rem", borderRadius: "4px" }}>
+                                <h5 style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--accent-primary)", margin: "0 0 0.4rem 0" }}>
+                                  {term.symbol} â€” {term.name}
+                                </h5>
+                                <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.45 }}>
+                                  {term.explanation}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
                         <button
                           onClick={() => setActiveSubTab("features")}
                           className="btn-primary"
                           style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                         >
-                          Next Tab: Ingest Registry ➜
+                          Next Tab: Ingest Registry âžœ
                         </button>
                       </div>
                     </div>
@@ -676,7 +793,50 @@ export default function DocsWiki() {
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+                      {/* Data Ingestion Pipeline Diagram */}
+                      <div style={{ marginTop: "1rem" }}>
+                        <div className="section-header" style={{ marginBottom: "1rem" }}>
+                          <span className="section-title" style={{ fontSize: "0.75rem" }}>Data Ingestion Pipeline Flow</span>
+                          <div className="section-header-line" />
+                        </div>
+                        <div style={{
+                          background: "var(--bg-surface)",
+                          border: "1px solid var(--border-ghost)",
+                          padding: "1.25rem",
+                          borderRadius: "4px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "1rem",
+                          flexWrap: "wrap"
+                        }}>
+                          {[
+                            { step: "OpenF1 Feed", desc: "Live timing json" },
+                            { step: "Bun Cron", desc: "Ingestion tick" },
+                            { step: "DB Cache", desc: "PostgreSQL" },
+                            { step: "APEX Models", desc: "Python Inference" },
+                            { step: "Frontend", desc: "Telemetry UI" }
+                          ].map((s, idx, arr) => (
+                            <div key={idx} style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                              <div style={{
+                                background: "var(--bg-void)",
+                                border: "1px solid var(--border-subtle)",
+                                padding: "0.6rem 0.8rem",
+                                borderRadius: "2px",
+                                textAlign: "center"
+                              }}>
+                                <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--accent-primary)", fontWeight: "bold" }}>{s.step}</span>
+                                <span className="text-mono" style={{ display: "block", fontSize: "0.55rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>{s.desc}</span>
+                              </div>
+                              {idx < arr.length - 1 && (
+                                <span className="text-mono" style={{ fontSize: "0.85rem", color: "var(--accent-primary)" }}>➜</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
                         <button
                           onClick={() => setActiveSubTab("sandbox")}
                           className="btn-primary"
@@ -696,7 +856,7 @@ export default function DocsWiki() {
                           <div className="section-header-line" />
                         </div>
 
-                        <div className="panel" style={{ padding: "1.5rem", background: "rgba(0, 212, 255, 0.01)" }}>
+                        <div className="panel" style={{ padding: "1.5rem", background: "var(--accent-tint)" }}>
                           {activeTopic === "elo" && (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
                               {/* Sliders */}
@@ -840,7 +1000,7 @@ export default function DocsWiki() {
                                 <div>
                                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
                                     <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Track Temperature</span>
-                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{tyreTrackTemp}°C</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{tyreTrackTemp}Â°C</span>
                                   </div>
                                   <input
                                     type="range"
@@ -910,7 +1070,7 @@ export default function DocsWiki() {
                           {!["elo", "dnf", "laptime"].includes(activeTopic) && (
                             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80px" }}>
                               <span className="text-mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                ⚡ Model playground loaded. Sliders configured on FastAPI python microservice.
+                                âš¡ Model playground loaded. Sliders configured on FastAPI python microservice.
                               </span>
                             </div>
                           )}
@@ -931,10 +1091,10 @@ export default function DocsWiki() {
                             borderRadius: "2px"
                           }}
                         >
-                          ↺ Restart Guide
+                          â†º Restart Guide
                         </button>
                         <button
-                          onClick={() => setActiveTopic("overview")}
+                          onClick={() => setActiveSubTab("changelog")}
                           className="text-mono"
                           style={{
                             background: "transparent",
@@ -945,7 +1105,156 @@ export default function DocsWiki() {
                             fontWeight: "bold"
                           }}
                         >
-                          Back to System Overview ➜
+                          Next Tab: Changelog âžœ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSubTab === "changelog" && (
+                    <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                      <div>
+                        <div className="section-header" style={{ marginBottom: "1rem" }}>
+                          <span className="section-title" style={{ fontSize: "0.75rem" }}>System Change Log & Version History</span>
+                          <div className="section-header-line" />
+                        </div>
+
+                        <div className="panel" style={{ padding: "1.5rem" }}>
+                          <p className="text-secondary" style={{ fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+                            Audit trail of mathematical optimizations, weight adjustments, and database schema updates across all F1 telemetry models.
+                          </p>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                            {[
+                              {
+                                version: "v2.1.0-beta",
+                                date: "2026-06-05",
+                                model: "Monte Carlo Engine",
+                                severity: "Major",
+                                desc: "Recalibrated championship transition probabilities using 2026 pre-season simulation coefficients. Adjusted weightings for power unit wear metrics."
+                              },
+                              {
+                                version: "v2.0.4",
+                                date: "2026-05-28",
+                                model: "Tyre Degradation",
+                                severity: "Minor",
+                                desc: "Refined thermal degradation curve fitting for high-downforce tracks (Spa, Silverstone) under track temperature surges exceeding 45Â°C."
+                              },
+                              {
+                                version: "v2.0.0",
+                                date: "2026-05-15",
+                                model: "Driver Elo / H2H",
+                                severity: "Critical",
+                                desc: "Migrated from linear performance index to ensemble XGBoost + dynamic Elo scoring. Resolved cold-start rating drift for rookies and reserve drivers."
+                              },
+                              {
+                                version: "v1.8.2",
+                                date: "2026-04-30",
+                                model: "Pit Wall Planner",
+                                severity: "Major",
+                                desc: "Optimized multi-agent state space traversal for rain-to-dry pit window transition recommendations, reducing API search latency by 45%."
+                              },
+                              {
+                                version: "v1.7.0",
+                                date: "2026-04-12",
+                                model: "Ingestion Pipeline",
+                                severity: "Info",
+                                desc: "Aligned timing telemetry parsing rate to 250ms ticks. Upgraded OpenF1 API polling queue buffers to prevent packet drop during peak race conditions."
+                              }
+                            ].map((log, idx) => {
+                              let badgeColor = "var(--text-muted)";
+                              let badgeBg = "var(--bg-elevated)";
+                              if (log.severity === "Critical") {
+                                badgeColor = "var(--status-danger)";
+                                badgeBg = "rgba(192, 57, 43, 0.15)";
+                              } else if (log.severity === "Major") {
+                                badgeColor = "var(--status-warning)";
+                                badgeBg = "rgba(184, 134, 11, 0.15)";
+                              } else if (log.severity === "Minor") {
+                                badgeColor = "var(--accent-primary)";
+                                badgeBg = "var(--accent-tint)";
+                              }
+
+                              return (
+                                <div
+                                  key={idx}
+                                  style={{
+                                    border: "1px solid var(--border-subtle)",
+                                    borderRadius: "3px",
+                                    padding: "1rem",
+                                    background: "var(--bg-surface)",
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: "1rem",
+                                    alignItems: "flex-start"
+                                  }}
+                                >
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", width: "140px" }}>
+                                    <span className="text-mono" style={{ fontSize: "0.85rem", fontWeight: "bold", color: "var(--text-primary)" }}>{log.version}</span>
+                                    <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>{log.date}</span>
+                                  </div>
+
+                                  <div style={{ flex: "1 1 250px", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                                      <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--accent-primary)", fontWeight: "bold" }}>{log.model.toUpperCase()}</span>
+                                      <span
+                                        className="text-mono"
+                                        style={{
+                                          fontSize: "0.55rem",
+                                          padding: "0.1rem 0.4rem",
+                                          borderRadius: "2px",
+                                          color: badgeColor,
+                                          background: badgeBg,
+                                          border: `1px solid ${badgeColor}30`,
+                                          fontWeight: "bold"
+                                        }}
+                                      >
+                                        {log.severity}
+                                      </span>
+                                    </div>
+                                    <p className="text-secondary" style={{ fontSize: "0.8rem", margin: 0, lineHeight: "1.4" }}>
+                                      {log.desc}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem" }}>
+                        <button
+                          onClick={() => handleTopicChange(activeTopic)}
+                          className="text-mono"
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--border-subtle)",
+                            color: "var(--text-secondary)",
+                            fontSize: "0.75rem",
+                            padding: "0.5rem 1.25rem",
+                            cursor: "pointer",
+                            borderRadius: "2px"
+                          }}
+                        >
+                          â†º Restart Guide
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveTopic("overview");
+                            setActiveSubTab("concept");
+                          }}
+                          className="text-mono"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--accent-primary)",
+                            fontSize: "0.75rem",
+                            cursor: "pointer",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          Back to System Overview âžœ
                         </button>
                       </div>
                     </div>
@@ -959,3 +1268,4 @@ export default function DocsWiki() {
     </div>
   );
 }
+

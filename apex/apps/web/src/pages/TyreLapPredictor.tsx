@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
 import {
   ComposedChart, Line, Area, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
   ResponsiveContainer,
@@ -6,6 +7,8 @@ import {
 import type { Compound, LapTimePrediction } from "../types";
 import { API_BASE } from "../config";
 import CompoundDetailModal from "../components/CompoundDetailModal";
+import TyreCircuits from "./TyreCircuits";
+import TyreAccuracy from "./TyreAccuracy";
 
 const COMPOUND_COLORS: Record<Compound, string> = {
   SOFT:   "#ff4466",
@@ -50,7 +53,7 @@ interface SimulatedLap {
   is_cliff: boolean;
 }
 
-export default function TyreLapPredictor({ season }: { season: number }) {
+export default function TyreLapPredictor({ season, subTab = "predictor" }: { season: number; subTab?: "predictor" | "circuits" | "accuracy" }) {
   const [selectedDriver, setSelectedDriver] = useState<string>("VER");
   const [selectedCompound, setSelectedCompound] = useState<"soft" | "medium" | "hard">("medium");
   const [compoundsData, setCompoundsData] = useState<LapTimePrediction[]>([]);
@@ -235,7 +238,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "180px", boxShadow: "0 0 16px rgba(0,212,255,0.2)" }}>
+      <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "180px", boxShadow: "0 0 16px var(--accent-dim)" }}>
         <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.5rem", letterSpacing: "0.1em", fontWeight: 600 }}>
           STINT LAP {label}
         </div>
@@ -302,13 +305,59 @@ export default function TyreLapPredictor({ season }: { season: number }) {
     return managers[driverId] || { multiplier: 1.0, grade: "B (1.00x)" };
   };
 
+  const subnavLinkStyle = (isActive: boolean) => ({
+    background: "transparent",
+    border: "none",
+    borderBottom: isActive ? "2px solid var(--accent-primary)" : "2px solid transparent",
+    color: isActive ? "var(--accent-primary)" : "var(--text-muted)",
+    padding: "0.5rem 1.25rem",
+    fontSize: "0.75rem",
+    fontFamily: "var(--font-mono)",
+    fontWeight: isActive ? "bold" : "normal",
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    display: "inline-flex",
+    alignItems: "center",
+    letterSpacing: "0.05em"
+  });
+
   return (
     <>
       <CompoundDetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} compound={selectedDetailCompound} />
       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {/* Module Sub-Navigation */}
+        <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "1px", gap: "0.5rem" }}>
+          <NavLink
+            to="/tyres"
+            end
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            WEAR PREDICTOR
+          </NavLink>
+          <NavLink
+            to="/tyres/circuits"
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            CIRCUIT DATABASE
+          </NavLink>
+          <NavLink
+            to="/tyres/accuracy"
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            ACCURACY LOG
+          </NavLink>
+        </div>
+
+        {subTab === "circuits" ? (
+          <TyreCircuits />
+        ) : subTab === "accuracy" ? (
+          <TyreAccuracy />
+        ) : (
+          <>
         
         {/* Driver Selector Row */}
-        <div className="panel" style={{ padding: "1rem", background: "rgba(0, 212, 255, 0.01)" }}>
+        <div className="panel" style={{ padding: "1rem", background: "var(--accent-tint)" }}>
           <span className="text-mono" style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
             SELECT TELEMETRY PROFILE (CAR & DRIVER DEGRADATION RATIO)
           </span>
@@ -323,7 +372,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                     display: "flex",
                     alignItems: "center",
                     gap: "0.6rem",
-                    background: isSelected ? "rgba(0, 212, 255, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                    background: isSelected ? "var(--accent-dim)" : "rgba(255, 255, 255, 0.02)",
                     border: isSelected ? "1px solid var(--accent-primary)" : "1px solid var(--border-subtle)",
                     borderRadius: "4px",
                     padding: "0.4rem 0.8rem",
@@ -348,8 +397,8 @@ export default function TyreLapPredictor({ season }: { season: number }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
           {[
             { label: "CIRCUIT", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Monza GP" : "Monaco GP", accent: true },
-            { label: "TRACK TEMP", value: `${simTrackTemp}°C` },
-            { label: "AIR TEMP", value: `${Math.round(simTrackTemp * 0.7)}°C` },
+            { label: "TRACK TEMP", value: `${simTrackTemp}Â°C` },
+            { label: "AIR TEMP", value: `${Math.round(simTrackTemp * 0.7)}Â°C` },
             { label: "TYRE MANAGEMENT", value: getTyreManagementLabel(selectedDriver).grade, accent: true },
             { label: "TRACK TYPE", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Traditional Circuit" : "Street Circuit" },
           ].map((s) => (
@@ -379,9 +428,9 @@ export default function TyreLapPredictor({ season }: { season: number }) {
               {/* Legend */}
               <div style={{ display: "flex", gap: "1.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
                 {[
-                  { name: "SOFT", color: COMPOUND_COLORS.SOFT, label: "🟢 Optimal (SOFT)" },
-                  { name: "MEDIUM", color: COMPOUND_COLORS.MEDIUM, label: "🟡 Fading (MEDIUM)" },
-                  { name: "HARD", color: COMPOUND_COLORS.HARD, label: "🔴 Cliff Zone (HARD)" },
+                  { name: "SOFT", color: COMPOUND_COLORS.SOFT, label: "ðŸŸ¢ Optimal (SOFT)" },
+                  { name: "MEDIUM", color: COMPOUND_COLORS.MEDIUM, label: "ðŸŸ¡ Fading (MEDIUM)" },
+                  { name: "HARD", color: COMPOUND_COLORS.HARD, label: "ðŸ”´ Cliff Zone (HARD)" },
                 ].map((item) => (
                   <div key={item.name} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <div style={{ width: "3px", height: "16px", background: item.color, borderRadius: "1px" }} />
@@ -459,8 +508,8 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                         name="Actual Laps"
                         data={scatterData}
                         dataKey="actual"
-                        fill="rgba(0, 212, 255, 0.4)"
-                        stroke="rgba(0, 212, 255, 0.2)"
+                        fill="var(--accent-dim)"
+                        stroke="var(--accent-dim)"
                         strokeWidth={1}
                       />
                     )}
@@ -512,7 +561,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                     style={{
                       padding: "1rem",
                       cursor: "pointer",
-                      background: isSelected ? "rgba(0,212,255,0.08)" : "transparent",
+                      background: isSelected ? "var(--accent-tint)" : "transparent",
                       borderColor: isSelected ? COMPOUND_COLORS[pred.compound] : "var(--border-subtle)",
                       boxShadow: isSelected ? `0 0 12px ${COMPOUND_COLORS[pred.compound]}25` : "none",
                       transition: "all 0.2s",
@@ -565,7 +614,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                 style={{
                   padding: "1rem",
                   borderColor: isSimulating ? "var(--accent-primary)" : "var(--border-subtle)",
-                  background: "rgba(0, 212, 255, 0.02)",
+                  background: "var(--accent-tint)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.75rem",
@@ -584,7 +633,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
                         <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Track Temp</span>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{simTrackTemp}°C</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{simTrackTemp}Â°C</span>
                       </div>
                       <input
                         type="range"
@@ -673,7 +722,7 @@ export default function TyreLapPredictor({ season }: { season: number }) {
         {/* Intelligence Desk Explanation */}
         <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
           <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-            <span className="section-title">Telemetry Intelligence Desk · Tyre Degradation Model</span>
+            <span className="section-title">Telemetry Intelligence Desk Â· Tyre Degradation Model</span>
             <div className="section-header-line" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
@@ -686,18 +735,21 @@ export default function TyreLapPredictor({ season }: { season: number }) {
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Tyre Cliff Detection</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                The model evaluates stint-lap pacing using a rolling baseline check. When the standard deviation of pace loss across 3 consecutive laps exceeds 2σ of the early stint baseline (first 6 laps), the model flags the onset of the "tyre cliff"—the point where thermal degradation becomes exponential.
+                The model evaluates stint-lap pacing using a rolling baseline check. When the standard deviation of pace loss across 3 consecutive laps exceeds 2Ïƒ of the early stint baseline (first 6 laps), the model flags the onset of the "tyre cliff"â€”the point where thermal degradation becomes exponential.
               </p>
             </div>
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Confidence Intervals (CI)</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                Prediction uncertainty margins scale based on track and air temperature. Extreme heat curves increase standard error bounds (±0.35s for SOFT), while temperate surfaces yield high confidence windows (±0.20s for HARD).
+                Prediction uncertainty margins scale based on track and air temperature. Extreme heat curves increase standard error bounds (Â±0.35s for SOFT), while temperate surfaces yield high confidence windows (Â±0.20s for HARD).
               </p>
             </div>
-          </div>
         </div>
       </div>
     </>
+  )}
+</div>
+</>
   );
 }
+

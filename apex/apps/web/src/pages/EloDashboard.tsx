@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
 import type { EloRanking } from "../types";
 import { API_BASE } from "../config";
 import ExportPanel from "../components/ExportPanel";
+import EloHistory from "./EloHistory";
 
 // Lightweight SVG sparkline for inline row rendering
 function Sparkline({ data }: { data: number[] }) {
@@ -60,7 +62,7 @@ function DriverRow({
         gap: "0.75rem",
         padding: "0.75rem 1rem",
         borderBottom: "1px solid var(--border-subtle)",
-        background: isSelected ? "rgba(0,212,255,0.08)" : "transparent",
+        background: isSelected ? "var(--accent-tint)" : "transparent",
         borderLeft: isSelected ? "3px solid var(--accent-primary)" : "3px solid transparent",
         transition: "all 0.2s",
       }}
@@ -139,7 +141,7 @@ function DriverRow({
           {driver.elo_rating.toFixed(0)}
         </div>
         <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-dim)", letterSpacing: "0.05em" }}>
-          ±{driver.uncertainty.toFixed(0)}
+          Â±{driver.uncertainty.toFixed(0)}
         </div>
       </div>
 
@@ -171,7 +173,7 @@ function DriverRow({
             color: formIndex >= 90 ? "var(--accent-success)" : formIndex >= 75 ? "var(--accent-warning)" : "var(--accent-danger)"
           }}
         >
-          {formIndex}% {formTrend === "UP" ? "▲" : "▼"}
+          {formIndex}% {formTrend === "UP" ? "â–²" : "â–¼"}
         </span>
       </div>
 
@@ -197,9 +199,10 @@ interface EloDashboardProps {
   season: number;
   onViewProfile?: (driverId: string) => void;
   onViewCompare?: (driverId: string) => void;
+  subTab?: "standings" | "history";
 }
 
-export default function EloDashboard({ season, onViewProfile, onViewCompare }: EloDashboardProps) {
+export default function EloDashboard({ season, onViewProfile, onViewCompare, subTab = "standings" }: EloDashboardProps) {
   const [rankings, setRankings] = useState<EloRanking[]>([]);
   const [selected, setSelected] = useState<EloRanking | null>(null);
   const [scope, setScope] = useState<"season" | "career">("season");
@@ -284,8 +287,46 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
     ALO: { val: 74, trend: "DOWN" },
   };
 
+  const subnavLinkStyle = (isActive: boolean) => ({
+    background: "transparent",
+    border: "none",
+    borderBottom: isActive ? "2px solid var(--accent-primary)" : "2px solid transparent",
+    color: isActive ? "var(--accent-primary)" : "var(--text-muted)",
+    padding: "0.5rem 1.25rem",
+    fontSize: "0.75rem",
+    fontFamily: "var(--font-mono)",
+    fontWeight: isActive ? "bold" : "normal",
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    display: "inline-flex",
+    alignItems: "center",
+    letterSpacing: "0.05em"
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Module Sub-Navigation */}
+      <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "1px", gap: "0.5rem" }}>
+        <NavLink
+          to="/elo"
+          end
+          style={({ isActive }) => subnavLinkStyle(isActive)}
+        >
+          STANDINGS
+        </NavLink>
+        <NavLink
+          to="/elo/history"
+          style={({ isActive }) => subnavLinkStyle(isActive)}
+        >
+          RATING HISTORY
+        </NavLink>
+      </div>
+
+      {subTab === "history" ? (
+        <EloHistory />
+      ) : (
+        <>
       {/* Top Header Controls with Filters */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {/* Scope Selector Filter */}
@@ -451,7 +492,7 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
 
               {[
                 { label: "CURRENT RATING", value: activeDriver.elo_rating.toFixed(0), color: "var(--text-primary)" },
-                { label: "UNCERTAINTY", value: `±${activeDriver.uncertainty.toFixed(0)}`, color: "var(--text-muted)" },
+                { label: "UNCERTAINTY", value: `Â±${activeDriver.uncertainty.toFixed(0)}`, color: "var(--text-muted)" },
                 { label: "QUALIFYING H2H", value: `${activeDriver.quali_dominance_pct.toFixed(0)}% Wins`, color: "var(--accent-primary)" },
               ].map((stat) => (
                 <div
@@ -502,7 +543,7 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
                   (e.currentTarget as HTMLElement).style.transform = "none";
                 }}
               >
-                OPEN DRIVER PROFILE 🡥
+                OPEN DRIVER PROFILE ðŸ¡¥
               </button>
             </div>
           </div>
@@ -525,7 +566,7 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
             display: "flex",
             alignItems: "center",
             gap: "1.5rem",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 16px rgba(0,212,255,0.2)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 16px var(--accent-dim)",
             zIndex: 1000,
             animation: "slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
           }}
@@ -584,14 +625,16 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
                 fontFamily: "var(--font-mono)",
                 fontWeight: "bold",
                 cursor: compareList.length === 2 ? "pointer" : "not-allowed",
-                boxShadow: compareList.length === 2 ? "0 0 10px rgba(0,212,255,0.3)" : "none",
+                boxShadow: compareList.length === 2 ? "0 0 10px var(--accent-dim)" : "none",
                 transition: "all 0.2s"
               }}
             >
-              LAUNCH COMPARISON 🡥
+              LAUNCH COMPARISON ðŸ¡¥
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* CSS Animation Keyframes inline style */}
@@ -604,3 +647,4 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare }: E
     </div>
   );
 }
+

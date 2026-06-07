@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { MOCK_ELO_RANKINGS } from "../data/mockData";
 
@@ -60,7 +60,7 @@ function CustomLineTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: 600 }}>
@@ -82,7 +82,7 @@ function CustomBarTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>
@@ -148,13 +148,13 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
             (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
           }}
         >
-          ◀ STANDINGS BACKFEED
+          â—€ STANDINGS BACKFEED
         </button>
 
         <button
           onClick={() => onCompare(driver.driver_id)}
           style={{
-            background: "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))",
+            background: "linear-gradient(135deg, var(--accent-dim), var(--accent-tint))",
             border: "1px solid var(--accent-primary)",
             color: "var(--accent-primary)",
             padding: "0.5rem 1.25rem",
@@ -167,7 +167,7 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
             transition: "all 0.2s"
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.boxShadow = "0 0 16px rgba(0,212,255,0.3)";
+            (e.currentTarget as HTMLElement).style.boxShadow = "0 0 16px var(--accent-dim)";
             (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
           }}
           onMouseLeave={(e) => {
@@ -175,7 +175,7 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
             (e.currentTarget as HTMLElement).style.transform = "none";
           }}
         >
-          ⚖ COMPARE DRIVER
+          âš– COMPARE DRIVER
         </button>
       </div>
 
@@ -227,7 +227,7 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
               {driver.elo_rating.toFixed(0)}
             </div>
             <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-secondary)", letterSpacing: "0.05em", marginTop: "0.15rem" }}>
-              UNRESOLVED ±{driver.uncertainty.toFixed(0)}
+              UNRESOLVED Â±{driver.uncertainty.toFixed(0)}
             </div>
           </div>
         </div>
@@ -431,3 +431,4 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
     </div>
   );
 }
+

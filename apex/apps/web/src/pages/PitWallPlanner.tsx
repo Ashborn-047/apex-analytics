@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
 import type { PitRecommendation, Compound, DriverRaceState } from "../types";
 import { API_BASE } from "../config";
 import StrategyDetailModal from "../components/StrategyDetailModal";
+import PitLiveMode from "./PitLiveMode";
+import PitHistory from "./PitHistory";
 
 const COMPOUND_COLORS: Record<Compound, string> = {
   SOFT:   "#ff4466",
@@ -78,7 +81,7 @@ interface ActualPitStop {
   pace_loss_s: number;
 }
 
-export default function PitWallPlanner({ season }: { season: number }) {
+export default function PitWallPlanner({ season, subTab = "builder" }: { season: number; subTab?: "builder" | "live" | "history" }) {
   const [driverId, setDriverId] = useState<string>("VER");
   const [recommendations, setRecommendations] = useState<PitRecommendation[]>([]);
   const [selectedLap, setSelectedLap] = useState<number>(12);
@@ -195,10 +198,56 @@ export default function PitWallPlanner({ season }: { season: number }) {
     };
   })();
 
+  const subnavLinkStyle = (isActive: boolean) => ({
+    background: "transparent",
+    border: "none",
+    borderBottom: isActive ? "2px solid var(--accent-primary)" : "2px solid transparent",
+    color: isActive ? "var(--accent-primary)" : "var(--text-muted)",
+    padding: "0.5rem 1.25rem",
+    fontSize: "0.75rem",
+    fontFamily: "var(--font-mono)",
+    fontWeight: isActive ? "bold" : "normal",
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    display: "inline-flex",
+    alignItems: "center",
+    letterSpacing: "0.05em"
+  });
+
   return (
     <>
       <StrategyDetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} lapNumber={selectedDetailLap} />
       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {/* Module Sub-Navigation */}
+        <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "1px", gap: "0.5rem" }}>
+          <NavLink
+            to="/pitstop"
+            end
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            STRATEGY BUILDER
+          </NavLink>
+          <NavLink
+            to="/pitstop/live"
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            LIVE RACE MODE
+          </NavLink>
+          <NavLink
+            to="/pitstop/history"
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            HISTORICAL RUNS
+          </NavLink>
+        </div>
+
+        {subTab === "live" ? (
+          <PitLiveMode />
+        ) : subTab === "history" ? (
+          <PitHistory />
+        ) : (
+          <>
         
         {/* Header toolbar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -318,14 +367,14 @@ export default function PitWallPlanner({ season }: { season: number }) {
                         display: "flex",
                         alignItems: "center",
                         gap: "0.25rem",
-                        background: "rgba(0, 212, 255, 0.15)",
+                        background: "var(--accent-dim)",
                         border: "1px solid var(--accent-primary)",
                         borderRadius: "3px",
                         padding: "0.25rem 0.5rem",
-                        boxShadow: "0 0 10px rgba(0, 212, 255, 0.3)",
+                        boxShadow: "0 0 10px var(--accent-dim)",
                       }}>
                         <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", fontWeight: "bold" }}>
-                          ▼ MERGE ZONE (+{(exitTime - driver.time).toFixed(1)}s behind {driver.id})
+                          â–¼ MERGE ZONE (+{(exitTime - driver.time).toFixed(1)}s behind {driver.id})
                         </span>
                       </div>
                     )}
@@ -366,21 +415,21 @@ export default function PitWallPlanner({ season }: { season: number }) {
               a: recommendations.length > 0 
                 ? `Pit on Lap ${recommendations[0].pit_lap} to leverage the optimal crossover window.`
                 : "Pit on Lap 18-22 as medium tyres degrade towards the cliff zone.",
-              icon: "⏱️"
+              icon: "â±ï¸"
             },
             {
               q: "Which compound is optimal?",
               a: recommendations.length > 0
                 ? `Switch to ${recommendations[0].compound_new} compound. Sim shows net delta of ${recommendations[0].net_delta_s.toFixed(2)}s.`
                 : "Switch to HARD tyres to complete the stint safely.",
-              icon: "🛞"
+              icon: "ðŸ›ž"
             },
             {
               q: "What is the safety car risk?",
               a: recommendations.length > 0
                 ? `SC probability is ${(recommendations[0].sc_probability * 100).toFixed(0)}%. Pitting under SC cuts loss to just ~12s.`
                 : "Safety Car risk is moderate. Stay alert for VSC pit windows.",
-              icon: "⚠️"
+              icon: "âš ï¸"
             }
           ].map((qa, idx) => (
             <div key={idx} className="panel" style={{ padding: "1.25rem", borderLeft: "3px solid var(--accent-primary)", background: "rgba(255,255,255,0.01)" }}>
@@ -499,7 +548,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
                 style={{
                   padding: "1.25rem",
                   cursor: "pointer",
-                  background: selectedLap === rec.pit_lap ? "rgba(0,212,255,0.08)" : "transparent",
+                  background: selectedLap === rec.pit_lap ? "var(--accent-tint)" : "transparent",
                   borderColor: selectedLap === rec.pit_lap ? "var(--accent-primary)" : "var(--border-subtle)",
                   transition: "all 0.2s",
                 }}
@@ -605,7 +654,7 @@ export default function PitWallPlanner({ season }: { season: number }) {
 
                   <div style={{ padding: "0.5rem", background: "var(--bg-elevated)", border: `1px solid ${idx === 0 ? "var(--accent-success)" : "var(--border-subtle)"}`, borderRadius: "2px", textAlign: "center" }}>
                     <div className="text-mono" style={{ fontSize: "0.6rem", color: idx === 0 ? "var(--accent-success)" : "var(--text-muted)", fontWeight: 600, letterSpacing: "0.08em" }}>
-                      {idx === 0 ? "✓ RECOMMENDED" : "ALTERNATIVE"}
+                      {idx === 0 ? "âœ“ RECOMMENDED" : "ALTERNATIVE"}
                     </div>
                   </div>
                 </div>
@@ -622,20 +671,20 @@ export default function PitWallPlanner({ season }: { season: number }) {
         {/* Intelligence Desk Explanation */}
         <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
           <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-            <span className="section-title">Telemetry Intelligence Desk · Pit Wall Strategy Solver</span>
+            <span className="section-title">Telemetry Intelligence Desk Â· Pit Wall Strategy Solver</span>
             <div className="section-header-line" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
             <div>
               <h4 style={{ color: "var(--accent-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Dynamic Stint Solver</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                A brute-force strategy search engine (O(N²) stint space) evaluates all compound combinations (Soft, Medium, Hard) to minimize total race time. Predictions factor in track grip evolution, tyre decay slopes, and fuel load burn rates.
+                A brute-force strategy search engine (O(NÂ²) stint space) evaluates all compound combinations (Soft, Medium, Hard) to minimize total race time. Predictions factor in track grip evolution, tyre decay slopes, and fuel load burn rates.
               </p>
             </div>
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Poisson Safety Car Windows</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                The model scales pit stop time loss dynamically. During high-risk laps, it weights historical Poisson Safety Car rates—pitting during a virtual or full Safety Car cuts standard pit lane loss by 50%, yielding huge strategy gains.
+                The model scales pit stop time loss dynamically. During high-risk laps, it weights historical Poisson Safety Car ratesâ€”pitting during a virtual or full Safety Car cuts standard pit lane loss by 50%, yielding huge strategy gains.
               </p>
             </div>
             <div>
@@ -646,7 +695,10 @@ export default function PitWallPlanner({ season }: { season: number }) {
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </>
   );
 }
+

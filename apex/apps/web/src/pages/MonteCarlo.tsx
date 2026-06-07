@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line,
@@ -7,6 +8,7 @@ import type { SimulationResult } from "../types";
 import { API_BASE } from "../config";
 import ChampionshipScenarioView from "../components/ChampionshipScenarioView";
 import ExportPanel from "../components/ExportPanel";
+import MonteCarloAccuracy from "./MonteCarloAccuracy";
 
 interface ExtendedSimulationResult extends SimulationResult {
   actual_wdc?: { driver_id: string; points: number }[];
@@ -24,7 +26,7 @@ function CustomBarTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.4rem", letterSpacing: "0.08em", fontWeight: 600 }}>
@@ -37,7 +39,8 @@ function CustomBarTooltip({ active, payload }: any) {
   );
 }
 
-export default function MonteCarlo({ season }: { season: number }) {
+export default function MonteCarlo({ season, subTab = "forecast" }: { season: number; subTab?: "forecast" | "scenarios" | "accuracy" }) {
+  const navigate = useNavigate();
   const [sim, setSim] = useState<ExtendedSimulationResult | null>(null);
   const [activeView, setActiveView] = useState<"wdc" | "wcc">("wdc");
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
@@ -78,6 +81,7 @@ export default function MonteCarlo({ season }: { season: number }) {
       points: driver.current_points,
     });
     setModalOpen(true);
+    navigate("/montecarlo/scenarios");
   };
 
   if (!sim) {
@@ -137,7 +141,7 @@ export default function MonteCarlo({ season }: { season: number }) {
   const CustomLineTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "160px", boxShadow: "0 0 16px rgba(0,212,255,0.2)" }}>
+      <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "160px", boxShadow: "0 0 16px var(--accent-dim)" }}>
         <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.5rem", letterSpacing: "0.1em", fontWeight: 600 }}>
           {label.toUpperCase()} FORECAST
         </div>
@@ -159,12 +163,61 @@ export default function MonteCarlo({ season }: { season: number }) {
     ? sim.wdc.slice(0, 5).map((e) => ({ name: e.driver_id, probability: e.championship_probability, color: e.team_color }))
     : sim.wcc.slice(0, 5).map((e) => ({ name: e.constructor_name.split(" ")[0], probability: e.championship_probability, color: e.color }));
 
+  const subnavLinkStyle = (isActive: boolean) => ({
+    background: "transparent",
+    border: "none",
+    borderBottom: isActive ? "2px solid var(--accent-primary)" : "2px solid transparent",
+    color: isActive ? "var(--accent-primary)" : "var(--text-muted)",
+    padding: "0.5rem 1.25rem",
+    fontSize: "0.75rem",
+    fontFamily: "var(--font-mono)",
+    fontWeight: isActive ? "bold" : "normal",
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    display: "inline-flex",
+    alignItems: "center",
+    letterSpacing: "0.05em"
+  });
+
+  const activeModalDriver = modalDriver || (sim ? {
+    name: sim.wdc[0].driver_name,
+    team: sim.wdc[0].team,
+    points: sim.wdc[0].current_points,
+  } : null);
+
   return (
     <>
-      {modalOpen && modalDriver ? (
-        <ChampionshipScenarioView driver={modalDriver} onBack={() => setModalOpen(false)} />
-      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {/* Module Sub-Navigation */}
+        <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "1px", gap: "0.5rem" }}>
+          <NavLink
+            to="/montecarlo"
+            end
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            CHAMPIONSHIP FORECAST
+          </NavLink>
+          <NavLink
+            to="/montecarlo/scenarios"
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            SCENARIO EXPLORER
+          </NavLink>
+          <NavLink
+            to="/montecarlo/accuracy"
+            style={({ isActive }) => subnavLinkStyle(isActive)}
+          >
+            MODEL CALIBRATION
+          </NavLink>
+        </div>
+
+        {subTab === "accuracy" ? (
+          <MonteCarloAccuracy />
+        ) : (subTab === "scenarios" || modalOpen) && activeModalDriver ? (
+          <ChampionshipScenarioView driver={activeModalDriver} onBack={() => { setModalOpen(false); navigate("/montecarlo"); }} />
+        ) : (
+          <>
         
         {/* Export panel and controls */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -175,7 +228,7 @@ export default function MonteCarlo({ season }: { season: number }) {
                 key={view}
                 onClick={() => setActiveView(view)}
                 style={{
-                  background: activeView === view ? "rgba(0,212,255,0.08)" : "transparent",
+                  background: activeView === view ? "var(--accent-tint)" : "transparent",
                   border: `1px solid ${activeView === view ? "var(--accent-primary)" : "var(--border-subtle)"}`,
                   color: activeView === view ? "var(--accent-primary)" : "var(--text-muted)",
                   padding: "0.4rem 1rem",
@@ -216,7 +269,7 @@ export default function MonteCarlo({ season }: { season: number }) {
             gap: "0.75rem",
             boxShadow: "0 0 12px rgba(251, 191, 36, 0.15)"
           }}>
-            <span style={{ fontSize: "1.25rem" }}>🏆</span>
+            <span style={{ fontSize: "1.25rem" }}>ðŸ†</span>
             <div>
               <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-warning)", fontWeight: "bold", letterSpacing: "0.08em" }}>
                 MATHEMATICAL CHAMPIONSHIP CLINCH ALERT
@@ -241,7 +294,7 @@ export default function MonteCarlo({ season }: { season: number }) {
             gap: "0.75rem",
             boxShadow: "0 0 12px rgba(34, 197, 94, 0.15)"
           }}>
-            <span style={{ fontSize: "1.25rem" }}>🏆</span>
+            <span style={{ fontSize: "1.25rem" }}>ðŸ†</span>
             <div>
               <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-success)", fontWeight: "bold", letterSpacing: "0.08em" }}>
                 CHAMPIONSHIP SECURED
@@ -256,7 +309,7 @@ export default function MonteCarlo({ season }: { season: number }) {
 
         {clinchDetails && !clinchDetails.canClinchNextRound && !clinchDetails.isChampionshipWon && (
           <div className="panel" style={{
-            background: "rgba(0, 212, 255, 0.02)",
+            background: "var(--accent-tint)",
             border: "1px solid var(--border-subtle)",
             borderRadius: "4px",
             padding: "0.85rem 1.25rem",
@@ -264,7 +317,7 @@ export default function MonteCarlo({ season }: { season: number }) {
             alignItems: "center",
             gap: "0.75rem"
           }}>
-            <span style={{ fontSize: "1.1rem" }}>📈</span>
+            <span style={{ fontSize: "1.1rem" }}>ðŸ“ˆ</span>
             <div>
               <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: "bold", letterSpacing: "0.08em" }}>
                 CHAMPIONSHIP PROJECTION FORECAST
@@ -317,7 +370,7 @@ export default function MonteCarlo({ season }: { season: number }) {
                   position: "absolute",
                   inset: 0,
                   backgroundImage:
-                    "linear-gradient(90deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%, transparent)",
+                    "linear-gradient(90deg, transparent 24%, var(--accent-tint) 25%, var(--accent-tint) 26%, transparent 27%, transparent 74%, var(--accent-tint) 75%, var(--accent-tint) 76%, transparent 77%, transparent)",
                   backgroundSize: "80px 100%",
                   pointerEvents: "none",
                 }}
@@ -361,7 +414,7 @@ export default function MonteCarlo({ season }: { season: number }) {
                       gap: "0.75rem",
                       padding: "0.875rem 1rem",
                       borderBottom: "1px solid var(--border-subtle)",
-                      background: isSelected ? "rgba(0,212,255,0.08)" : entry.eliminated ? "rgba(239,68,68,0.05)" : "transparent",
+                      background: isSelected ? "var(--accent-tint)" : entry.eliminated ? "rgba(239,68,68,0.05)" : "transparent",
                       borderLeft: isSelected ? "3px solid var(--accent-primary)" : entry.eliminated ? "3px solid var(--accent-danger)" : "3px solid transparent",
                       opacity: entry.eliminated ? 0.6 : 1,
                       cursor: "pointer",
@@ -396,7 +449,7 @@ export default function MonteCarlo({ season }: { season: number }) {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div className="text-mono" style={{ fontSize: "0.75rem", fontWeight: 600, color: trendPositive ? "var(--accent-success)" : "var(--accent-danger)" }}>
-                        {trendPositive ? "▲" : "▼"} {Math.abs(entry.trend * 100).toFixed(1)}%
+                        {trendPositive ? "â–²" : "â–¼"} {Math.abs(entry.trend * 100).toFixed(1)}%
                       </div>
                       <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>VS LAST RND</div>
                     </div>
@@ -421,7 +474,7 @@ export default function MonteCarlo({ season }: { season: number }) {
                       gap: "0.75rem",
                       padding: "0.875rem 1rem",
                       borderBottom: "1px solid var(--border-subtle)",
-                      background: isSelected ? "rgba(0,212,255,0.08)" : "transparent",
+                      background: isSelected ? "var(--accent-tint)" : "transparent",
                       borderLeft: isSelected ? "3px solid var(--accent-primary)" : "3px solid transparent",
                       cursor: "pointer",
                       transition: "all 0.2s",
@@ -583,7 +636,7 @@ export default function MonteCarlo({ season }: { season: number }) {
         {/* Intelligence Desk Explanation */}
         <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
           <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-            <span className="section-title">Telemetry Intelligence Desk · Championship Simulation Model</span>
+            <span className="section-title">Telemetry Intelligence Desk Â· Championship Simulation Model</span>
             <div className="section-header-line" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
@@ -596,19 +649,21 @@ export default function MonteCarlo({ season }: { season: number }) {
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Form Weighting & Gumbel Noise</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                Driver pace expectations are adjusted using an exponential decay filter (λ = 0.08) to weight recent performances heavier than early-season runs. A Gumbel extreme value distribution simulates random race-day variance, DNFs, and sudden performance spikes.
+                Driver pace expectations are adjusted using an exponential decay filter (Î» = 0.08) to weight recent performances heavier than early-season runs. A Gumbel extreme value distribution simulates random race-day variance, DNFs, and sudden performance spikes.
               </p>
             </div>
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Circuit & Team Affinities</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                Constructor base pace is modified by circuit-type coefficient matrices (low downforce, high speed, technical street circuit). This accounts for physical car layouts—meaning teams with low drag excel at Monza, while high-downforce cars dominate Monaco simulations.
+                Constructor base pace is modified by circuit-type coefficient matrices (low downforce, high speed, technical street circuit). This accounts for physical car layoutsâ€”meaning teams with low drag excel at Monza, while high-downforce cars dominate Monaco simulations.
               </p>
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
-      )}
     </>
   );
 }
+

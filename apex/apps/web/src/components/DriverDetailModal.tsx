@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+﻿import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import Modal from "./Modal";
 
 import type { EloRanking } from "../types";
@@ -49,7 +49,7 @@ function CustomLineTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", fontWeight: 600 }}>
@@ -71,7 +71,7 @@ function CustomBarTooltip({ active, payload }: any) {
         border: "1px solid var(--border-active)",
         padding: "0.75rem",
         borderRadius: "3px",
-        boxShadow: "0 0 16px rgba(0,212,255,0.2)",
+        boxShadow: "0 0 16px var(--accent-dim)",
       }}
     >
       <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>
@@ -114,7 +114,7 @@ export default function DriverDetailModal({ isOpen, onClose, driver }: DriverDet
         {/* Profile Header */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
           {[
-            { label: "ELO RATING", value: driver.elo_rating.toFixed(0), unit: `±${driver.uncertainty.toFixed(0)}`, accent: true },
+            { label: "ELO RATING", value: driver.elo_rating.toFixed(0), unit: `Â±${driver.uncertainty.toFixed(0)}`, accent: true },
             { label: "QUALI WIN %", value: `${driver.quali_dominance_pct.toFixed(0)}%`, unit: "" },
             { label: "H2H WINS", value: h2hWins, unit: "vs all" },
             { label: "H2H DOMINANCE", value: `${h2hDominance.toFixed(1)}%`, unit: "" },
@@ -251,3 +251,4 @@ export default function DriverDetailModal({ isOpen, onClose, driver }: DriverDet
     </Modal>
   );
 }
+

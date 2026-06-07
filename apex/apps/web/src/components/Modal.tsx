@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -84,7 +84,7 @@ export default function Modal({
             background: "var(--bg-panel)",
             border: "1px solid var(--border-active)",
             borderRadius: "6px",
-            boxShadow: "0 0 40px rgba(0, 212, 255, 0.15), 0 25px 80px rgba(0, 0, 0, 0.6)",
+            boxShadow: "0 0 40px var(--accent-dim), 0 25px 80px rgba(0, 0, 0, 0.6)",
             width: "100%",
             maxWidth: sizeConfig.maxWidth,
             maxHeight: sizeConfig.maxHeight,
@@ -137,7 +137,7 @@ export default function Modal({
                       (e.currentTarget as HTMLElement).style.opacity = "1";
                     }}
                   >
-                    ←
+                    â†
                   </button>
                 )}
                 <div>
@@ -191,7 +191,7 @@ export default function Modal({
                 (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
               }}
             >
-              ✕
+              âœ•
             </button>
           </div>
 
@@ -248,3 +248,4 @@ export default function Modal({
     </>
   );
 }
+

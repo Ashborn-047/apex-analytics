@@ -155,6 +155,16 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
     await page.goto('/');
   });
 
+  // Helper to open mobile drawer if visible, and click tab button
+  const navigateToTab = async (page: any, name: string) => {
+    const toggle = page.locator('.mobile-toggle');
+    if (await toggle.isVisible()) {
+      await toggle.click();
+      await page.waitForTimeout(200); // wait for slide transition
+    }
+    await page.getByRole('button', { name }).click();
+  };
+
   test('should load the home page (Driver Elo tab) correctly', async ({ page }) => {
     // Assert title wordmark is present
     await expect(page.locator('text=Race Intelligence')).toBeVisible();
@@ -166,15 +176,15 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
 
   test('should navigate across all telemetry dashboards successfully', async ({ page }) => {
     // 1. Tyre & Lap
-    await page.getByRole('button', { name: 'Tyre & Lap' }).click();
+    await navigateToTab(page, 'Tyre & Lap');
     await expect(page.locator('text=Tyre Degradation Model')).toBeVisible();
 
     // 2. Pit Wall
-    await page.getByRole('button', { name: 'Pit Wall' }).click();
+    await navigateToTab(page, 'Pit Wall');
     await expect(page.locator('text=Race Timeline').first()).toBeVisible();
 
     // 3. Monte Carlo
-    await page.getByRole('button', { name: 'Monte Carlo' }).click();
+    await navigateToTab(page, 'Monte Carlo');
     await expect(page.locator('text=SIMULATIONS').first()).toBeVisible();
   });
 
@@ -207,7 +217,7 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
 
   test('should toggle compound selections in Tyre Lap Predictor', async ({ page }) => {
     // Navigate to Tyre page
-    await page.getByRole('button', { name: 'Tyre & Lap' }).click();
+    await navigateToTab(page, 'Tyre & Lap');
 
     // Click SOFT compound card selector in sidebar
     const softCard = page.locator('.panel-scanner', { hasText: 'SOFT' }).first();
@@ -220,7 +230,7 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
 
   test('should open simulated vs actual comparison panel in Monte Carlo simulator', async ({ page }) => {
     // Navigate to Monte Carlo page
-    await page.getByRole('button', { name: 'Monte Carlo' }).click();
+    await navigateToTab(page, 'Monte Carlo');
 
     // Click on Max Verstappen card to select him
     const verCard = page.locator('text=Max Verstappen').first();
@@ -286,7 +296,7 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
 
   test('should run live stint simulation in Tyre Lap Predictor', async ({ page }) => {
     // Go to Tyre page
-    await page.getByRole('button', { name: 'Tyre & Lap' }).click();
+    await navigateToTab(page, 'Tyre & Lap');
 
     // Verify sliders/settings load
     await expect(page.locator('text=LIVE STINT SIMULATOR')).toBeVisible();
@@ -306,7 +316,7 @@ test.describe('F1 Race Intelligence Web App E2E', () => {
 
   test('should navigate and interact with ML Wiki page', async ({ page }) => {
     // Navigate to ML Wiki page
-    await page.getByRole('button', { name: 'ML Wiki' }).click();
+    await navigateToTab(page, 'ML Wiki');
 
     // Verify System Overview is visible
     await expect(page.locator('text=F1 Predictive Modeling Overview')).toBeVisible();

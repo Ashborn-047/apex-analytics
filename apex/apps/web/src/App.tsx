@@ -1,4 +1,5 @@
-import { useState, Component, ErrorInfo, ReactNode } from "react";
+import { useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
+import { Routes, Route, Navigate, NavLink, useParams, useNavigate } from "react-router-dom";
 import EloDashboard from "./pages/EloDashboard";
 import TyreLapPredictor from "./pages/TyreLapPredictor";
 import PitWallPlanner from "./pages/PitWallPlanner";
@@ -36,13 +37,13 @@ class PageErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
       return (
         <div style={{
           padding: "2rem",
-          background: "rgba(239, 68, 68, 0.05)",
-          border: "1px solid var(--accent-danger)",
+          background: "rgba(192, 57, 43, 0.05)",
+          border: "1px solid var(--status-danger)",
           borderRadius: "4px",
           color: "var(--text-primary)",
           margin: "2rem 0",
         }}>
-          <h3 style={{ fontFamily: "var(--font-display)", color: "var(--accent-danger)", fontSize: "1.1rem", marginBottom: "0.5rem" }}>
+          <h3 style={{ fontFamily: "var(--font-display)", color: "var(--status-danger)", fontSize: "1.1rem", marginBottom: "0.5rem" }}>
             ⚠️ TELEMETRY FEED INTERRUPTED
           </h3>
           <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
@@ -56,7 +57,7 @@ class PageErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
             borderRadius: "2px",
             overflowX: "auto",
             border: "1px solid var(--border-subtle)",
-            color: "var(--accent-danger)",
+            color: "var(--status-danger)",
             whiteSpace: "pre-wrap",
           }}>
             {this.state.error?.toString()}
@@ -92,273 +93,312 @@ interface NavItem {
   id: Tab;
   label: string;
   sublabel: string;
-  icon: string;
+  icon: ReactNode;
 }
 
+const LightningIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+const GridIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <line x1="9" y1="3" x2="9" y2="21" />
+    <line x1="15" y1="3" x2="15" y2="21" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="3" y1="15" x2="21" y2="15" />
+  </svg>
+);
+
+const TireIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="5" />
+  </svg>
+);
+
+const HexagonIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
+  </svg>
+);
+
+const BookIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5v-15z" />
+  </svg>
+);
+
+const DocIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </svg>
+);
+
 const NAV_ITEMS: NavItem[] = [
-  { id: "elo",         label: "Driver Elo",     sublabel: "H2H RATINGS",      icon: "⚡" },
-  { id: "preview",     label: "Race Preview",   sublabel: "GRID & OUTCOME",   icon: "❖" },
-  { id: "tyres",       label: "Tyre & Lap",     sublabel: "DEGRADATION MODEL", icon: "◎" },
-  { id: "pit",         label: "Pit Wall",        sublabel: "STRATEGY PLANNER",  icon: "⬡" },
-  { id: "montecarlo",  label: "Monte Carlo",    sublabel: "CHAMPIONSHIP SIM",  icon: "∑" },
-  { id: "docs",        label: "ML Wiki",        sublabel: "DOCUMENTATION",     icon: "📖" },
+  { id: "elo",         label: "Driver Elo",     sublabel: "H2H STANDINGS",     icon: <LightningIcon /> },
+  { id: "preview",     label: "Race Preview",   sublabel: "GRID & OUTCOME",    icon: <GridIcon /> },
+  { id: "tyres",       label: "Tyre & Lap",     sublabel: "DEGRADATION MODEL", icon: <TireIcon /> },
+  { id: "pit",         label: "Pit Wall",        sublabel: "STRATEGY PLANNER",  icon: <HexagonIcon /> },
+  { id: "montecarlo",  label: "Monte Carlo",    sublabel: "CHAMPIONSHIP SIM",  icon: <BookIcon /> },
+  { id: "docs",        label: "ML Wiki",        sublabel: "MODEL REFERENCE",   icon: <DocIcon /> },
 ];
 
-function TopNav({
-  active,
-  onSelect,
-  season,
-  onSeasonChange,
-}: {
-  active: Tab;
-  onSelect: (t: Tab) => void;
-  season: number;
-  onSeasonChange: (s: number) => void;
-}) {
-  const highlightedTab = (active === "driver-profile" || active === "compare") ? "elo" : active;
+const THEMES = {
+  noir: {
+    '--bg-void':'#0a0907','--bg-surface':'#141210','--bg-panel':'#1a1814','--bg-elevated':'#252220','--bg-input':'#111009',
+    '--accent-primary':'#e8a020','--accent-bright':'#f4b840','--accent-dim':'#e8a02028','--accent-tint':'#e8a02012',
+    '--status-danger':'#c0392b','--status-warning':'#b8860b','--status-success':'#5a8a3c',
+    '--text-primary':'#f0ece4','--text-secondary':'#a09080','--text-muted':'#625850','--text-dim':'#3a3430',
+    '--border-ghost':'#1e1c18','--border-subtle':'#2a2620','--border-mid':'#3c3830','--border-accent':'#e8a02030',
+  },
+  petro: {
+    '--bg-void':'#020507','--bg-surface':'#0c1219','--bg-panel':'#111a24','--bg-elevated':'#182536','--bg-input':'#070b10',
+    '--accent-primary':'#00c8f0','--accent-bright':'#00e0ff','--accent-dim':'#00c8f028','--accent-tint':'#00c8f012',
+    '--status-danger':'#e84040','--status-warning':'#f0b429','--status-success':'#1db954',
+    '--text-primary':'#ddeaf6','--text-secondary':'#7a9ab8','--text-muted':'#3d5a72','--text-dim':'#1e3244',
+    '--border-ghost':'#141e28','--border-subtle':'#1c2e40','--border-mid':'#26415a','--border-accent':'#00c8f030',
+  },
+  redline: {
+    '--bg-void':'#030304','--bg-surface':'#0e0e10','--bg-panel':'#141416','--bg-elevated':'#1c1c20','--bg-input':'#080809',
+    '--accent-primary':'#e8192e','--accent-bright':'#ff3348','--accent-dim':'#e8192e28','--accent-tint':'#e8192e12',
+    '--status-danger':'#ff3348','--status-warning':'#f5c518','--status-success':'#00d95a',
+    '--text-primary':'#f2f2f4','--text-secondary':'#8e8e99','--text-muted':'#505058','--text-dim':'#2c2c32',
+    '--border-ghost':'#18181c','--border-subtle':'#1e1e22','--border-mid':'#2e2e36','--border-accent':'#e8192e28',
+  },
+  rolex: {
+    '--bg-void':'#020510','--bg-surface':'#0a1230','--bg-panel':'#0f1a42','--bg-elevated':'#162254','--bg-input':'#060c1e',
+    '--accent-primary':'#c9a830','--accent-bright':'#dfc050','--accent-dim':'#c9a83028','--accent-tint':'#c9a83012',
+    '--status-danger':'#e84040','--status-warning':'#e88c10','--status-success':'#22c55e',
+    '--text-primary':'#eef1f8','--text-secondary':'#7a91b8','--text-muted':'#3d5278','--text-dim':'#1d2e4c',
+    '--border-ghost':'#121a34','--border-subtle':'#182038','--border-mid':'#243050','--border-accent':'#c9a83028',
+  }
+};
+
+function DriverProfileWrapper() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   return (
-    <header style={{
-      background: "var(--bg-surface)",
-      borderBottom: "1px solid var(--border-subtle)",
-      position: "sticky", top: 0, zIndex: 100,
-      boxShadow: "0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(0,212,255,0.1)",
-    }}>
-      {/* Top bar with enhanced telemetry styling */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "0 2rem",
-        height: "48px",
-        borderBottom: "1px solid var(--border-subtle)",
-        position: "relative",
-      }}>
-        {/* Telemetry top accent line */}
-        <div style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0,
-          height: "1px",
-          background: "linear-gradient(90deg, transparent, var(--accent-primary), transparent)",
-          opacity: 0.4,
-        }} />
+    <DriverProfile
+      driverId={id || "VER"}
+      onBack={() => navigate("/elo")}
+      onCompare={(compareId) => navigate(`/elo/compare?driver=${compareId}`)}
+    />
+  );
+}
 
-        {/* Logo / wordmark */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <div style={{
-            width: "24px", height: "24px",
-            background: "linear-gradient(135deg, var(--accent-primary), #0099b3)",
-            borderRadius: "3px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 12px rgba(0,212,255,0.3)",
-          }}>
-            <span style={{ fontSize: "11px", fontWeight: 900, color: "var(--bg-void)", fontFamily: "var(--font-display)" }}>F1</span>
-          </div>
-          <div>
-            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-primary)" }}>
-              Race Intelligence
-            </span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginLeft: "0.75rem", letterSpacing: "0.08em" }}>
-              v0.1.0
-            </span>
-          </div>
-        </div>
-
-        {/* Meta info with enhanced styling */}
-        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <div className="pulse-dot live" />
-            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", letterSpacing: "0.1em", fontWeight: 600 }}>
-              LIVE · R12 / 24
-            </span>
-          </div>
-          <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>
-            OpenF1 + Jolpica
-          </div>
-          <div style={{
-            background: "linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,212,255,0.05))",
-            border: "1px solid var(--border-accent)",
-            borderRadius: "2px",
-            padding: "0.1rem 0.4rem",
-            boxShadow: "0 0 8px rgba(0,212,255,0.1)",
-            display: "flex",
-            alignItems: "center",
-          }}>
-            <select
-              value={season}
-              onChange={(e) => onSeasonChange(Number(e.target.value))}
-              className="text-mono"
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--accent-primary)",
-                fontSize: "0.65rem",
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                outline: "none",
-                cursor: "pointer",
-                paddingRight: "0.25rem",
-                textTransform: "uppercase",
-              }}
-            >
-              <option value={2026} style={{ background: "var(--bg-panel)", color: "var(--text-primary)" }}>2026 SEASON</option>
-              <option value={2025} style={{ background: "var(--bg-panel)", color: "var(--text-primary)" }}>2025 SEASON</option>
-              <option value={2024} style={{ background: "var(--bg-panel)", color: "var(--text-primary)" }}>2024 SEASON</option>
-              <option value={2023} style={{ background: "var(--bg-panel)", color: "var(--text-primary)" }}>2023 SEASON</option>
-              <option value={2022} style={{ background: "var(--bg-panel)", color: "var(--text-primary)" }}>2022 SEASON</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Tab nav with enhanced telemetry styling */}
-      <div style={{ 
-        display: "flex", 
-        padding: "0 2rem", 
-        gap: "0.25rem", 
-        overflowX: "auto",
-        position: "relative",
-      }}>
-        {/* Subtle grid background */}
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: "linear-gradient(90deg, transparent 24%, rgba(0,212,255,0.02) 25%, rgba(0,212,255,0.02) 26%, transparent 27%, transparent 74%, rgba(0,212,255,0.02) 75%, rgba(0,212,255,0.02) 76%, transparent 77%, transparent)",
-          backgroundSize: "80px 100%",
-          pointerEvents: "none",
-        }} />
-
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onSelect(item.id)}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              padding: "0.625rem 1rem",
-              background: highlightedTab === item.id ? "rgba(0,212,255,0.08)" : "transparent",
-              border: "none",
-              borderBottom: `2px solid ${highlightedTab === item.id ? "var(--accent-primary)" : "transparent"}`,
-              cursor: "pointer",
-              transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-              gap: "0.1rem",
-              minWidth: "fit-content",
-              position: "relative",
-              zIndex: 1,
-            }}
-            onMouseEnter={(e) => {
-              if (highlightedTab !== item.id) {
-                (e.currentTarget as HTMLElement).style.background = "rgba(0,212,255,0.04)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (highlightedTab !== item.id) {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-              }
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <span style={{ fontSize: "0.8rem", opacity: highlightedTab === item.id ? 1 : 0.5, transition: "opacity 0.2s" }}>{item.icon}</span>
-              <span style={{
-                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.8rem",
-                textTransform: "uppercase", letterSpacing: "0.08em",
-                color: highlightedTab === item.id ? "var(--accent-primary)" : "var(--text-secondary)",
-                transition: "color 0.2s",
-              }}>
-                {item.label}
-              </span>
-            </div>
-            <span className="text-mono" style={{ fontSize: "0.55rem", color: highlightedTab === item.id ? "var(--accent-primary)" : "var(--text-dim)", letterSpacing: "0.1em", transition: "color 0.2s" }}>
-              {item.sublabel}
-            </span>
-          </button>
-        ))}
-      </div>
-    </header>
+function DriverCompareWrapper() {
+  const navigate = useNavigate();
+  const query = new URLSearchParams(window.location.search);
+  const driverId = query.get("driver") || "VER";
+  return (
+    <DriverCompare
+      initialDriverId={driverId}
+      onBack={() => navigate("/elo")}
+    />
   );
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("elo");
+  const navigate = useNavigate();
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
-  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<"noir" | "petro" | "redline" | "rolex">("noir");
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
-  const PAGE_MAP: Record<Tab, JSX.Element> = {
-    elo: (
-      <EloDashboard
-        season={selectedSeason}
-        onViewProfile={(id) => {
-          setSelectedDriverId(id);
-          setActiveTab("driver-profile");
-        }}
-        onViewCompare={(id) => {
-          setSelectedDriverId(id);
-          setActiveTab("compare");
-        }}
-      />
-    ),
-    preview:    <RacePreview season={selectedSeason} />,
-    tyres:      <TyreLapPredictor season={selectedSeason} />,
-    pit:        <PitWallPlanner season={selectedSeason} />,
-    montecarlo: <MonteCarlo season={selectedSeason} />,
-    "driver-profile": (
-      <DriverProfile
-        driverId={selectedDriverId || "VER"}
-        onBack={() => setActiveTab("elo")}
-        onCompare={(id) => {
-          setSelectedDriverId(id);
-          setActiveTab("compare");
-        }}
-      />
-    ),
-    compare: (
-      <DriverCompare
-        initialDriverId={selectedDriverId || "VER"}
-        onBack={() => setActiveTab("elo")}
-      />
-    ),
-    docs: <DocsWiki />,
-  };
+  // Apply CSS custom properties dynamically on root when theme changes
+  useEffect(() => {
+    const themeProps = THEMES[currentTheme];
+    const root = document.documentElement;
+    Object.entries(themeProps).forEach(([k, v]) => {
+      root.style.setProperty(k, v);
+    });
+  }, [currentTheme]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-void)" }}>
-      <TopNav
-        active={activeTab}
-        onSelect={setActiveTab}
-        season={selectedSeason}
-        onSeasonChange={setSelectedSeason}
+    <div className="app-viewport">
+      {/* Mobile drawer trigger */}
+      <button 
+        className="mobile-toggle"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        aria-label="Toggle Navigation Sidebar"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {/* Drawer scrim overlay for mobile view */}
+      <div 
+        className={`drawer-scrim ${isSidebarOpen ? "is-visible" : ""}`}
+        onClick={() => setIsSidebarOpen(false)}
       />
 
-      {/* Page content */}
-      <main style={{ padding: "1.5rem 2rem", maxWidth: "1600px", margin: "0 auto" }} className="fade-up">
-        <PageErrorBoundary key={activeTab}>
-          {PAGE_MAP[activeTab]}
-        </PageErrorBoundary>
-      </main>
+      {/* ─── MASTER SIDEBAR (Left Column Navigation & Control) ─── */}
+      <aside className={`master-sidebar ${isSidebarOpen ? "is-open" : ""}`}>
+        <div>
+          {/* Logo Wordmark */}
+          <div className="brand-section">
+            {/* Inline Compact SVG Brand Logo */}
+            <svg className="brand-logo" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="3" fill="var(--accent-primary)"/>
+              <line x1="6" y1="25" x2="16" y2="7" stroke="var(--bg-void)" strokeWidth="2.5" strokeLinecap="square"/>
+              <line x1="16" y1="7" x2="26" y2="25" stroke="var(--bg-void)" strokeWidth="2.5" strokeLinecap="square"/>
+              <line x1="9" y1="20" x2="23" y2="20" stroke="var(--bg-void)" strokeWidth="1.75" strokeLinecap="square"/>
+              <rect x="14.5" y="5.5" width="3" height="3" fill="var(--bg-void)"/>
+            </svg>
+            <div>
+              <span className="brand-label">Race Intelligence</span>
+              <span className="brand-version">CONSOLE v0.1.0 (v3.0)</span>
+            </div>
+          </div>
 
-      {/* Footer with telemetry styling */}
-      <footer style={{
-        borderTop: "1px solid var(--border-subtle)",
-        padding: "0.875rem 2rem",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        marginTop: "2rem",
-        background: "linear-gradient(180deg, transparent, rgba(0,212,255,0.02))",
-        position: "relative",
-      }}>
-        <div style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0,
-          height: "1px",
-          background: "linear-gradient(90deg, transparent, var(--accent-primary), transparent)",
-          opacity: 0.2,
-        }} />
-        <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)", letterSpacing: "0.1em" }}>
-          F1 ANALYTICS PLATFORM · TELEMETRY POWERED BY OPENF1 & ERGAST/JOLPICA
+          {/* Live Telemetry Ping */}
+          <div className="live-badge">
+            <div className="pulse-dot live" />
+            <span className="live-text">LIVE · BELGIAN GP · SPA</span>
+          </div>
+
+          {/* Season Selector */}
+          <div className="selector-block">
+            <span className="selector-label">Active Season</span>
+            <select 
+              value={selectedSeason} 
+              onChange={(e) => setSelectedSeason(Number(e.target.value))} 
+              className="selector-dropdown"
+            >
+              <option value={2026}>2026 SEASON</option>
+              <option value={2025}>2025 SEASON</option>
+              <option value={2024}>2024 SEASON</option>
+              <option value={2023}>2023 SEASON</option>
+              <option value={2022}>2022 SEASON</option>
+            </select>
+          </div>
+
+          <nav className="sidebar-nav">
+            {NAV_ITEMS.map((item) => {
+              const toPath = item.id === "pit" ? "/pitstop" : item.id === "docs" ? "/docs" : `/${item.id}`;
+              return (
+                <NavLink
+                  key={item.id}
+                  to={toPath}
+                  role="button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className={({ isActive }) => `nav-button ${isActive ? "active" : ""}`}
+                >
+                  <span className="nav-icon">{item.icon}</span>
+                  <div className="nav-text">
+                    <span className="nav-label">{item.label}</span>
+                    <span className="nav-sublabel">{item.sublabel}</span>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
-        <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)", letterSpacing: "0.08em" }}>
-          ML PIPELINE: Ridge · XGBoost · Elo · Monte Carlo
+
+        {/* Sidebar Footer Controls */}
+        <div className="sidebar-footer">
+          <span className="footer-meta">OPENF1 + JOLPICA SECURED</span>
+          <span className="footer-meta">ML ENGINE: Ridge · XGBoost · Elo</span>
+          
+          {/* Skin Selector Grid */}
+          <span className="theme-switcher-label">System Skin</span>
+          <div className="theme-grid">
+            <button 
+              className={`theme-btn ${currentTheme === "noir" ? "active" : ""}`}
+              onClick={() => setCurrentTheme("noir")}
+            >
+              DATA NOIR
+            </button>
+            <button 
+              className={`theme-btn ${currentTheme === "petro" ? "active" : ""}`}
+              onClick={() => setCurrentTheme("petro")}
+            >
+              PETRONAS
+            </button>
+            <button 
+              className={`theme-btn ${currentTheme === "redline" ? "active" : ""}`}
+              onClick={() => setCurrentTheme("redline")}
+            >
+              REDLINE
+            </button>
+            <button 
+              className={`theme-btn ${currentTheme === "rolex" ? "active" : ""}`}
+              onClick={() => setCurrentTheme("rolex")}
+            >
+              ROLEX GOLD
+            </button>
+          </div>
         </div>
-      </footer>
+      </aside>
+
+      {/* ─── DETAIL VIEWPORT (Right Column) ─── */}
+      <main className="detail-viewport">
+        <div className="detail-content">
+          <PageErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Navigate to="/elo" replace />} />
+              
+              {/* Elo Rankings Module */}
+              <Route 
+                path="/elo" 
+                element={
+                  <EloDashboard 
+                    season={selectedSeason} 
+                    subTab="standings" 
+                    onViewProfile={(id) => navigate(`/elo/driver/${id}`)}
+                    onViewCompare={(id) => navigate(`/elo/compare?driver=${id}`)}
+                  />
+                } 
+              />
+              <Route 
+                path="/elo/history" 
+                element={
+                  <EloDashboard 
+                    season={selectedSeason} 
+                    subTab="history" 
+                    onViewProfile={(id) => navigate(`/elo/driver/${id}`)}
+                    onViewCompare={(id) => navigate(`/elo/compare?driver=${id}`)}
+                  />
+                } 
+              />
+              <Route path="/elo/driver/:id" element={<DriverProfileWrapper />} />
+              <Route path="/elo/compare" element={<DriverCompareWrapper />} />
+
+              {/* Race Preview */}
+              <Route path="/preview" element={<RacePreview season={selectedSeason} />} />
+
+              {/* Tyre Degradation Module */}
+              <Route path="/tyres" element={<TyreLapPredictor season={selectedSeason} subTab="predictor" />} />
+              <Route path="/tyres/circuits" element={<TyreLapPredictor season={selectedSeason} subTab="circuits" />} />
+              <Route path="/tyres/accuracy" element={<TyreLapPredictor season={selectedSeason} subTab="accuracy" />} />
+
+              {/* Pit Wall Module */}
+              <Route path="/pitstop" element={<PitWallPlanner season={selectedSeason} subTab="builder" />} />
+              <Route path="/pitstop/live" element={<PitWallPlanner season={selectedSeason} subTab="live" />} />
+              <Route path="/pitstop/history" element={<PitWallPlanner season={selectedSeason} subTab="history" />} />
+
+              {/* Monte Carlo Module */}
+              <Route path="/montecarlo" element={<MonteCarlo season={selectedSeason} subTab="forecast" />} />
+              <Route path="/montecarlo/scenarios" element={<MonteCarlo season={selectedSeason} subTab="scenarios" />} />
+              <Route path="/montecarlo/accuracy" element={<MonteCarlo season={selectedSeason} subTab="accuracy" />} />
+
+              {/* ML Wiki Module */}
+              <Route path="/docs" element={<DocsWiki subTab="concept" />} />
+              <Route path="/docs/math" element={<DocsWiki subTab="logic" />} />
+              <Route path="/docs/sources" element={<DocsWiki subTab="features" />} />
+              <Route path="/docs/sandbox" element={<DocsWiki subTab="sandbox" />} />
+              <Route path="/docs/changelog" element={<DocsWiki subTab="changelog" />} />
+            </Routes>
+          </PageErrorBoundary>
+        </div>
+      </main>
     </div>
   );
 }

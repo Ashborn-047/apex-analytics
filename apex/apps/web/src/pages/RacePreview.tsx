@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { API_BASE } from "../config";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -152,7 +152,7 @@ export default function RacePreview({ season }: { season: number }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       
       {/* Simulation Controls Toolbar */}
-      <div className="panel" style={{ padding: "1.25rem", background: "rgba(0, 212, 255, 0.01)" }}>
+      <div className="panel" style={{ padding: "1.25rem", background: "var(--accent-tint)" }}>
         <span className="text-mono" style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
           PRE-RACE SIMULATION CONFIGURATOR
         </span>
@@ -209,7 +209,7 @@ export default function RacePreview({ season }: { season: number }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
               <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Track Temp</span>
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{trackTemp}°C</span>
+              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{trackTemp}Â°C</span>
             </div>
             <input
               type="range"
@@ -224,7 +224,7 @@ export default function RacePreview({ season }: { season: number }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
               <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Air Temp</span>
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{airTemp}°C</span>
+              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{airTemp}Â°C</span>
             </div>
             <input
               type="range"
@@ -267,7 +267,7 @@ export default function RacePreview({ season }: { season: number }) {
                       alignItems: "center",
                       gap: "0.75rem",
                       padding: "0.6rem 0.8rem",
-                      background: isSelected ? "rgba(0, 212, 255, 0.08)" : "transparent",
+                      background: isSelected ? "var(--accent-tint)" : "transparent",
                       border: `1px solid ${isSelected ? "var(--accent-primary)" : "var(--border-subtle)"}`,
                       borderRadius: "4px",
                       cursor: "pointer",
@@ -422,3 +422,4 @@ export default function RacePreview({ season }: { season: number }) {
     </div>
   );
 }
+
