@@ -149,7 +149,7 @@ class LapTimePredictor:
             
         self.is_trained = True
 
-    def predict(self, tyre_age: int, track_temp: float, fuel_load: float, compound: str, driver_id: str = "VER") -> float:
+    def predict(self, tyre_age: int, track_temp: float, fuel_load: float, compound: str, driver_id: str = "VER", air_temp: float = 22.0) -> float:
         """
         Calculates predicted lap time in seconds for a specific query.
         """
@@ -182,7 +182,7 @@ class LapTimePredictor:
             'stint_lap': tyre_age,
             'tyre_age_total': tyre_age,
             'track_temp_c': track_temp,
-            'air_temp_c': 22.0,
+            'air_temp_c': air_temp,
             'compound': compound,
             'fuel_load_kg': fuel_load
         }])
@@ -197,19 +197,19 @@ class LapTimePredictor:
         # Add fuel effect back & driver pace offset
         return float(pred_adjusted + (fuel_load * self.fuel_penalty_s_per_kg) + pace_offset)
 
-    def predict_full_curve(self, compound: str, track_temp_c: float, fuel_load_kg: float, driver_id: str = "VER") -> Dict[str, Any]:
+    def predict_full_curve(self, compound: str, track_temp_c: float, fuel_load_kg: float, driver_id: str = "VER", air_temp_c: float = 22.0, max_laps: int = 40) -> Dict[str, Any]:
         """
-        Predicts a full 25-lap stint degradation curve and reports cliff metrics.
+        Predicts a full stint degradation curve and reports cliff metrics.
         """
         compound = compound.upper()
         driver_id = driver_id.upper()
         curve = []
         
-        # Calculate times for laps 1 through 25
-        for lap in range(1, 26):
+        # Calculate times for laps 1 through max_laps
+        for lap in range(1, max_laps + 1):
             # Decrease fuel load dynamically over the stint (~1.55kg fuel burned per lap)
             current_fuel = max(0.0, fuel_load_kg - (lap - 1) * 1.55)
-            lap_time = self.predict(tyre_age=lap, track_temp=track_temp_c, fuel_load=current_fuel, compound=compound, driver_id=driver_id)
+            lap_time = self.predict(tyre_age=lap, track_temp=track_temp_c, fuel_load=current_fuel, compound=compound, driver_id=driver_id, air_temp=air_temp_c)
             curve.append({
                 "stint_lap": lap,
                 "predicted_s": round(lap_time, 3)
@@ -235,7 +235,7 @@ class LapTimePredictor:
             "circuit_id": "monza"
         }
 
-    def simulate_stint(self, compound: str, track_temp_c: float, fuel_load_kg: float, laps: int = 25, noise_level: float = 0.15, driver_id: str = "VER") -> List[Dict[str, Any]]:
+    def simulate_stint(self, compound: str, track_temp_c: float, fuel_load_kg: float, laps: int = 25, noise_level: float = 0.15, driver_id: str = "VER", air_temp_c: float = 22.0) -> List[Dict[str, Any]]:
         """
         Simulates lap-by-lap timings for a stint with randomized race noise,
         calculating dynamic fuel burn and real-time tyre health.
@@ -244,8 +244,8 @@ class LapTimePredictor:
         compound = compound.upper()
         driver_id = driver_id.upper()
         
-        # Get baseline prediction curve
-        pred_res = self.predict_full_curve(compound, track_temp_c, fuel_load_kg, driver_id=driver_id)
+        # Get baseline prediction curve covering at least 'laps' laps
+        pred_res = self.predict_full_curve(compound, track_temp_c, fuel_load_kg, driver_id=driver_id, air_temp_c=air_temp_c, max_laps=max(40, laps))
         curve = pred_res["degradation_curve"]
         cliff_lap = pred_res["cliff_lap"]
         

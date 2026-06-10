@@ -45,7 +45,8 @@ class QualifyingPredictor:
     circuit_id: str,
     circuit_type: str,
     track_temp_c: float,
-    air_temp_c: float
+    air_temp_c: float,
+    driver_elo: Optional[float] = None
   ) -> Dict[str, Any]:
     """
     Predict qualifying position, expected lap time, and Q3/pole probabilities.
@@ -59,12 +60,18 @@ class QualifyingPredictor:
     expected_pos = self.constructor_quali_base.get(constructor_id, 10.0)
     
     # 2. Driver skill adjustment
-    # We retrieve the driver's Elo rating dynamically or mock an index offset
-    # Top drivers (VER, NOR, LEC, HAM, RUS) get a boost, lower Elo gets penalty
-    driver_offset = {
-      "VER": -1.8, "NOR": -1.5, "LEC": -1.6, "HAM": -1.2, "RUS": -1.3,
-      "PIA": -0.8, "SAI": -0.7, "ALO": -0.9, "PER": 1.2, "STR": 2.0
-    }.get(driver_id, 1.5)
+    # Use dynamic driver Elo if provided, else fallback to static offset
+    if driver_elo is not None:
+        # Assuming average Elo ~ 1600. Higher Elo reduces expected position.
+        # Scale: every 100 Elo points is worth ~1.5 grid slots
+        driver_offset = (1650.0 - driver_elo) / 60.0
+    else:
+        # Top drivers (VER, NOR, LEC, HAM, RUS) get a boost, lower Elo gets penalty
+        driver_offset = {
+          "VER": -1.8, "NOR": -1.5, "LEC": -1.6, "HAM": -1.2, "RUS": -1.3,
+          "PIA": -0.8, "SAI": -0.7, "ALO": -0.9, "PER": 1.2, "STR": 2.0
+        }.get(driver_id, 1.5)
+
     expected_pos += driver_offset
     
     # 3. Circuit type adjustment
@@ -80,8 +87,8 @@ class QualifyingPredictor:
     expected_pos = float(np.clip(expected_pos, 1.0, 20.0))
     
     # 4. Predict expected lap time
-    # Base lap time for circuit
-    base_time = self.track_base_times.get(circuit_id, 80.0)
+    # Base lap time for circuit, default to average F1 lap if unknown
+    base_time = self.track_base_times.get(circuit_id, 85.0)
     
     # Adjust for track temperature: optimal tyre window is 30-38°C track temp
     temp_penalty = 0.0
@@ -127,6 +134,17 @@ class QualifyingPredictor:
     if XGBRegressor is not None:
       try:
         df = pd.DataFrame(historical_results)
+
+        # Calculate dynamic features if they don't exist
+        if 'constructor_quali_base' not in df.columns:
+            df['constructor_quali_base'] = df['constructor_id'].apply(lambda x: self.constructor_quali_base.get(str(x).lower(), 10.0))
+
+        if 'driver_offset' not in df.columns:
+            df['driver_offset'] = df['driver_id'].apply(lambda x: {
+              "VER": -1.8, "NOR": -1.5, "LEC": -1.6, "HAM": -1.2, "RUS": -1.3,
+              "PIA": -0.8, "SAI": -0.7, "ALO": -0.9, "PER": 1.2, "STR": 2.0
+            }.get(str(x).upper(), 1.5))
+
         x = df[['constructor_quali_base', 'driver_offset', 'track_temp_c', 'air_temp_c']].values
         y = df['qualifying_position'].values
         

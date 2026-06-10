@@ -96,6 +96,12 @@ class DriverFormIndex:
   ) -> float:
     driver_id = driver_id.upper()
     
+    # Handle unknown drivers dynamically
+    if driver_id not in self.form_indices:
+        self.form_indices[driver_id] = 50.0
+    if driver_id not in self.history:
+        self.history[driver_id] = [50.0]
+
     # 1. Lap pace consistency factor
     lap_consistency = 100.0
     if len(lap_times) >= 5:
