@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from src.routes.prediction import router as prediction_router
+from src.routes.analysis import router as analysis_router
 
 app = FastAPI(
     title="APEX - ML Prediction Service",
@@ -20,6 +21,7 @@ app.add_middleware(
 
 # Register routes
 app.include_router(prediction_router, prefix="/api")
+app.include_router(analysis_router, prefix="/api")
 
 @app.get("/health")
 def health_check():
