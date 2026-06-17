@@ -121,6 +121,7 @@ export default function Modal({
                 {showBackButton && (
                   <button
                     onClick={onBack || onClose}
+                    aria-label="Go back"
                     style={{
                       background: "transparent",
                       border: "none",
@@ -174,6 +175,7 @@ export default function Modal({
             {/* Close button */}
             <button
               onClick={onClose}
+              aria-label="Close modal"
               style={{
                 background: "transparent",
                 border: "none",
