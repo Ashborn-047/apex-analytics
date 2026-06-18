@@ -1,13 +1,24 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
+/**
+ * ModalProps defines the properties accepted by the Modal component.
+ */
 interface ModalProps {
+  /** Flag to control whether the modal is open or closed */
   isOpen: boolean;
+  /** Callback function triggered when the modal is closed */
   onClose: () => void;
+  /** Title text displayed in the header of the modal */
   title: string;
+  /** Optional subtitle text displayed below the title */
   subtitle?: string;
+  /** The children elements to render within the scrollable modal body */
   children: React.ReactNode;
+  /** Size layout of the modal card. Defaults to "lg" */
   size?: "sm" | "md" | "lg" | "xl";
+  /** Optional flag to show a back button in the header */
   showBackButton?: boolean;
+  /** Optional callback function triggered when the back button is clicked */
   onBack?: () => void;
 }
 
@@ -18,6 +29,13 @@ const SIZE_CONFIG: Record<string, { maxWidth: string; maxHeight: string }> = {
   xl: { maxWidth: "95vw", maxHeight: "92vh" },
 };
 
+/**
+ * A highly customizable modal component with transition animations,
+ * custom sizing, a backdrop blur, and full keyboard/screen reader accessibility support.
+ *
+ * @param props - The properties for configuring the modal.
+ * @returns The rendered JSX Modal component or null if not open.
+ */
 export default function Modal({
   isOpen,
   onClose,
