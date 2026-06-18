@@ -11,6 +11,8 @@ dist/
 # Project Custom Ignores
 archive/
 docs/
+.jules/
+.Jules/
 
 # Python
 __pycache__/
