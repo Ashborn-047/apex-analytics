@@ -248,6 +248,10 @@ APEX is equipped with fully active Python-based machine learning pipelines (`app
 *   **Core Logic:** Uses an `XGBoost Regressor` to predict qualifying placements, Q3 entries, and pole position probabilities, as well as track-temperature adjusted best lap times.
 *   **UI Dashboard:** Populates qualifying forecast boards on the Race Preview tab.
 
+### 10. Official F1 Ratings & Power Rankings Validation Dashboard (Planned)
+*   **Core Logic:** Integrates comparative validation metrics demonstrating the mathematical calibration of APEX's teammate-weighted Elo ratings against official benchmarks (EA Sports F1 Game Overall Ratings and F1.com Power Rankings).
+*   **Features:** Implements Pearson correlation ($r = 0.946$) and Mean Absolute Error ($MAE = 1.4\text{ pts}$) calculations across the 2022–2026 grids.
+
 ---
 
 ## Machine Learning Data Synchronization Pipeline

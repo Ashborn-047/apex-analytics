@@ -14,7 +14,7 @@ class EloRatingSystem:
         
         # Current driver ratings: driver_id -> rating
         self.ratings: Dict[str, float] = {
-            "VER": 1847.0, "NOR": 1791.0, "LEC": 1773.0, "HAM": 1761.0,
+            "ANT": 1885.0, "VER": 1847.0, "NOR": 1791.0, "LEC": 1773.0, "HAM": 1761.0,
             "RUS": 1748.0, "PIA": 1739.0, "SAI": 1722.0, "ALO": 1715.0,
             "PER": 1620.0, "STR": 1605.0, "GAS": 1612.0, "OCO": 1618.0,
             "ALB": 1640.0, "SAR": 1490.0, "TSU": 1608.0, "RIC": 1585.0,
@@ -23,23 +23,23 @@ class EloRatingSystem:
         
         # Driver metadata mapping
         self.driver_names = {
-            "VER": "Max Verstappen", "NOR": "Lando Norris", "LEC": "Charles Leclerc",
-            "HAM": "Lewis Hamilton", "RUS": "George Russell", "PIA": "Oscar Piastri",
-            "SAI": "Carlos Sainz", "ALO": "Fernando Alonso", "PER": "Sergio Perez",
-            "STR": "Lance Stroll", "GAS": "Pierre Gasly", "OCO": "Esteban Ocon",
-            "ALB": "Alexander Albon", "SAR": "Logan Sargeant", "TSU": "Yuki Tsunoda",
-            "RIC": "Daniel Ricciardo", "HUL": "Nico Hulkenberg", "MAG": "Kevin Magnussen",
-            "BOT": "Valtteri Bottas", "ZHO": "Guanyu Zhou"
+            "ANT": "Kimi Antonelli", "VER": "Max Verstappen", "NOR": "Lando Norris",
+            "LEC": "Charles Leclerc", "HAM": "Lewis Hamilton", "RUS": "George Russell",
+            "PIA": "Oscar Piastri", "SAI": "Carlos Sainz", "ALO": "Fernando Alonso",
+            "PER": "Sergio Perez", "STR": "Lance Stroll", "GAS": "Pierre Gasly",
+            "OCO": "Esteban Ocon", "ALB": "Alexander Albon", "SAR": "Logan Sargeant",
+            "TSU": "Yuki Tsunoda", "RIC": "Daniel Ricciardo", "HUL": "Nico Hulkenberg",
+            "MAG": "Kevin Magnussen", "BOT": "Valtteri Bottas", "ZHO": "Guanyu Zhou"
         }
         
         self.teams = {
             "VER": "Red Bull Racing", "PER": "Red Bull Racing",
             "NOR": "McLaren", "PIA": "McLaren",
-            "LEC": "Ferrari", "SAI": "Ferrari",
-            "HAM": "Mercedes", "RUS": "Mercedes",
+            "LEC": "Ferrari", "HAM": "Ferrari",
+            "RUS": "Mercedes", "ANT": "Mercedes",
             "ALO": "Aston Martin", "STR": "Aston Martin",
             "GAS": "Alpine", "OCO": "Alpine",
-            "ALB": "Williams", "SAR": "Williams",
+            "ALB": "Williams", "SAI": "Williams", "SAR": "Williams",
             "TSU": "RB", "RIC": "RB",
             "HUL": "Haas", "MAG": "Haas",
             "BOT": "Kick Sauber", "ZHO": "Kick Sauber"
@@ -52,10 +52,10 @@ class EloRatingSystem:
         }
 
         self.nationalities = {
-            "VER": "🇳🇱", "NOR": "🇬🇧", "LEC": "🇲🇨", "HAM": "🇬🇧", "RUS": "🇬🇧", "PIA": "🇦🇺",
-            "SAI": "🇪🇸", "ALO": "🇪🇸", "PER": "🇲🇽", "STR": "🇨🇦", "GAS": "🇫🇷", "OCO": "🇫🇷",
-            "ALB": "🇹🇭", "SAR": "🇺🇸", "TSU": "🇯🇵", "RIC": "🇦🇺", "HUL": "🇩🇪", "MAG": "🇩🇰",
-            "BOT": "🇫🇮", "ZHO": "🇨🇳"
+            "ANT": "🇮🇹", "VER": "🇳🇱", "NOR": "🇬🇧", "LEC": "🇲🇨", "HAM": "🇬🇧", "RUS": "🇬🇧",
+            "PIA": "🇦🇺", "SAI": "🇪🇸", "ALO": "🇪🇸", "PER": "🇲🇽", "STR": "🇨🇦", "GAS": "🇫🇷",
+            "OCO": "🇫🇷", "ALB": "🇹🇭", "SAR": "🇺🇸", "TSU": "🇯🇵", "RIC": "🇦🇺", "HUL": "🇩🇪",
+            "MAG": "🇩🇰", "BOT": "🇫🇮", "ZHO": "🇨🇳"
         }
         
         # Uncertainty tracking: driver_id -> rolling uncertainty
@@ -73,9 +73,9 @@ class EloRatingSystem:
     def _init_mock_h2h(self):
         # Setup mock H2H records for teammates
         teammates = [
-            ("VER", "PER", 18, 4), ("NOR", "PIA", 14, 8), ("LEC", "SAI", 13, 9),
-            ("HAM", "RUS", 12, 10), ("ALO", "STR", 17, 5), ("GAS", "OCO", 11, 11),
-            ("ALB", "SAR", 20, 2), ("TSU", "RIC", 12, 10), ("HUL", "MAG", 14, 8),
+            ("VER", "PER", 18, 4), ("NOR", "PIA", 14, 8), ("LEC", "HAM", 13, 9),
+            ("RUS", "ANT", 10, 12), ("ALO", "STR", 17, 5), ("GAS", "OCO", 11, 11),
+            ("ALB", "SAI", 12, 10), ("TSU", "RIC", 12, 10), ("HUL", "MAG", 14, 8),
             ("BOT", "ZHO", 15, 7)
         ]
         for d1, d2, w1, w2 in teammates:

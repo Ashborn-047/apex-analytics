@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -137,7 +137,7 @@ export default function Modal({
                       (e.currentTarget as HTMLElement).style.opacity = "1";
                     }}
                   >
-                    â†
+                    ←
                   </button>
                 )}
                 <div>
@@ -191,7 +191,7 @@ export default function Modal({
                 (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
               }}
             >
-              âœ•
+              ✕
             </button>
           </div>
 

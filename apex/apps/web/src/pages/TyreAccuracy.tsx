@@ -73,16 +73,20 @@ export default function TyreAccuracy() {
 
           {[
             { track: "Monza", driver: "VER", compound: "MEDIUM", pred: "Lap 22", act: "Lap 23", err: "-1 Lap", acc: "95.6%", code: "VAL-OK-0209" },
+            { track: "Monza", driver: "ANT", compound: "MEDIUM", pred: "Lap 22", act: "Lap 22", err: "0 Laps", acc: "100.0%", code: "VAL-OK-0210" },
             { track: "Monza", driver: "NOR", compound: "SOFT", pred: "Lap 12", act: "Lap 12", err: "0 Laps", acc: "100.0%", code: "VAL-OK-0211" },
             { track: "Spa", driver: "VER", compound: "HARD", pred: "Lap 28", act: "Lap 26", err: "+2 Laps", acc: "92.8%", code: "VAL-WARN-0222" },
             { track: "Spa", driver: "NOR", compound: "MEDIUM", pred: "Lap 16", act: "Lap 17", err: "-1 Lap", acc: "94.1%", code: "VAL-OK-0223" },
-            { track: "Monaco", driver: "HAM", compound: "SOFT", pred: "Lap 24", act: "Lap 25", err: "-1 Lap", acc: "96.0%", code: "VAL-OK-0231" }
+            { track: "Spa", driver: "ANT", compound: "SOFT", pred: "Lap 9", act: "Lap 10", err: "-1 Lap", acc: "90.0%", code: "VAL-OK-0224" },
+            { track: "Monaco", driver: "HAM", compound: "SOFT", pred: "Lap 24", act: "Lap 25", err: "-1 Lap", acc: "96.0%", code: "VAL-OK-0231" },
+            { track: "Silverstone", driver: "RUS", compound: "HARD", pred: "Lap 24", act: "Lap 25", err: "-1 Lap", acc: "96.0%", code: "VAL-OK-0240" },
+            { track: "Silverstone", driver: "ANT", compound: "MEDIUM", pred: "Lap 14", act: "Lap 14", err: "0 Laps", acc: "100.0%", code: "VAL-OK-0241" }
           ].map((row, idx) => (
             <div key={idx} style={{
               display: "grid",
               gridTemplateColumns: "5rem 6rem 5rem 6rem 6rem 5rem 6rem 1fr",
               padding: "0.6rem 1rem",
-              borderBottom: idx < 4 ? "1px solid var(--border-ghost)" : "none",
+              borderBottom: idx < 8 ? "1px solid var(--border-ghost)" : "none",
               fontFamily: "var(--font-mono)",
               fontSize: "0.7rem",
               alignItems: "center"

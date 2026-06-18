@@ -141,7 +141,7 @@ function DriverRow({
           {driver.elo_rating.toFixed(0)}
         </div>
         <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-dim)", letterSpacing: "0.05em" }}>
-          Â±{driver.uncertainty.toFixed(0)}
+          ±{driver.uncertainty.toFixed(0)}
         </div>
       </div>
 
@@ -173,7 +173,7 @@ function DriverRow({
             color: formIndex >= 90 ? "var(--accent-success)" : formIndex >= 75 ? "var(--accent-warning)" : "var(--accent-danger)"
           }}
         >
-          {formIndex}% {formTrend === "UP" ? "â–²" : "â–¼"}
+          {formIndex}% {formTrend === "UP" ? "▲" : "▼"}
         </span>
       </div>
 
@@ -492,7 +492,7 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
 
               {[
                 { label: "CURRENT RATING", value: activeDriver.elo_rating.toFixed(0), color: "var(--text-primary)" },
-                { label: "UNCERTAINTY", value: `Â±${activeDriver.uncertainty.toFixed(0)}`, color: "var(--text-muted)" },
+                { label: "UNCERTAINTY", value: `±${activeDriver.uncertainty.toFixed(0)}`, color: "var(--text-muted)" },
                 { label: "QUALIFYING H2H", value: `${activeDriver.quali_dominance_pct.toFixed(0)}% Wins`, color: "var(--accent-primary)" },
               ].map((stat) => (
                 <div

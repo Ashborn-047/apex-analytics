@@ -1,4 +1,4 @@
-﻿import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
 interface ChampionshipScenarioViewProps {
   driver: { name: string; team: string; points: number };
@@ -125,7 +125,7 @@ export default function ChampionshipScenarioView({ driver, onBack }: Championshi
             (e.currentTarget as HTMLElement).style.boxShadow = "none";
           }}
         >
-          â† BACK TO FORECASTS
+          ← BACK TO FORECASTS
         </button>
         <div style={{ flex: 1 }}>
           <h2
@@ -139,7 +139,7 @@ export default function ChampionshipScenarioView({ driver, onBack }: Championshi
               margin: 0,
             }}
           >
-            {driver.name} â€” Championship Scenarios
+            {driver.name} — Championship Scenarios
           </h2>
           <p className="text-mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0", letterSpacing: "0.08em" }}>
             Points Distribution & Elimination Analysis

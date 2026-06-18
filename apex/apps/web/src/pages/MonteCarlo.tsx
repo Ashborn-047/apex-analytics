@@ -449,7 +449,7 @@ export default function MonteCarlo({ season, subTab = "forecast" }: { season: nu
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div className="text-mono" style={{ fontSize: "0.75rem", fontWeight: 600, color: trendPositive ? "var(--accent-success)" : "var(--accent-danger)" }}>
-                        {trendPositive ? "â–²" : "â–¼"} {Math.abs(entry.trend * 100).toFixed(1)}%
+                        {trendPositive ? "▲" : "▼"} {Math.abs(entry.trend * 100).toFixed(1)}%
                       </div>
                       <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", letterSpacing: "0.08em" }}>VS LAST RND</div>
                     </div>
@@ -636,7 +636,7 @@ export default function MonteCarlo({ season, subTab = "forecast" }: { season: nu
         {/* Intelligence Desk Explanation */}
         <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
           <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-            <span className="section-title">Telemetry Intelligence Desk Â· Championship Simulation Model</span>
+            <span className="section-title">Telemetry Intelligence Desk · Championship Simulation Model</span>
             <div className="section-header-line" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
@@ -649,13 +649,13 @@ export default function MonteCarlo({ season, subTab = "forecast" }: { season: nu
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Form Weighting & Gumbel Noise</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                Driver pace expectations are adjusted using an exponential decay filter (Î» = 0.08) to weight recent performances heavier than early-season runs. A Gumbel extreme value distribution simulates random race-day variance, DNFs, and sudden performance spikes.
+                Driver pace expectations are adjusted using an exponential decay filter (λ = 0.08) to weight recent performances heavier than early-season runs. A Gumbel extreme value distribution simulates random race-day variance, DNFs, and sudden performance spikes.
               </p>
             </div>
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Circuit & Team Affinities</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                Constructor base pace is modified by circuit-type coefficient matrices (low downforce, high speed, technical street circuit). This accounts for physical car layoutsâ€”meaning teams with low drag excel at Monza, while high-downforce cars dominate Monaco simulations.
+                Constructor base pace is modified by circuit-type coefficient matrices (low downforce, high speed, technical street circuit). This accounts for physical car layouts—meaning teams with low drag excel at Monza, while high-downforce cars dominate Monaco simulations.
               </p>
             </div>
           </div>

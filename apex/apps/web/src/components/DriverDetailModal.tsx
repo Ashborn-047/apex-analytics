@@ -114,7 +114,7 @@ export default function DriverDetailModal({ isOpen, onClose, driver }: DriverDet
         {/* Profile Header */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
           {[
-            { label: "ELO RATING", value: driver.elo_rating.toFixed(0), unit: `Â±${driver.uncertainty.toFixed(0)}`, accent: true },
+            { label: "ELO RATING", value: driver.elo_rating.toFixed(0), unit: `±${driver.uncertainty.toFixed(0)}`, accent: true },
             { label: "QUALI WIN %", value: `${driver.quali_dominance_pct.toFixed(0)}%`, unit: "" },
             { label: "H2H WINS", value: h2hWins, unit: "vs all" },
             { label: "H2H DOMINANCE", value: `${h2hDominance.toFixed(1)}%`, unit: "" },

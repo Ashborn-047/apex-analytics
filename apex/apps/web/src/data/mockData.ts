@@ -7,6 +7,7 @@ import type {
 } from "../types";
 
 export const MOCK_ELO_RANKINGS: EloRanking[] = [
+  { driver_id: "ANT", driver_name: "Kimi Antonelli",    team: "Mercedes",         team_color: "#047857", elo_rating: 1885, uncertainty: 18, trend_5_rounds: +22.4, h2h_record: { wins: 12, losses: 10, ties: 0 }, quali_dominance_pct: 70, nationality_flag: "🇮🇹" },
   { driver_id: "VER", driver_name: "Max Verstappen",   team: "Red Bull Racing",  team_color: "#1e3a8a", elo_rating: 1847, uncertainty: 21, trend_5_rounds: +12.1, h2h_record: { wins: 18, losses: 4, ties: 0 },  quali_dominance_pct: 82, nationality_flag: "🇳🇱" },
   { driver_id: "NOR", driver_name: "Lando Norris",     team: "McLaren",          team_color: "#ea580c", elo_rating: 1791, uncertainty: 24, trend_5_rounds: +18.4, h2h_record: { wins: 16, losses: 6, ties: 0 },  quali_dominance_pct: 73, nationality_flag: "🇬🇧" },
   { driver_id: "LEC", driver_name: "Charles Leclerc",  team: "Ferrari",          team_color: "#dc2626", elo_rating: 1773, uncertainty: 27, trend_5_rounds: +4.2,  h2h_record: { wins: 14, losses: 8, ties: 0 },  quali_dominance_pct: 64, nationality_flag: "🇲🇨" },
@@ -143,6 +144,7 @@ export const MOCK_SIMULATION: SimulationResult = {
     { driver_id: "NOR", driver_name: "Lando Norris",    team: "McLaren",          team_color: "#ea580c", current_points: 261, championship_probability: 0.298, max_possible_points: 601, eliminated: false, trend: +0.038, points_scenarios: { p10: 295, p25: 325, p50: 362, p75: 401, p90: 441 } },
     { driver_id: "LEC", driver_name: "Charles Leclerc", team: "Ferrari",          team_color: "#dc2626", current_points: 198, championship_probability: 0.051, max_possible_points: 538, eliminated: false, trend: +0.008, points_scenarios: { p10: 225, p25: 255, p50: 295, p75: 335, p90: 378 } },
     { driver_id: "RUS", driver_name: "George Russell",  team: "Mercedes",         team_color: "#047857", current_points: 175, championship_probability: 0.012, max_possible_points: 515, eliminated: false, trend: +0.004, points_scenarios: { p10: 198, p25: 225, p50: 265, p75: 308, p90: 352 } },
+    { driver_id: "ANT", driver_name: "Kimi Antonelli",   team: "Mercedes",         team_color: "#047857", current_points: 115, championship_probability: 0.003, max_possible_points: 455, eliminated: false, trend: +0.015, points_scenarios: { p10: 135, p25: 155, p50: 185, p75: 215, p90: 245 } },
     { driver_id: "PIA", driver_name: "Oscar Piastri",   team: "McLaren",          team_color: "#ea580c", current_points: 142, championship_probability: 0.004, max_possible_points: 482, eliminated: false, trend: +0.002, points_scenarios: { p10: 162, p25: 188, p50: 228, p75: 272, p90: 318 } },
     { driver_id: "SAI", driver_name: "Carlos Sainz",    team: "Williams",         team_color: "#0284c7", current_points: 98,  championship_probability: 0.001, max_possible_points: 438, eliminated: false, trend: -0.001, points_scenarios: { p10: 115, p25: 138, p50: 172, p75: 212, p90: 255 } },
   ],

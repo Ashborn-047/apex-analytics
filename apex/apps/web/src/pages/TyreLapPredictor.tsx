@@ -19,6 +19,7 @@ const COMPOUND_COLORS: Record<Compound, string> = {
 };
 
 const DRIVERS = [
+  { id: "ANT", name: "Kimi Antonelli", team: "Mercedes", color: "#27F4D2" },
   { id: "VER", name: "Max Verstappen", team: "Red Bull Racing", color: "#3671C6" },
   { id: "NOR", name: "Lando Norris", team: "McLaren", color: "#FF8700" },
   { id: "LEC", name: "Charles Leclerc", team: "Ferrari", color: "#E80020" },
@@ -28,6 +29,17 @@ const DRIVERS = [
   { id: "SAI", name: "Carlos Sainz", team: "Williams", color: "#37BEDD" },
   { id: "ALO", name: "Fernando Alonso", team: "Aston Martin", color: "#229971" },
   { id: "PER", name: "Sergio Perez", team: "Red Bull Racing", color: "#3671C6" },
+  { id: "STR", name: "Lance Stroll", team: "Aston Martin", color: "#229971" },
+  { id: "GAS", name: "Pierre Gasly", team: "Alpine", color: "#0090FF" },
+  { id: "OCO", name: "Esteban Ocon", team: "Haas", color: "#B6BABD" },
+  { id: "ALB", name: "Alex Albon", team: "Williams", color: "#37BEDD" },
+  { id: "SAR", name: "Logan Sargeant", team: "Williams", color: "#37BEDD" },
+  { id: "TSU", name: "Yuki Tsunoda", team: "RB", color: "#469BFF" },
+  { id: "RIC", name: "Daniel Ricciardo", team: "RB", color: "#469BFF" },
+  { id: "HUL", name: "Nico Hulkenberg", team: "Kick Sauber", color: "#52e252" },
+  { id: "MAG", name: "Kevin Magnussen", team: "Haas", color: "#B6BABD" },
+  { id: "BOT", name: "Valtteri Bottas", team: "Kick Sauber", color: "#52e252" },
+  { id: "ZHO", name: "Guanyu Zhou", team: "Kick Sauber", color: "#52e252" },
 ];
 
 function formatTime(s: number) {
@@ -397,8 +409,8 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
           {[
             { label: "CIRCUIT", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Monza GP" : "Monaco GP", accent: true },
-            { label: "TRACK TEMP", value: `${simTrackTemp}Â°C` },
-            { label: "AIR TEMP", value: `${Math.round(simTrackTemp * 0.7)}Â°C` },
+            { label: "TRACK TEMP", value: `${simTrackTemp}°C` },
+            { label: "AIR TEMP", value: `${Math.round(simTrackTemp * 0.7)}°C` },
             { label: "TYRE MANAGEMENT", value: getTyreManagementLabel(selectedDriver).grade, accent: true },
             { label: "TRACK TYPE", value: activePrediction?.circuit_id?.toUpperCase() === "MONZA" ? "Traditional Circuit" : "Street Circuit" },
           ].map((s) => (
@@ -633,7 +645,7 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
                         <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Track Temp</span>
-                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{simTrackTemp}Â°C</span>
+                        <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{simTrackTemp}°C</span>
                       </div>
                       <input
                         type="range"
@@ -722,7 +734,7 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
         {/* Intelligence Desk Explanation */}
         <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
           <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-            <span className="section-title">Telemetry Intelligence Desk Â· Tyre Degradation Model</span>
+            <span className="section-title">Telemetry Intelligence Desk · Tyre Degradation Model</span>
             <div className="section-header-line" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
@@ -735,13 +747,13 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Tyre Cliff Detection</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                The model evaluates stint-lap pacing using a rolling baseline check. When the standard deviation of pace loss across 3 consecutive laps exceeds 2Ïƒ of the early stint baseline (first 6 laps), the model flags the onset of the "tyre cliff"â€”the point where thermal degradation becomes exponential.
+                The model evaluates stint-lap pacing using a rolling baseline check. When the standard deviation of pace loss across 3 consecutive laps exceeds 2σ of the early stint baseline (first 6 laps), the model flags the onset of the "tyre cliff"—the point where thermal degradation becomes exponential.
               </p>
             </div>
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Confidence Intervals (CI)</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                Prediction uncertainty margins scale based on track and air temperature. Extreme heat curves increase standard error bounds (Â±0.35s for SOFT), while temperate surfaces yield high confidence windows (Â±0.20s for HARD).
+                Prediction uncertainty margins scale based on track and air temperature. Extreme heat curves increase standard error bounds (±0.35s for SOFT), while temperate surfaces yield high confidence windows (±0.20s for HARD).
               </p>
             </div>
         </div>

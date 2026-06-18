@@ -11,35 +11,35 @@ class ChampionshipSimulation:
     def __init__(self):
         # Current standings as of Round 12
         self.wdc_standings = {
-            "VER": 287, "NOR": 261, "LEC": 198, "RUS": 175, "PIA": 142, "SAI": 98,
+            "VER": 287, "NOR": 261, "LEC": 198, "RUS": 175, "PIA": 142, "ANT": 115, "SAI": 98,
             "HAM": 85, "PER": 72, "ALO": 45, "STR": 24, "TSU": 22, "HUL": 18,
             "RIC": 12, "GAS": 8, "OCO": 5, "ALB": 4, "SAR": 0, "MAG": 0, "BOT": 0, "ZHO": 0
         }
         
         self.wcc_standings = {
-            "red_bull": 359, "mclaren": 403, "ferrari": 296, "mercedes": 260,
+            "red_bull": 359, "mclaren": 403, "ferrari": 296, "mercedes": 290,
             "aston_martin": 69, "rb": 34, "haas": 18, "alpine": 13, "williams": 4, "sauber": 0
         }
         
         # Driver names, teams, and metadata
         self.driver_names = {
             "VER": "Max Verstappen", "NOR": "Lando Norris", "LEC": "Charles Leclerc",
-            "RUS": "George Russell", "PIA": "Oscar Piastri", "SAI": "Carlos Sainz",
-            "HAM": "Lewis Hamilton", "PER": "Sergio Perez", "ALO": "Fernando Alonso",
-            "STR": "Lance Stroll", "TSU": "Yuki Tsunoda", "HUL": "Nico Hulkenberg",
-            "RIC": "Daniel Ricciardo", "GAS": "Pierre Gasly", "OCO": "Esteban Ocon",
-            "ALB": "Alexander Albon", "SAR": "Logan Sargeant", "MAG": "Kevin Magnussen",
-            "BOT": "Valtteri Bottas", "ZHO": "Guanyu Zhou"
+            "RUS": "George Russell", "PIA": "Oscar Piastri", "ANT": "Kimi Antonelli",
+            "SAI": "Carlos Sainz", "HAM": "Lewis Hamilton", "PER": "Sergio Perez",
+            "ALO": "Fernando Alonso", "STR": "Lance Stroll", "TSU": "Yuki Tsunoda",
+            "HUL": "Nico Hulkenberg", "RIC": "Daniel Ricciardo", "GAS": "Pierre Gasly",
+            "OCO": "Esteban Ocon", "ALB": "Alexander Albon", "SAR": "Logan Sargeant",
+            "MAG": "Kevin Magnussen", "BOT": "Valtteri Bottas", "ZHO": "Guanyu Zhou"
         }
         
         self.driver_teams = {
             "VER": "red_bull", "PER": "red_bull",
             "NOR": "mclaren", "PIA": "mclaren",
-            "LEC": "ferrari", "SAI": "ferrari",
-            "HAM": "mercedes", "RUS": "mercedes",
+            "LEC": "ferrari", "HAM": "ferrari",
+            "RUS": "mercedes", "ANT": "mercedes",
             "ALO": "aston_martin", "STR": "aston_martin",
             "GAS": "alpine", "OCO": "alpine",
-            "ALB": "williams", "SAR": "williams",
+            "ALB": "williams", "SAI": "williams", "SAR": "williams",
             "TSU": "rb", "RIC": "rb",
             "HUL": "haas", "MAG": "haas",
             "BOT": "sauber", "ZHO": "sauber"
@@ -90,10 +90,10 @@ class ChampionshipSimulation:
         # Average finishing distribution (1-indexed base expectation index)
         # 1.0 = wins easily, 20.0 = finishes last.
         self.driver_expected_finishes = {
-            "VER": 2.2, "NOR": 2.4, "LEC": 3.5, "PIA": 3.8, "RUS": 4.2, "SAI": 4.5,
-            "HAM": 5.0, "PER": 6.8, "ALO": 9.2, "STR": 11.0, "TSU": 11.5, "HUL": 12.0,
-            "RIC": 12.5, "GAS": 13.5, "OCO": 14.0, "ALB": 14.5, "SAR": 18.0, "MAG": 15.0,
-            "BOT": 16.0, "ZHO": 17.5
+            "VER": 2.2, "NOR": 2.4, "ANT": 3.0, "LEC": 3.5, "PIA": 3.8, "RUS": 4.2,
+            "SAI": 5.5, "HAM": 4.8, "PER": 6.8, "ALO": 9.2, "STR": 11.0, "TSU": 11.5,
+            "HUL": 12.0, "RIC": 12.5, "GAS": 13.5, "OCO": 14.0, "ALB": 14.5, "SAR": 18.0,
+            "MAG": 15.0, "BOT": 16.0, "ZHO": 17.5
         }
         
         # Basic DNF base rates per driver

@@ -209,7 +209,7 @@ export default function RacePreview({ season }: { season: number }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
               <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Track Temp</span>
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{trackTemp}Â°C</span>
+              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{trackTemp}°C</span>
             </div>
             <input
               type="range"
@@ -224,7 +224,7 @@ export default function RacePreview({ season }: { season: number }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
               <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-dim)" }}>Air Temp</span>
-              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{airTemp}Â°C</span>
+              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-primary)", fontWeight: "bold" }}>{airTemp}°C</span>
             </div>
             <input
               type="range"

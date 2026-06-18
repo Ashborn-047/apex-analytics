@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { MOCK_ELO_RANKINGS } from "../data/mockData";
 
@@ -148,7 +148,7 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
             (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
           }}
         >
-          â—€ STANDINGS BACKFEED
+          ◀ STANDINGS BACKFEED
         </button>
 
         <button
@@ -175,7 +175,7 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
             (e.currentTarget as HTMLElement).style.transform = "none";
           }}
         >
-          âš– COMPARE DRIVER
+          ⚖ COMPARE DRIVER
         </button>
       </div>
 
@@ -227,7 +227,7 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
               {driver.elo_rating.toFixed(0)}
             </div>
             <div className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-secondary)", letterSpacing: "0.05em", marginTop: "0.15rem" }}>
-              UNRESOLVED Â±{driver.uncertainty.toFixed(0)}
+              UNRESOLVED ±{driver.uncertainty.toFixed(0)}
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { exportAsCSV, exportAsJSON, exportAsPDF, generateTelemetryReport, formatForSharing, copyToClipboard, DriverReport, StrategyReport, ChampionshipReport } from "../lib/export";
 
 interface ExportPanelProps {
@@ -22,19 +22,19 @@ export default function ExportPanel({ drivers, strategies = [], championship, ti
 
       if (format === "csv") {
         exportAsCSV(report, filename);
-        setExportStatus("âœ“ CSV exported successfully");
+        setExportStatus("✓ CSV exported successfully");
       } else if (format === "json") {
         exportAsJSON(report, filename);
-        setExportStatus("âœ“ JSON exported successfully");
+        setExportStatus("✓ JSON exported successfully");
       } else if (format === "pdf") {
         await exportAsPDF(report, filename);
-        setExportStatus("âœ“ PDF exported successfully (or CSV fallback)");
+        setExportStatus("✓ PDF exported successfully (or CSV fallback)");
       }
 
       setTimeout(() => setExportStatus(null), 3000);
     } catch (error) {
       console.error("Export failed:", error);
-      setExportStatus("âœ— Export failed");
+      setExportStatus("✗ Export failed");
     } finally {
       setIsExporting(false);
     }
@@ -45,11 +45,11 @@ export default function ExportPanel({ drivers, strategies = [], championship, ti
       const report = generateTelemetryReport(drivers, strategies, championship);
       const shareText = formatForSharing(report);
       await copyToClipboard(shareText);
-      setExportStatus("âœ“ Copied to clipboard");
+      setExportStatus("✓ Copied to clipboard");
       setTimeout(() => setExportStatus(null), 2000);
     } catch (error) {
       console.error("Share failed:", error);
-      setExportStatus("âœ— Share failed");
+      setExportStatus("✗ Share failed");
     }
   };
 
@@ -81,7 +81,7 @@ export default function ExportPanel({ drivers, strategies = [], championship, ti
             (e.currentTarget as HTMLElement).style.boxShadow = "none";
           }}
         >
-          ðŸ“Š CSV
+          CSV
         </button>
 
         <button
@@ -108,7 +108,7 @@ export default function ExportPanel({ drivers, strategies = [], championship, ti
             (e.currentTarget as HTMLElement).style.boxShadow = "none";
           }}
         >
-          {} JSON
+          JSON
         </button>
 
         <button
@@ -135,7 +135,7 @@ export default function ExportPanel({ drivers, strategies = [], championship, ti
             (e.currentTarget as HTMLElement).style.boxShadow = "none";
           }}
         >
-          ðŸ“„ PDF
+          PDF
         </button>
 
         <button
@@ -162,7 +162,7 @@ export default function ExportPanel({ drivers, strategies = [], championship, ti
             (e.currentTarget as HTMLElement).style.boxShadow = "none";
           }}
         >
-          ðŸ“‹ SHARE
+          SHARE
         </button>
       </div>
 
@@ -171,10 +171,10 @@ export default function ExportPanel({ drivers, strategies = [], championship, ti
         <div
           style={{
             padding: "0.5rem 0.75rem",
-            background: exportStatus.includes("âœ“") ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-            border: `1px solid ${exportStatus.includes("âœ“") ? "var(--accent-success)" : "var(--accent-danger)"}40`,
+            background: exportStatus.includes("✓") ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+            border: `1px solid ${exportStatus.includes("✓") ? "var(--accent-success)" : "var(--accent-danger)"}40`,
             borderRadius: "3px",
-            color: exportStatus.includes("âœ“") ? "var(--accent-success)" : "var(--accent-danger)",
+            color: exportStatus.includes("✓") ? "var(--accent-success)" : "var(--accent-danger)",
             fontFamily: "var(--font-mono)",
             fontSize: "0.7rem",
             fontWeight: 600,

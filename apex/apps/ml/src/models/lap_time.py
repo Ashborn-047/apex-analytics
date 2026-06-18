@@ -53,6 +53,7 @@ class LapTimePredictor:
         
         # Driver-specific performance profiles
         self.driver_profiles = {
+            "ANT": {"pace_offset": -0.40, "tyre_management": 0.88},  # Mercedes - Kimi Antonelli
             "VER": {"pace_offset": -0.45, "tyre_management": 0.82},  # Red Bull - Max Verstappen
             "NOR": {"pace_offset": -0.35, "tyre_management": 0.88},  # McLaren - Lando Norris
             "LEC": {"pace_offset": -0.38, "tyre_management": 0.92},  # Ferrari - Charles Leclerc
@@ -70,7 +71,9 @@ class LapTimePredictor:
             "RIC": {"pace_offset": 0.40,   "tyre_management": 0.98},  # RB - Daniel Ricciardo
             "HUL": {"pace_offset": 0.22,   "tyre_management": 1.04},  # Kick Sauber - Nico Hulkenberg
             "BOT": {"pace_offset": 0.45,   "tyre_management": 0.96},  # Kick Sauber - Valtteri Bottas
+            "ZHO": {"pace_offset": 0.55,   "tyre_management": 0.98},  # Kick Sauber - Guanyu Zhou
             "MAG": {"pace_offset": 0.50,   "tyre_management": 1.15},  # Haas - Kevin Magnussen
+            "SAR": {"pace_offset": 0.60,   "tyre_management": 1.05},  # Williams - Logan Sargeant
         }
 
     def detect_cliff(self, lap_times: List[float], window: int = 3) -> Optional[int]:

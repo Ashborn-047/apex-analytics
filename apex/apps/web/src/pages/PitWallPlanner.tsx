@@ -15,15 +15,27 @@ const COMPOUND_COLORS: Record<Compound, string> = {
 };
 
 const AVAILABLE_DRIVERS = [
+  { id: "ANT", name: "Kimi Antonelli", team: "Mercedes" },
   { id: "VER", name: "Max Verstappen", team: "Red Bull Racing" },
   { id: "NOR", name: "Lando Norris", team: "McLaren" },
   { id: "LEC", name: "Charles Leclerc", team: "Ferrari" },
+  { id: "HAM", name: "Lewis Hamilton", team: "Ferrari" },
   { id: "RUS", name: "George Russell", team: "Mercedes" },
   { id: "PIA", name: "Oscar Piastri", team: "McLaren" },
-  { id: "SAI", name: "Carlos Sainz", team: "Ferrari" },
-  { id: "HAM", name: "Lewis Hamilton", team: "Mercedes" },
-  { id: "PER", name: "Sergio Perez", team: "Red Bull Racing" },
+  { id: "SAI", name: "Carlos Sainz", team: "Williams" },
   { id: "ALO", name: "Fernando Alonso", team: "Aston Martin" },
+  { id: "PER", name: "Sergio Perez", team: "Red Bull Racing" },
+  { id: "STR", name: "Lance Stroll", team: "Aston Martin" },
+  { id: "GAS", name: "Pierre Gasly", team: "Alpine" },
+  { id: "OCO", name: "Esteban Ocon", team: "Haas" },
+  { id: "ALB", name: "Alex Albon", team: "Williams" },
+  { id: "SAR", name: "Logan Sargeant", team: "Williams" },
+  { id: "TSU", name: "Yuki Tsunoda", team: "RB" },
+  { id: "RIC", name: "Daniel Ricciardo", team: "RB" },
+  { id: "HUL", name: "Nico Hulkenberg", team: "Kick Sauber" },
+  { id: "MAG", name: "Kevin Magnussen", team: "Haas" },
+  { id: "BOT", name: "Valtteri Bottas", team: "Kick Sauber" },
+  { id: "ZHO", name: "Guanyu Zhou", team: "Kick Sauber" },
 ];
 
 function HUDDial({ value, max, label, unit, color }: { value: number; max: number; label: string; unit: string; color: string }) {
@@ -107,15 +119,27 @@ export default function PitWallPlanner({ season, subTab = "builder" }: { season:
 
   useEffect(() => {
     const mapping: Record<string, { pos: number; gapAhead: number; gapBehind: number; tyre: Compound; age: number }> = {
+      ANT: { pos: 5, gapAhead: 1.1, gapBehind: 2.3, tyre: "MEDIUM", age: 14 },
       VER: { pos: 1, gapAhead: 0.0, gapBehind: 3.8, tyre: "MEDIUM", age: 18 },
       NOR: { pos: 2, gapAhead: 3.8, gapBehind: 2.1, tyre: "MEDIUM", age: 18 },
       LEC: { pos: 3, gapAhead: 2.1, gapBehind: 5.4, tyre: "MEDIUM", age: 15 },
-      RUS: { pos: 4, gapAhead: 5.4, gapBehind: 1.2, tyre: "SOFT", age: 11 },
-      PIA: { pos: 5, gapAhead: 1.2, gapBehind: 8.9, tyre: "MEDIUM", age: 18 },
-      SAI: { pos: 6, gapAhead: 8.9, gapBehind: 0.5, tyre: "MEDIUM", age: 16 },
-      HAM: { pos: 7, gapAhead: 0.5, gapBehind: 4.1, tyre: "SOFT", age: 12 },
-      PER: { pos: 8, gapAhead: 4.1, gapBehind: 1.9, tyre: "HARD", age: 24 },
-      ALO: { pos: 9, gapAhead: 1.9, gapBehind: 15.2, tyre: "MEDIUM", age: 20 },
+      RUS: { pos: 4, gapAhead: 5.4, gapBehind: 1.1, tyre: "SOFT", age: 11 },
+      PIA: { pos: 6, gapAhead: 2.3, gapBehind: 6.6, tyre: "MEDIUM", age: 18 },
+      SAI: { pos: 7, gapAhead: 6.6, gapBehind: 0.5, tyre: "MEDIUM", age: 16 },
+      HAM: { pos: 8, gapAhead: 0.5, gapBehind: 4.1, tyre: "SOFT", age: 12 },
+      PER: { pos: 9, gapAhead: 4.1, gapBehind: 1.9, tyre: "HARD", age: 24 },
+      ALO: { pos: 10, gapAhead: 1.9, gapBehind: 15.2, tyre: "MEDIUM", age: 20 },
+      STR: { pos: 11, gapAhead: 15.2, gapBehind: 3.1, tyre: "MEDIUM", age: 15 },
+      GAS: { pos: 12, gapAhead: 3.1, gapBehind: 1.4, tyre: "MEDIUM", age: 14 },
+      OCO: { pos: 13, gapAhead: 1.4, gapBehind: 2.5, tyre: "MEDIUM", age: 16 },
+      ALB: { pos: 14, gapAhead: 2.5, gapBehind: 0.8, tyre: "MEDIUM", age: 12 },
+      SAR: { pos: 15, gapAhead: 0.8, gapBehind: 1.2, tyre: "MEDIUM", age: 10 },
+      TSU: { pos: 16, gapAhead: 1.2, gapBehind: 4.5, tyre: "MEDIUM", age: 14 },
+      RIC: { pos: 17, gapAhead: 4.5, gapBehind: 2.1, tyre: "MEDIUM", age: 15 },
+      HUL: { pos: 18, gapAhead: 2.1, gapBehind: 0.5, tyre: "MEDIUM", age: 12 },
+      MAG: { pos: 19, gapAhead: 0.5, gapBehind: 5.0, tyre: "MEDIUM", age: 11 },
+      BOT: { pos: 20, gapAhead: 5.0, gapBehind: 1.2, tyre: "MEDIUM", age: 13 },
+      ZHO: { pos: 21, gapAhead: 1.2, gapBehind: 10.0, tyre: "MEDIUM", age: 14 },
     };
 
     const info = mapping[driverId] || mapping["VER"];
@@ -176,11 +200,23 @@ export default function PitWallPlanner({ season, subTab = "builder" }: { season:
       NOR: 3.8,
       LEC: 5.9,
       RUS: 11.3,
-      PIA: 12.5,
-      SAI: 21.4,
-      HAM: 21.9,
-      PER: 26.0,
-      ALO: 27.9,
+      ANT: 12.4,
+      PIA: 14.7,
+      SAI: 21.3,
+      HAM: 21.8,
+      PER: 25.9,
+      ALO: 27.8,
+      STR: 43.0,
+      GAS: 46.1,
+      OCO: 47.5,
+      ALB: 50.0,
+      SAR: 50.8,
+      TSU: 52.0,
+      RIC: 56.5,
+      HUL: 58.6,
+      MAG: 59.1,
+      BOT: 64.1,
+      ZHO: 65.3,
     };
     
     const targetTime = baseTimes[driverId] || 0.0;
@@ -374,7 +410,7 @@ export default function PitWallPlanner({ season, subTab = "builder" }: { season:
                         boxShadow: "0 0 10px var(--accent-dim)",
                       }}>
                         <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)", fontWeight: "bold" }}>
-                          â–¼ MERGE ZONE (+{(exitTime - driver.time).toFixed(1)}s behind {driver.id})
+                          ▼ MERGE ZONE (+{(exitTime - driver.time).toFixed(1)}s behind {driver.id})
                         </span>
                       </div>
                     )}
@@ -415,21 +451,21 @@ export default function PitWallPlanner({ season, subTab = "builder" }: { season:
               a: recommendations.length > 0 
                 ? `Pit on Lap ${recommendations[0].pit_lap} to leverage the optimal crossover window.`
                 : "Pit on Lap 18-22 as medium tyres degrade towards the cliff zone.",
-              icon: "â±ï¸"
+              icon: "⏱️"
             },
             {
               q: "Which compound is optimal?",
               a: recommendations.length > 0
                 ? `Switch to ${recommendations[0].compound_new} compound. Sim shows net delta of ${recommendations[0].net_delta_s.toFixed(2)}s.`
                 : "Switch to HARD tyres to complete the stint safely.",
-              icon: "ðŸ›ž"
+              icon: "🛞"
             },
             {
               q: "What is the safety car risk?",
               a: recommendations.length > 0
                 ? `SC probability is ${(recommendations[0].sc_probability * 100).toFixed(0)}%. Pitting under SC cuts loss to just ~12s.`
                 : "Safety Car risk is moderate. Stay alert for VSC pit windows.",
-              icon: "âš ï¸"
+              icon: "⚠️"
             }
           ].map((qa, idx) => (
             <div key={idx} className="panel" style={{ padding: "1.25rem", borderLeft: "3px solid var(--accent-primary)", background: "rgba(255,255,255,0.01)" }}>
@@ -654,7 +690,7 @@ export default function PitWallPlanner({ season, subTab = "builder" }: { season:
 
                   <div style={{ padding: "0.5rem", background: "var(--bg-elevated)", border: `1px solid ${idx === 0 ? "var(--accent-success)" : "var(--border-subtle)"}`, borderRadius: "2px", textAlign: "center" }}>
                     <div className="text-mono" style={{ fontSize: "0.6rem", color: idx === 0 ? "var(--accent-success)" : "var(--text-muted)", fontWeight: 600, letterSpacing: "0.08em" }}>
-                      {idx === 0 ? "âœ“ RECOMMENDED" : "ALTERNATIVE"}
+                      {idx === 0 ? "✓ RECOMMENDED" : "ALTERNATIVE"}
                     </div>
                   </div>
                 </div>
@@ -671,20 +707,20 @@ export default function PitWallPlanner({ season, subTab = "builder" }: { season:
         {/* Intelligence Desk Explanation */}
         <div className="panel fade-up" style={{ padding: "1.5rem", background: "linear-gradient(180deg, var(--bg-panel), var(--bg-surface))", borderLeft: "4px solid var(--accent-primary)" }}>
           <div className="section-header" style={{ marginBottom: "1.25rem" }}>
-            <span className="section-title">Telemetry Intelligence Desk Â· Pit Wall Strategy Solver</span>
+            <span className="section-title">Telemetry Intelligence Desk · Pit Wall Strategy Solver</span>
             <div className="section-header-line" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
             <div>
               <h4 style={{ color: "var(--accent-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Dynamic Stint Solver</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                A brute-force strategy search engine (O(NÂ²) stint space) evaluates all compound combinations (Soft, Medium, Hard) to minimize total race time. Predictions factor in track grip evolution, tyre decay slopes, and fuel load burn rates.
+                A brute-force strategy search engine (O(N²) stint space) evaluates all compound combinations (Soft, Medium, Hard) to minimize total race time. Predictions factor in track grip evolution, tyre decay slopes, and fuel load burn rates.
               </p>
             </div>
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem", fontFamily: "var(--font-display)", letterSpacing: "0.04em" }}>Poisson Safety Car Windows</h4>
               <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                The model scales pit stop time loss dynamically. During high-risk laps, it weights historical Poisson Safety Car ratesâ€”pitting during a virtual or full Safety Car cuts standard pit lane loss by 50%, yielding huge strategy gains.
+                The model scales pit stop time loss dynamically. During high-risk laps, it weights historical Poisson Safety Car rates—pitting during a virtual or full Safety Car cuts standard pit lane loss by 50%, yielding huge strategy gains.
               </p>
             </div>
             <div>

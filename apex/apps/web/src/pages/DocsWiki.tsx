@@ -186,7 +186,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
               transition: "all 0.2s"
             }}
           >
-            â– System Overview
+            ❖ System Overview
           </button>
         </div>
 
@@ -234,7 +234,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                   }
                 }}
               >
-                â¬¡ {m.label}
+                ⬡ {m.label}
               </button>
             ))}
           </div>
@@ -306,7 +306,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                   <div>
                     <h2 style={{ fontSize: "1.6rem", color: "var(--accent-primary)", margin: 0 }}>{data.title}</h2>
                     <p className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.25rem", letterSpacing: "0.08em" }}>
-                      SCOPE: {data.scope} Â· VERSION: {data.version}
+                      SCOPE: {data.scope} · VERSION: {data.version}
                     </p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.25rem" }}>
@@ -472,7 +472,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Next: Purpose âžœ
+                              Next: Purpose ➔
                             </button>
                           </div>
                         </div>
@@ -509,14 +509,14 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                                 borderRadius: "2px"
                               }}
                             >
-                              â¬… Back: Definition
+                              ⬅ Back: Definition
                             </button>
                             <button
                               onClick={() => setConceptStep("when")}
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Next: Trigger âžœ
+                              Next: Trigger ➔
                             </button>
                           </div>
                         </div>
@@ -553,14 +553,14 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                                 borderRadius: "2px"
                               }}
                             >
-                              â¬… Back: Purpose
+                              ⬅ Back: Purpose
                             </button>
                             <button
                               onClick={() => setConceptStep("how")}
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Next: Deep Dive âžœ
+                              Next: Deep Dive ➔
                             </button>
                           </div>
                         </div>
@@ -597,14 +597,14 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                                 borderRadius: "2px"
                               }}
                             >
-                              â¬… Back: Trigger
+                              ⬅ Back: Trigger
                             </button>
                             <button
                               onClick={() => setConceptStep("compare")}
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Next: Compare F1 âžœ
+                              Next: Compare F1 ➔
                             </button>
                           </div>
                         </div>
@@ -675,14 +675,14 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                                 borderRadius: "2px"
                               }}
                             >
-                              â¬… Back: Deep Dive
+                              ⬅ Back: Deep Dive
                             </button>
                             <button
                               onClick={() => setActiveSubTab("logic")}
                               className="btn-primary"
                               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                             >
-                              Explore Logic & Math âžœ
+                              Explore Logic & Math ➔
                             </button>
                           </div>
                         </div>
@@ -742,7 +742,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                             {data.mathTerms.map((term, idx) => (
                               <div key={idx} className="glossary-card" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-ghost)", padding: "1rem", borderRadius: "4px" }}>
                                 <h5 style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--accent-primary)", margin: "0 0 0.4rem 0" }}>
-                                  {term.symbol} â€” {term.name}
+                                  {term.symbol} — {term.name}
                                 </h5>
                                 <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.45 }}>
                                   {term.explanation}
@@ -759,7 +759,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                           className="btn-primary"
                           style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                         >
-                          Next Tab: Ingest Registry âžœ
+                          Next Tab: Ingest Registry ➔
                         </button>
                       </div>
                     </div>
@@ -1000,7 +1000,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                                 <div>
                                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
                                     <span className="text-mono" style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Track Temperature</span>
-                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{tyreTrackTemp}Â°C</span>
+                                    <span className="text-mono" style={{ fontSize: "0.8rem", color: "var(--accent-warning)", fontWeight: "bold" }}>{tyreTrackTemp}°C</span>
                                   </div>
                                   <input
                                     type="range"
@@ -1070,7 +1070,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                           {!["elo", "dnf", "laptime"].includes(activeTopic) && (
                             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80px" }}>
                               <span className="text-mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                âš¡ Model playground loaded. Sliders configured on FastAPI python microservice.
+                                ⚡ Model playground loaded. Sliders configured on FastAPI python microservice.
                               </span>
                             </div>
                           )}
@@ -1091,7 +1091,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                             borderRadius: "2px"
                           }}
                         >
-                          â†º Restart Guide
+                          ↺ Restart Guide
                         </button>
                         <button
                           onClick={() => setActiveSubTab("changelog")}
@@ -1105,7 +1105,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                             fontWeight: "bold"
                           }}
                         >
-                          Next Tab: Changelog âžœ
+                          Next Tab: Changelog ➔
                         </button>
                       </div>
                     </div>
@@ -1138,7 +1138,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                                 date: "2026-05-28",
                                 model: "Tyre Degradation",
                                 severity: "Minor",
-                                desc: "Refined thermal degradation curve fitting for high-downforce tracks (Spa, Silverstone) under track temperature surges exceeding 45Â°C."
+                                desc: "Refined thermal degradation curve fitting for high-downforce tracks (Spa, Silverstone) under track temperature surges exceeding 45°C."
                               },
                               {
                                 version: "v2.0.0",
@@ -1237,7 +1237,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                             borderRadius: "2px"
                           }}
                         >
-                          â†º Restart Guide
+                          ↺ Restart Guide
                         </button>
                         <button
                           onClick={() => {
@@ -1254,7 +1254,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
                             fontWeight: "bold"
                           }}
                         >
-                          Back to System Overview âžœ
+                          Back to System Overview ➔
                         </button>
                       </div>
                     </div>
