@@ -1,0 +1,3 @@
+## 2025-02-12 - Avoid multi-pass iterations in render for aggregate metrics
+**Learning:** Found a common pattern where `Math.min(...arr.map(x => x.prop))` and `.reduce` were used directly in the JSX render function. This causes multiple full-array iterations and creates intermediate arrays on every single render cycle, which can severely degrade performance on large arrays (or long lists of drivers/laps).
+**Action:** Always compute list aggregates (min, max, average, etc.) in a single O(N) loop and wrap it in `useMemo` with proper dependencies, avoiding `.map()` followed by `.reduce()` or spread `Math.min/max`.

@@ -1,11 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import type { EloRanking } from "../types";
 import { API_BASE } from "../config";
 import ExportPanel from "../components/ExportPanel";
 import EloHistory from "./EloHistory";
 
-// Lightweight SVG sparkline for inline row rendering
+/**
+ * Lightweight SVG sparkline for rendering driver rating history inline within a table row.
+ *
+ * @param props - Component props containing the array of numbers to plot.
+ * @returns An SVG element displaying the sparkline, or null if insufficient data.
+ */
 function Sparkline({ data }: { data: number[] }) {
   if (!data || data.length < 2) return null;
   const width = 50;
@@ -27,16 +32,30 @@ function Sparkline({ data }: { data: number[] }) {
   );
 }
 
+/**
+ * Props for the DriverRow component.
+ */
 interface DriverRowProps {
+  /** The Elo ranking data for the driver */
   driver: EloRanking;
+  /** The rank index of the driver (0-indexed) */
   rank: number;
+  /** Flag indicating if the row is currently selected */
   isSelected: boolean;
+  /** Flag indicating if the driver is selected for comparison */
   isCompareChecked: boolean;
+  /** Callback triggered when toggling the compare checkbox */
   onCompareToggle: (e: React.MouseEvent) => void;
+  /** The performance form percentage index */
   formIndex: number;
+  /** The performance form trend direction ("UP" or "DOWN") */
   formTrend: string;
 }
 
+/**
+ * Renders a single row in the Elo standings table, displaying driver info, team color,
+ * rating value, a visual progression bar, performance form badge, and historic sparkline.
+ */
 function DriverRow({
   driver,
   rank,
@@ -140,7 +159,7 @@ function DriverRow({
         <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 800, color: "var(--accent-primary)" }}>
           {driver.elo_rating.toFixed(0)}
         </div>
-        <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-dim)", letterSpacing: "0.05em" }}>
+        <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)", letterSpacing: "0.05em" }}>
           ±{driver.uncertainty.toFixed(0)}
         </div>
       </div>
@@ -187,7 +206,7 @@ function DriverRow({
         <div style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)" }}>
           {driver.quali_dominance_pct.toFixed(0)}%
         </div>
-        <div className="text-mono" style={{ fontSize: "0.5rem", color: "var(--text-muted)", letterSpacing: "0.05em" }}>
+        <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", letterSpacing: "0.05em" }}>
           QUAL H2H
         </div>
       </div>
@@ -195,13 +214,25 @@ function DriverRow({
   );
 }
 
+/**
+ * Props for the EloDashboard component.
+ */
 interface EloDashboardProps {
+  /** The active season year to load Elo data for */
   season: number;
+  /** Optional callback to open a specific driver's profile view */
   onViewProfile?: (driverId: string) => void;
+  /** Optional callback to initiate a compare view with the driver */
   onViewCompare?: (driverId: string) => void;
+  /** Optional sub-tab selector ("standings" or "history") */
   subTab?: "standings" | "history";
 }
 
+/**
+ * EloDashboard is the primary dashboard page component for driver ratings,
+ * displaying current standings list, statistics card deck, compare launch controls,
+ * and historical trajectory visualizer.
+ */
 export default function EloDashboard({ season, onViewProfile, onViewCompare, subTab = "standings" }: EloDashboardProps) {
   const [rankings, setRankings] = useState<EloRanking[]>([]);
   const [selected, setSelected] = useState<EloRanking | null>(null);
@@ -286,6 +317,26 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
     SAI: { val: 81, trend: "DOWN" },
     ALO: { val: 74, trend: "DOWN" },
   };
+
+  const statsSummary = useMemo(() => {
+    if (!rankings || rankings.length === 0) return null;
+    let minElo = Infinity;
+    let maxElo = -Infinity;
+    let sumElo = 0;
+
+    for (let i = 0; i < rankings.length; i++) {
+      const elo = rankings[i].elo_rating;
+      if (elo < minElo) minElo = elo;
+      if (elo > maxElo) maxElo = elo;
+      sumElo += elo;
+    }
+
+    return {
+      minElo,
+      maxElo,
+      avgElo: sumElo / rankings.length
+    };
+  }, [rankings]);
 
   const subnavLinkStyle = (isActive: boolean) => ({
     background: "transparent",
@@ -385,14 +436,14 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
           { label: "P1 LEADER", value: rankings[0]?.driver_name || "LOADING...", accent: true },
           { 
             label: "ELO SPREAD", 
-            value: rankings.length > 0 
-              ? `${Math.min(...rankings.map((d) => d.elo_rating)).toFixed(0)} - ${Math.max(...rankings.map((d) => d.elo_rating)).toFixed(0)}` 
+            value: statsSummary
+              ? `${statsSummary.minElo.toFixed(0)} - ${statsSummary.maxElo.toFixed(0)}`
               : "LOADING..." 
           },
           { 
             label: "AVERAGE GRID RATING", 
-            value: rankings.length > 0 
-              ? (rankings.reduce((a, d) => a + d.elo_rating, 0) / rankings.length).toFixed(0) 
+            value: statsSummary
+              ? statsSummary.avgElo.toFixed(0)
               : "LOADING..." 
           },
           { label: "INDEXED DRIVERS", value: rankings.length.toString() },
