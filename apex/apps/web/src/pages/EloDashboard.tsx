@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import type { EloRanking } from "../types";
 import { API_BASE } from "../config";
@@ -287,6 +287,26 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
     ALO: { val: 74, trend: "DOWN" },
   };
 
+  const statsSummary = useMemo(() => {
+    if (!rankings || rankings.length === 0) return null;
+    let minElo = Infinity;
+    let maxElo = -Infinity;
+    let sumElo = 0;
+
+    for (let i = 0; i < rankings.length; i++) {
+      const elo = rankings[i].elo_rating;
+      if (elo < minElo) minElo = elo;
+      if (elo > maxElo) maxElo = elo;
+      sumElo += elo;
+    }
+
+    return {
+      minElo,
+      maxElo,
+      avgElo: sumElo / rankings.length
+    };
+  }, [rankings]);
+
   const subnavLinkStyle = (isActive: boolean) => ({
     background: "transparent",
     border: "none",
@@ -385,14 +405,14 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
           { label: "P1 LEADER", value: rankings[0]?.driver_name || "LOADING...", accent: true },
           { 
             label: "ELO SPREAD", 
-            value: rankings.length > 0 
-              ? `${Math.min(...rankings.map((d) => d.elo_rating)).toFixed(0)} - ${Math.max(...rankings.map((d) => d.elo_rating)).toFixed(0)}` 
+            value: statsSummary
+              ? `${statsSummary.minElo.toFixed(0)} - ${statsSummary.maxElo.toFixed(0)}`
               : "LOADING..." 
           },
           { 
             label: "AVERAGE GRID RATING", 
-            value: rankings.length > 0 
-              ? (rankings.reduce((a, d) => a + d.elo_rating, 0) / rankings.length).toFixed(0) 
+            value: statsSummary
+              ? statsSummary.avgElo.toFixed(0)
               : "LOADING..." 
           },
           { label: "INDEXED DRIVERS", value: rankings.length.toString() },
