@@ -1,3 +1,7 @@
+"""
+Service layer implementation for RAG (Retrieval-Augmented Generation) using LangChain, FAISS, and local HuggingFace embeddings.
+"""
+
 import os
 from typing import List, Dict, Any, Optional
 
@@ -17,7 +21,15 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
 class LangChainService:
+    """
+    LangChainService handles document chunking, ingestion, local vector storage via FAISS,
+    and querying an open-source LLM provider with custom F1 context injection.
+    """
     def __init__(self):
+        """
+        Initializes the service by setting up LLM connection details, loading embeddings,
+        creating an empty FAISS index, and defining the text splitter.
+        """
         # We will use ChatOpenAI but it's meant to be configured to an Open Source provider endpoint.
         # This gives us access to better open source models without local hardware limitations.
         base_url = os.getenv("OPENAI_API_BASE", "https://api.groq.com/openai/v1")
@@ -47,7 +59,14 @@ class LangChainService:
     def ingest_texts(self, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None) -> int:
         """
         Ingests a list of raw text strings into the RAG vector store.
+
+        :param texts: A list of documents content strings.
+        :param metadatas: Optional list of dict metadata matching each document.
+        :return: Number of split chunks added to the vector store.
         """
+        if metadatas and len(metadatas) != len(texts):
+            raise ValueError("Length of metadatas must match length of texts")
+
         docs = []
         for i, text in enumerate(texts):
             meta = metadatas[i] if metadatas else {}
@@ -61,6 +80,10 @@ class LangChainService:
     def analyze_query(self, query: str, context_data: Optional[Dict[str, Any]] = None) -> str:
         """
         Answers a user query using both the RAG vector store AND real-time context data.
+
+        :param query: Analytical user query about F1.
+        :param context_data: Real-time telemetry/Elo/Strategy context dictionary.
+        :return: LLM generated textual answer.
         """
         if not self.llm:
             return "Error: LLM not initialized. Please set OPENAI_API_KEY environment variable (pointing to your open source model provider)."
@@ -86,6 +109,9 @@ class LangChainService:
 
         # Format the context from retrieved docs into a single string
         def format_docs(docs):
+            """
+            Formats a list of documents by joining their content with double newlines.
+            """
             return "\n\n".join(doc.page_content for doc in docs)
 
         # Build an LCEL chain (LangChain Expression Language) instead of deprecated RetrievalQA
@@ -106,3 +132,4 @@ class LangChainService:
             return f"Failed to generate analysis: {str(e)}"
 
 langchain_service = LangChainService()
+
