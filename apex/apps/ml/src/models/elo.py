@@ -129,10 +129,10 @@ class EloRatingSystem:
             color = self.team_colors.get(team, "#cccccc")
             nationality = self.nationalities.get(d_id, "🏳️")
             
-            # Find teammate
+            # Find teammate (restrict to those currently rated to avoid old reserve drivers)
             teammate = None
             for other_id, other_team in self.teams.items():
-                if other_team == team and other_id != d_id:
+                if other_team == team and other_id != d_id and other_id in ratings_to_use:
                     teammate = other_id
                     break
             
@@ -233,6 +233,10 @@ class EloRatingSystem:
             ...
         ]
         """
+        # Ensure we don't process the same round/session twice
+        if any(m.get("round") == round_id and m.get("session") == session_type for m in self.matchups_history):
+            return self.ratings
+
         # Auto-initialize any unknown drivers in the ratings system
         for r in results:
             d_id = r["driver_id"]
@@ -246,6 +250,10 @@ class EloRatingSystem:
                 self.driver_names[d_id] = r.get("driver_name", d_id)
             if d_id not in self.teams:
                 self.teams[d_id] = r.get("constructor_name", "Unknown")
+            if d_id not in self.nationalities:
+                self.nationalities[d_id] = "🏳️"
+            if r.get("constructor_name", "Unknown") not in self.team_colors:
+                self.team_colors[r.get("constructor_name", "Unknown")] = "#cccccc"
 
         df = pd.DataFrame(results)
         if len(df) < 2:
@@ -300,16 +308,25 @@ class EloRatingSystem:
                     score_a, score_b = 0.5, 0.5
                     delta_pct = 0.0
                     
-                    if session_type.upper() == "QUALIFYING" and "lap_time" in da and "lap_time" in db:
-                        lap_a, lap_b = da["lap_time"], db["lap_time"]
+                    if session_type.upper() == "QUALIFYING":
+                        lap_a = da.get("lap_time", 0.0)
+                        lap_b = db.get("lap_time", 0.0)
+
                         if lap_a > 0 and lap_b > 0:
                             delta_pct = (lap_b - lap_a) / lap_b * 100
                             # Map continuous qualifying outcome via sigmoid
                             score_a = 1.0 / (1.0 + np.exp(-delta_pct * 8.0))
                             score_b = 1.0 - score_a
+                        elif lap_a > 0 and lap_b <= 0:
+                            score_a, score_b = 1.0, 0.0
+                        elif lap_a <= 0 and lap_b > 0:
+                            score_a, score_b = 0.0, 1.0
+                        else:
+                            score_a, score_b = 0.5, 0.5
                     else:
                         # Race points or positions
-                        pos_a, pos_b = da["position"], db["position"]
+                        pos_a = da.get("position", 20)
+                        pos_b = db.get("position", 20)
                         
                         # Mechanical DNF vs Classified
                         if dnf_a == "MECHANICAL":

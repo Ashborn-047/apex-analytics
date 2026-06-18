@@ -44,7 +44,7 @@ def test_predict_full_curve():
     
     assert res["compound"] == "MEDIUM"
     assert res["circuit_id"] == "monza"
-    assert len(res["degradation_curve"]) == 25
+    assert len(res["degradation_curve"]) == 40
     # Verify first stint lap predicted lap time matches the main output
     assert res["degradation_curve"][0]["predicted_s"] == res["predicted_lap_time_s"]
     assert res["cliff_lap"] in [23, 24] # Medium cliff shifted by VER tyre management factor (0.82)

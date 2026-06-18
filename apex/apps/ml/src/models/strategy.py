@@ -46,16 +46,29 @@ class PitStopStrategy:
         # P(at least one SC in next n laps)
         return 1.0 - math.exp(-rate_per_lap * n)
 
-    def recommend_compound(self, pit_lap: int, total_laps: int, position: int) -> str:
+    def recommend_compound(self, pit_lap: int, total_laps: int, position: int, current_compound: str = "") -> str:
         laps_remaining = total_laps - pit_lap
+        recommended = "SOFT"
         if position <= 3 and laps_remaining <= 20:
-            return "SOFT"
-        if laps_remaining > 30:
-            return "HARD"
+            recommended = "SOFT"
+        elif laps_remaining > 30:
+            recommended = "HARD"
         elif laps_remaining > 18:
-            return "MEDIUM"
+            recommended = "MEDIUM"
         else:
-            return "SOFT"
+            recommended = "SOFT"
+
+        # Basic heuristic to avoid same compound to comply with two-compound rule
+        # Assumes a 1-stop strategy for simplicity
+        if recommended == current_compound.upper():
+            if recommended == "SOFT":
+                recommended = "MEDIUM"
+            elif recommended == "MEDIUM":
+                recommended = "HARD"
+            elif recommended == "HARD":
+                recommended = "MEDIUM"
+
+        return recommended
 
     def emerges_in_clean_air(self, stop_lap: int, gap_behind: float, pit_loss: float) -> bool:
         # Simple traffic window check: if the trailing gap is greater than the pit stop loss
@@ -78,7 +91,9 @@ class PitStopStrategy:
         gap_ahead: float, 
         gap_behind: float,
         circuit_id: str = "monza",
-        position: int = 3
+        position: int = 3,
+        track_temp: float = 38.5,
+        fuel_load: float = 50.0
     ) -> Dict[str, Any]:
         """
         Evaluate candidate pit stop windows and return recommendations.
@@ -106,24 +121,24 @@ class PitStopStrategy:
             
             # Predict times for remaining stint laps on old compound
             old_times = [
-                self.lap_predictor.predict(stint_laps + i, 38.5, 50.0, current_compound)
+                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
                 for i in range(laps_on_old)
             ]
             total_old = sum(old_times)
             
             # Predict times for new compound
-            new_compound = self.recommend_compound(p, total_laps, position)
+            new_compound = self.recommend_compound(p, total_laps, position, current_compound)
             laps_on_new = total_laps - p
             
             new_times = [
-                self.lap_predictor.predict(i, 38.5, 50.0 - (laps_on_old * 1.55), new_compound)
+                self.lap_predictor.predict(i, track_temp, max(0.0, fuel_load - ((laps_on_old + i) * 1.55)), new_compound)
                 for i in range(1, min(laps_on_new + 1, 15)) # limit projection for latency
             ]
             total_new = sum(new_times)
             
             # Estimate baseline: stay out on old compound
             baseline_times = [
-                self.lap_predictor.predict(stint_laps + i, 38.5, 50.0, current_compound)
+                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
                 for i in range(laps_on_old + len(new_times))
             ]
             total_baseline = sum(baseline_times)
@@ -176,10 +191,12 @@ class PitStopStrategy:
             
         top_candidates = candidates[:3]
         if not top_candidates:
-            # Fallback if no window searched
+            # Fallback if no window searched (or near end of race)
+            fallback_lap = min(total_laps, current_lap + 3)
+            fallback_compound = self.recommend_compound(fallback_lap, total_laps, position, current_compound)
             top_candidates = [{
-                "pit_lap": current_lap + 3,
-                "compound_new": "HARD",
+                "pit_lap": fallback_lap,
+                "compound_new": fallback_compound,
                 "net_delta_s": -2.4,
                 "traffic_clear": True,
                 "undercut_window": True,
