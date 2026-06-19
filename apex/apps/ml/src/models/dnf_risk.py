@@ -1,4 +1,3 @@
-import numpy as np
 import math
 from typing import Dict, List, Any, Optional
 
@@ -15,6 +14,7 @@ class DNFRiskPredictor:
       "aston_martin": 0.92, "rb": 0.90, "haas": 0.88, "alpine": 0.85,
       "williams": 0.86, "sauber": 0.80
     }
+    self.base_constructor_reliability = self.constructor_reliability.copy()
     
     # Driver history crash multiplier (higher value = higher risk of collision)
     self.driver_crash_factors = {
@@ -23,6 +23,7 @@ class DNFRiskPredictor:
       "GAS": 1.1, "OCO": 1.3, "ALB": 1.0, "SAR": 1.8, "TSU": 1.2,
       "RIC": 1.0, "HUL": 0.95, "MAG": 1.5, "BOT": 0.90, "ZHO": 1.1
     }
+    self.base_driver_crash_factors = self.driver_crash_factors.copy()
 
   def calculate_risk(
     self,
@@ -133,6 +134,16 @@ class DNFRiskPredictor:
     if len(historical_results) < 5:
       raise ValueError("Insufficient training results (minimum 5 required).")
     
+    # Apply decay first to normalize towards baselines
+    decay = 0.05
+    for d_id in self.driver_crash_factors:
+      base_val = self.base_driver_crash_factors.get(d_id, 1.0)
+      self.driver_crash_factors[d_id] += (base_val - self.driver_crash_factors[d_id]) * decay
+      
+    for c_id in self.constructor_reliability:
+      base_val = self.base_constructor_reliability.get(c_id, 0.90)
+      self.constructor_reliability[c_id] += (base_val - self.constructor_reliability[c_id]) * decay
+
     # Process training records to adjust driver/constructor risk coefficients slightly
     for record in historical_results:
       driver_id = record.get("driver_id", "").upper()
@@ -148,9 +159,13 @@ class DNFRiskPredictor:
           self.driver_crash_factors[driver_id] = min(2.5, self.driver_crash_factors[driver_id] + 0.05)
         else:
           self.driver_crash_factors[driver_id] = 1.05
+          self.base_driver_crash_factors[driver_id] = 1.0
       
       # If they had mechanical DNF, reduce team reliability coefficient slightly
       elif status != "CLASSIFIED" and status != "FINISHED":
         if constructor_id in self.constructor_reliability:
           self.constructor_reliability[constructor_id] = max(0.5, self.constructor_reliability[constructor_id] - 0.02)
+        else:
+          self.constructor_reliability[constructor_id] = 0.88
+          self.base_constructor_reliability[constructor_id] = 0.90
 

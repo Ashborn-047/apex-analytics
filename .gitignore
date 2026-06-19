@@ -13,6 +13,8 @@ archive/
 docs/
 .jules/
 .Jules/
+.agents/
+.github/
 
 # Python
 __pycache__/
@@ -25,3 +27,8 @@ __pycache__/
 # Playwright
 playwright-report/
 test-results/
+
+# Graphify
+graphify-out/
+.graphifyignore
+
