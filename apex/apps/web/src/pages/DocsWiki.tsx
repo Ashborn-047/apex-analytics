@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { TOPIC_REGISTRY } from "./DocsData";
 
@@ -126,7 +126,7 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
   // Tyre degradation curves base calculations shifting with Temp and Fuel
   // SOFT, MEDIUM, HARD base lap times at Monza (81.5s base)
   // SOFT wears fast, MEDIUM moderate, HARD slow
-  const getTyreDegCurve = (compound: "soft" | "medium" | "hard") => {
+  const getTyreDegCurve = useCallback((compound: "soft" | "medium" | "hard") => {
     const tempOffset = (tyreTrackTemp - 30) * 0.015;
     const fuelOffset = tyreFuelLoad * 0.035;
     const basePace = 80.5 + fuelOffset + tempOffset;
@@ -145,15 +145,33 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
       }
       return { lap, pace: basePace + wear };
     });
-  };
+  }, [tyreTrackTemp, tyreFuelLoad]);
 
-  const softCurve = getTyreDegCurve("soft");
-  const mediumCurve = getTyreDegCurve("medium");
-  const hardCurve = getTyreDegCurve("hard");
+  const softCurve = useMemo(() => getTyreDegCurve("soft"), [getTyreDegCurve]);
+  const mediumCurve = useMemo(() => getTyreDegCurve("medium"), [getTyreDegCurve]);
+  const hardCurve = useMemo(() => getTyreDegCurve("hard"), [getTyreDegCurve]);
 
   // Math limits for plotting
-  const minPace = Math.min(...softCurve.map(c => c.pace), ...mediumCurve.map(c => c.pace)) - 0.5;
-  const maxPace = Math.max(...softCurve.map(c => c.pace), ...mediumCurve.map(c => c.pace)) + 1.0;
+  const { minPace, maxPace } = useMemo(() => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (let i = 0; i < softCurve.length; i++) {
+      const p1 = softCurve[i].pace;
+      if (p1 < min) min = p1;
+      if (p1 > max) max = p1;
+    }
+    for (let i = 0; i < mediumCurve.length; i++) {
+      const p2 = mediumCurve[i].pace;
+      if (p2 < min) min = p2;
+      if (p2 > max) max = p2;
+    }
+    for (let i = 0; i < hardCurve.length; i++) {
+      const p3 = hardCurve[i].pace;
+      if (p3 < min) min = p3;
+      if (p3 > max) max = p3;
+    }
+    return { minPace: min - 0.5, maxPace: max + 1.0 };
+  }, [softCurve, mediumCurve, hardCurve]);
   const scalePace = (pace: number) => {
     const range = maxPace - minPace || 1;
     return 120 - ((pace - minPace) / range) * 100;
