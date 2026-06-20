@@ -165,8 +165,13 @@ export default function DocsWiki({ subTab = "concept" }: { subTab?: "concept" | 
       if (p2 < min) min = p2;
       if (p2 > max) max = p2;
     }
+    for (let i = 0; i < hardCurve.length; i++) {
+      const p3 = hardCurve[i].pace;
+      if (p3 < min) min = p3;
+      if (p3 > max) max = p3;
+    }
     return { minPace: min - 0.5, maxPace: max + 1.0 };
-  }, [softCurve, mediumCurve]);
+  }, [softCurve, mediumCurve, hardCurve]);
   const scalePace = (pace: number) => {
     const range = maxPace - minPace || 1;
     return 120 - ((pace - minPace) / range) * 100;
