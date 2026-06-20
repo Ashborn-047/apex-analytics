@@ -15,6 +15,84 @@ from langchain.agents import create_agent
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
+# ============================================================================
+# AGENT TOOLS
+# ============================================================================
+
+@tool
+def retrieve_f1_documents(query: str) -> str:
+    """
+    Searches the pgvector knowledge base for F1 regulations, track specifications, and historical summaries.
+    Use this tool to find unstructured textual documents.
+    """
+    if not langchain_service or not langchain_service.vector_store:
+        return "Vector store not initialized."
+    docs = langchain_service.vector_store.similarity_search(query, k=3)
+    return "\n\n".join(
+        f"Source: {d.metadata.get('source', 'unknown')}\nContent: {d.page_content}"
+        for d in docs
+    )
+
+@tool
+def query_apex_api(endpoint: str, params: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Queries the APEX API REST endpoints to retrieve structured F1 data.
+    Use this tool for structured database lookups like getting a list of races, drivers, circuits, or constructors.
+    
+    Args:
+        endpoint: The endpoint path (e.g. 'drivers', 'races/2026', 'circuits', 'constructors', 'seasons').
+        params: Optional dictionary of query parameters.
+    """
+    apex_api_url = os.getenv("APEX_API_URL", "http://localhost:3000")
+    url = f"{apex_api_url}/api/{endpoint.lstrip('/')}"
+    try:
+        resp = httpx.get(url, params=params, timeout=5.0)
+        resp.raise_for_status()
+        return json.dumps(resp.json())
+    except Exception as e:
+        return f"Error querying APEX API: {str(e)}"
+
+@tool
+def call_ml_prediction(endpoint: str, payload: Optional[str] = None) -> str:
+    """
+    Calls APEX ML prediction endpoints for live model predictions.
+    Use this tool for Elo ratings, pit strategy window recommendations, lap time predictions, weather impact, DNF risks, and qualifying outcomes.
+    
+    Args:
+        endpoint: The prediction endpoint name (e.g. 'elo/rankings', 'strategy', 'lap-time', 'weather-impact', 'dnf-risk/VER', 'qualifying').
+        payload: A JSON string representing the payload/query parameters for the request (or None).
+    """
+    ml_base_url = os.getenv("ML_BASE_URL", "http://localhost:8000")
+    path = endpoint.lstrip('/')
+    if not path.startswith('predict/'):
+        path = f"predict/{path}"
+
+    url = f"{ml_base_url}/api/{path}"
+    try:
+        data = None
+        if payload:
+            try:
+                data = json.loads(payload)
+            except Exception:
+                pass
+
+        is_get = not data or any(x in path for x in ["/rankings", "/head-to-head", "/actuals", "dnf-risk/"])
+
+        if is_get:
+            resp = httpx.get(url, params=data, timeout=5.0)
+        else:
+            resp = httpx.post(url, json=data, timeout=5.0)
+
+        resp.raise_for_status()
+        return json.dumps(resp.json())
+    except Exception as e:
+        return f"Error calling ML prediction endpoint: {str(e)}"
+
+
+# ============================================================================
+# LANGCHAIN SERVICE
+# ============================================================================
+
 class LangChainService:
     """
     LangChainService handles document chunking, ingestion, persistent vector storage via Neon pgvector,
@@ -78,75 +156,6 @@ class LangChainService:
             print("Successfully initialized fallback in-memory vector store.")
 
     def _init_tools(self):
-        @tool
-        def retrieve_f1_documents(query: str) -> str:
-            """
-            Searches the pgvector knowledge base for F1 regulations, track specifications, and historical summaries.
-            Use this tool to find unstructured textual documents.
-            """
-            if not self.vector_store:
-                return "Vector store not initialized."
-            docs = self.vector_store.similarity_search(query, k=3)
-            return "\n\n".join(
-                f"Source: {d.metadata.get('source', 'unknown')}\nContent: {d.page_content}"
-                for d in docs
-            )
-
-        @tool
-        def query_apex_api(endpoint: str, params: Optional[Dict[str, Any]] = None) -> str:
-            """
-            Queries the APEX API REST endpoints to retrieve structured F1 data.
-            Use this tool for structured database lookups like getting a list of races, drivers, circuits, or constructors.
-            
-            Args:
-                endpoint: The endpoint path (e.g. 'drivers', 'races/2026', 'circuits', 'constructors', 'seasons').
-                params: Optional dictionary of query parameters.
-            """
-            apex_api_url = os.getenv("APEX_API_URL", "http://localhost:3000")
-            url = f"{apex_api_url}/api/{endpoint.lstrip('/')}"
-            try:
-                resp = httpx.get(url, params=params, timeout=5.0)
-                resp.raise_for_status()
-                return json.dumps(resp.json())
-            except Exception as e:
-                return f"Error querying APEX API: {str(e)}"
-
-        @tool
-        def call_ml_prediction(endpoint: str, payload: Optional[str] = None) -> str:
-            """
-            Calls APEX ML prediction endpoints for live model predictions.
-            Use this tool for Elo ratings, pit strategy window recommendations, lap time predictions, weather impact, DNF risks, and qualifying outcomes.
-            
-            Args:
-                endpoint: The prediction endpoint name (e.g. 'elo/rankings', 'strategy', 'lap-time', 'weather-impact', 'dnf-risk/VER', 'qualifying').
-                payload: A JSON string representing the payload/query parameters for the request (or None).
-            """
-            ml_base_url = os.getenv("ML_BASE_URL", "http://localhost:8000")
-            path = endpoint.lstrip('/')
-            if not path.startswith('predict/'):
-                path = f"predict/{path}"
-
-            url = f"{ml_base_url}/api/{path}"
-            try:
-                data = None
-                if payload:
-                    try:
-                        data = json.loads(payload)
-                    except Exception:
-                        pass
-
-                is_get = not data or any(x in path for x in ["/rankings", "/head-to-head", "/actuals", "dnf-risk/"])
-
-                if is_get:
-                    resp = httpx.get(url, params=data, timeout=5.0)
-                else:
-                    resp = httpx.post(url, json=data, timeout=5.0)
-
-                resp.raise_for_status()
-                return json.dumps(resp.json())
-            except Exception as e:
-                return f"Error calling ML prediction endpoint: {str(e)}"
-
         self.tools = [retrieve_f1_documents, query_apex_api, call_ml_prediction]
 
     def _init_agent_graph(self):
