@@ -25,19 +25,11 @@ class LangChainService:
         Initializes the service by setting up LLM connection details, initializing pgvector connection,
         defining agent tools, and creating the agent graph.
         """
-        # Determine LLM configuration (pointing to Nvidia Nemotron or Groq Llama)
-        nvidia_key = os.getenv("NVIDIA_API_KEY")
-        openai_key = os.getenv("OPENAI_API_KEY")
+        self._init_vector_store()
+        self._init_tools()
+        self._init_agent_graph()
 
-        if nvidia_key:
-            api_key = nvidia_key
-            base_url = os.getenv("OPENAI_API_BASE", "https://integrate.api.nvidia.com/v1")
-            model_name = os.getenv("LLM_MODEL", "nvidia/llama-3-nemotron-70b-instruct")
-        else:
-            api_key = openai_key
-            base_url = os.getenv("OPENAI_API_BASE", "https://api.groq.com/openai/v1")
-            model_name = os.getenv("LLM_MODEL", "llama3-8b-8192")
-
+    def _init_vector_store(self):
         # 1. Setup Embeddings and Splitter
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -85,7 +77,7 @@ class LangChainService:
             ])
             print("Successfully initialized fallback in-memory vector store.")
 
-        # 3. Define Tools
+    def _init_tools(self):
         @tool
         def retrieve_f1_documents(query: str) -> str:
             """
@@ -157,7 +149,21 @@ class LangChainService:
 
         self.tools = [retrieve_f1_documents, query_apex_api, call_ml_prediction]
 
-        # 4. Construct System Prompt with Glossary
+    def _init_agent_graph(self):
+        # Determine LLM configuration (pointing to Nvidia Nemotron or Groq Llama)
+        nvidia_key = os.getenv("NVIDIA_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+
+        if nvidia_key:
+            api_key = nvidia_key
+            base_url = os.getenv("OPENAI_API_BASE", "https://integrate.api.nvidia.com/v1")
+            model_name = os.getenv("LLM_MODEL", "nvidia/llama-3-nemotron-70b-instruct")
+        else:
+            api_key = openai_key
+            base_url = os.getenv("OPENAI_API_BASE", "https://api.groq.com/openai/v1")
+            model_name = os.getenv("LLM_MODEL", "llama3-8b-8192")
+
+        # Construct System Prompt with Glossary
         system_prompt_str = """You are an elite F1 Race Strategy and Analytics Assistant for the APEX system.
 Your role is to combine historical telemetry, track specifications, and active predictions to provide data-driven strategic advice.
 
@@ -171,7 +177,7 @@ F1 GLOSSARY (always apply these definitions):
 - "thermal graining" -> surface tyre damage from excessive heat early in a stint
 """
 
-        # 5. Initialize LLM and Agent Graph
+        # Initialize LLM and Agent Graph
         if api_key:
             self.llm = ChatOpenAI(
                 model=model_name,
