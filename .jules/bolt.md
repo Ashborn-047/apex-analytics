@@ -4,3 +4,6 @@
 ## 2025-10-24 - Avoid micro-optimizations that harm readability and add unnecessary useMemo overhead
 **Learning:** Found an attempt to over-optimize a very small array (e.g. `sparklineData` with only 5 elements) using `useMemo` and complex string concatenations instead of simple `.map().join()`. This harmed readability and added more overhead than it saved, violating the principle of avoiding premature micro-optimization.
 **Action:** Always evaluate if the data structure is large enough to warrant complex loop optimizations. For very small, fixed-size arrays, standard map/reduce pipelines are perfectly fine and often faster than the React hook overhead of `useMemo`. Focus optimizations on `O(N)` loop reduction for large datasets or functions with heavy calculations (like `getTyreDegCurve`).
+## 2026-06-21 - Array find inside loop inside render
+**Learning:** Found a case where `Array.find` was repeatedly called inside a map/loop that generated data for a chart component on every single render. This created an O(N^2) search overhead that was running constantly during a live simulation.
+**Action:** Extract expensive lookups that don't depend on the loop index outside of the array generation map, and wrap the data generation block in `useMemo` to prevent recalculation when unrelated state changes.

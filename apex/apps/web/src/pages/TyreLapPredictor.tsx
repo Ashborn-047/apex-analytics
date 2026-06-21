@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import {
   ComposedChart, Line, Area, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -210,35 +210,43 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
     : 0.25;
 
   // Build combined chart data
-  const chartData = Array.from({ length: 25 }, (_, idx) => {
-    const lap = idx + 1;
-    const softPt = compoundsData.find(d => d.compound === "SOFT")?.degradation_curve?.find(p => p.stint_lap === lap);
-    const mediumPt = compoundsData.find(d => d.compound === "MEDIUM")?.degradation_curve?.find(p => p.stint_lap === lap);
-    const hardPt = compoundsData.find(d => d.compound === "HARD")?.degradation_curve?.find(p => p.stint_lap === lap);
-    
-    const activePredicted = selectedCompound === "soft" ? softPt?.predicted_s 
-      : (selectedCompound === "medium" ? mediumPt?.predicted_s : hardPt?.predicted_s);
+  // ⚡ Bolt: [performance improvement] Wrap chartData in useMemo and extract curve lookups outside the loop to reduce O(N^2) behavior during simulation re-renders
+  const chartData = useMemo(() => {
+    const softCurve = compoundsData.find(d => d.compound === "SOFT")?.degradation_curve;
+    const mediumCurve = compoundsData.find(d => d.compound === "MEDIUM")?.degradation_curve;
+    const hardCurve = compoundsData.find(d => d.compound === "HARD")?.degradation_curve;
 
-    const simLap = simulatedLaps.find(sl => sl.lap === lap);
+    return Array.from({ length: 25 }, (_, idx) => {
+      const lap = idx + 1;
+      const softPt = softCurve?.find(p => p.stint_lap === lap);
+      const mediumPt = mediumCurve?.find(p => p.stint_lap === lap);
+      const hardPt = hardCurve?.find(p => p.stint_lap === lap);
 
-    return {
-      lap,
-      soft: softPt ? Number(softPt.predicted_s.toFixed(3)) : undefined,
-      medium: mediumPt ? Number(mediumPt.predicted_s.toFixed(3)) : undefined,
-      hard: hardPt ? Number(hardPt.predicted_s.toFixed(3)) : undefined,
-      ci_band: activePredicted ? [Number((activePredicted - ciWidth).toFixed(3)), Number((activePredicted + ciWidth).toFixed(3))] : undefined,
-      simulated: simLap ? Number(simLap.simulated_s.toFixed(3)) : undefined,
-      tyre_health: simLap ? simLap.tyre_health_percent : undefined
-    };
-  });
+      const activePredicted = selectedCompound === "soft" ? softPt?.predicted_s
+        : (selectedCompound === "medium" ? mediumPt?.predicted_s : hardPt?.predicted_s);
 
-  const scatterData = actualLaps
+      const simLap = simulatedLaps.find(sl => sl.lap === lap);
+
+      return {
+        lap,
+        soft: softPt ? Number(softPt.predicted_s.toFixed(3)) : undefined,
+        medium: mediumPt ? Number(mediumPt.predicted_s.toFixed(3)) : undefined,
+        hard: hardPt ? Number(hardPt.predicted_s.toFixed(3)) : undefined,
+        ci_band: activePredicted ? [Number((activePredicted - ciWidth).toFixed(3)), Number((activePredicted + ciWidth).toFixed(3))] : undefined,
+        simulated: simLap ? Number(simLap.simulated_s.toFixed(3)) : undefined,
+        tyre_health: simLap ? simLap.tyre_health_percent : undefined
+      };
+    });
+  }, [compoundsData, selectedCompound, simulatedLaps, ciWidth]);
+
+  // ⚡ Bolt: [performance improvement] Wrap scatterData in useMemo to prevent mapping large telemetry arrays on every live simulation tick
+  const scatterData = useMemo(() => actualLaps
     .filter((l) => l.compound === selectedCompound.toUpperCase())
     .map((l) => ({
       lap: l.stint_lap,
       actual: l.lap_time_s,
       driver_id: l.driver_id
-    }));
+    })), [actualLaps, selectedCompound]);
 
   const handleCompoundClick = (compName: "soft" | "medium" | "hard") => {
     setSelectedCompound(compName);
@@ -249,6 +257,10 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
+
+    // ⚡ Bolt: [performance improvement] Pre-compute tooltip telemetry data once instead of double-filtering scatterData per render frame
+    const lapTelemetry = scatterData.filter(s => s.lap === label);
+
     return (
       <div style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", padding: "0.75rem", borderRadius: "3px", minWidth: "180px", boxShadow: "0 0 16px var(--accent-dim)" }}>
         <div className="text-mono" style={{ fontSize: "0.65rem", color: "var(--accent-primary)", marginBottom: "0.5rem", letterSpacing: "0.1em", fontWeight: 600 }}>
@@ -283,10 +295,10 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
           return null;
         })}
 
-        {scatterData.filter(s => s.lap === label).length > 0 && (
+        {lapTelemetry.length > 0 && (
           <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px dashed var(--border-subtle)" }}>
             <div className="text-mono" style={{ fontSize: "0.55rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>ACTUAL TELEMETRY</div>
-            {scatterData.filter(s => s.lap === label).slice(0, 3).map((s, idx) => (
+            {lapTelemetry.slice(0, 3).map((s, idx) => (
               <div key={idx} style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
                 <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--accent-primary)" }}>
                   {s.driver_id}
