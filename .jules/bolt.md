@@ -7,3 +7,8 @@
 ## 2026-06-21 - Array find inside loop inside render
 **Learning:** Found a case where `Array.find` was repeatedly called inside a map/loop that generated data for a chart component on every single render. This created an O(N^2) search overhead that was running constantly during a live simulation.
 **Action:** Extract expensive lookups that don't depend on the loop index outside of the array generation map, and wrap the data generation block in `useMemo` to prevent recalculation when unrelated state changes.
+
+## 2025-02-12 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
+**Learning:** Generating arrays of random mock data directly within component render bodies (e.g. `generateEloComparisonHistory`) without `useMemo` triggers expensive re-evaluations and causes charts to redraw/jump on completely unrelated state updates (like hovering or toggling sub-tabs).
+**Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo` to ensure visual stability and prevent wasted computational cycles during normal UI interactions.
+
