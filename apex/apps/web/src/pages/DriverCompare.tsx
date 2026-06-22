@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
 import type { EloRanking } from "../types";
 import { MOCK_ELO_RANKINGS } from "../data/mockData";
@@ -59,16 +59,18 @@ export default function DriverCompare({ initialDriverId, onBack }: DriverCompare
     }
   }, [driverAId, driverBId]);
 
-  const chartData = generateEloComparisonHistory(driverA, driverB);
+  // Memoize computationally expensive chart data to prevent unnecessary re-renders
+  // and UI jitter when local state (like h2hMatchup) updates.
+  const chartData = useMemo(() => generateEloComparisonHistory(driverA, driverB), [driverA, driverB]);
 
   // Radar/Polar data comparing tactical indices
-  const radarData = [
+  const radarData = useMemo(() => [
     { subject: "Qualifying", [driverA.driver_id]: driverA.quali_dominance_pct, [driverB.driver_id]: driverB.quali_dominance_pct, fullMark: 100 },
     { subject: "Elo Rating", [driverA.driver_id]: (driverA.elo_rating / 1900) * 100, [driverB.driver_id]: (driverB.elo_rating / 1900) * 100, fullMark: 100 },
     { subject: "Consistency", [driverA.driver_id]: 92, [driverB.driver_id]: 88, fullMark: 100 },
     { subject: "Tyre Wear", [driverA.driver_id]: 85, [driverB.driver_id]: 90, fullMark: 100 },
     { subject: "Pressure Pace", [driverA.driver_id]: 88, [driverB.driver_id]: 82, fullMark: 100 },
-  ];
+  ], [driverA, driverB]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>

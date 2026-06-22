@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { MOCK_ELO_RANKINGS } from "../data/mockData";
 
@@ -108,11 +108,17 @@ export default function DriverProfile({ driverId, onBack, onCompare }: DriverPro
 
   const driver = MOCK_ELO_RANKINGS.find(r => r.driver_id === driverId) || MOCK_ELO_RANKINGS[0];
 
-  const seasonProgression = driver.history && driver.history.length > 0
-    ? driver.history.map(h => ({ round: h.round, rating: h.elo }))
-    : generateEloProgression(driver.elo_rating);
+  // Memoize randomized mock data so chart lines don't continuously jump
+  // and trigger expensive recalculations on simple state toggles
+  const seasonProgression = useMemo(() => {
+    return driver.history && driver.history.length > 0
+      ? driver.history.map(h => ({ round: h.round, rating: h.elo }))
+      : generateEloProgression(driver.elo_rating);
+  }, [driver]);
 
-  const careerHistory = generateCareerEloHistory(driver.driver_id, driver.elo_rating);
+  const careerHistory = useMemo(() => {
+    return generateCareerEloHistory(driver.driver_id, driver.elo_rating);
+  }, [driver.driver_id, driver.elo_rating]);
 
   const h2hWins = driver.h2h_record?.wins || 0;
   const h2hLosses = driver.h2h_record?.losses || 0;

@@ -4,3 +4,7 @@
 ## 2025-10-24 - Avoid micro-optimizations that harm readability and add unnecessary useMemo overhead
 **Learning:** Found an attempt to over-optimize a very small array (e.g. `sparklineData` with only 5 elements) using `useMemo` and complex string concatenations instead of simple `.map().join()`. This harmed readability and added more overhead than it saved, violating the principle of avoiding premature micro-optimization.
 **Action:** Always evaluate if the data structure is large enough to warrant complex loop optimizations. For very small, fixed-size arrays, standard map/reduce pipelines are perfectly fine and often faster than the React hook overhead of `useMemo`. Focus optimizations on `O(N)` loop reduction for large datasets or functions with heavy calculations (like `getTyreDegCurve`).
+
+## 2025-02-12 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
+**Learning:** Generating arrays of random mock data directly within component render bodies (e.g. `generateEloComparisonHistory`) without `useMemo` triggers expensive re-evaluations and causes charts to redraw/jump on completely unrelated state updates (like hovering or toggling sub-tabs).
+**Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo` to ensure visual stability and prevent wasted computational cycles during normal UI interactions.
