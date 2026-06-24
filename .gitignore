@@ -23,6 +23,10 @@ __pycache__/
 *.pyd
 .pytest_cache/
 .ipynb_checkpoints/
+.venv/
+venv/
+env/
+ENV/
 
 # Playwright
 playwright-report/

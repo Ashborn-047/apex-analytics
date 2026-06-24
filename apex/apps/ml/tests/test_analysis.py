@@ -72,3 +72,18 @@ def test_chat_endpoint_with_context(mock_analyze):
     assert "Elo" in kwargs["context_data"]
     assert "VER" in kwargs["context_data"]["Elo"]
     assert "Sample Live Strategy Recommendation" in kwargs["context_data"]
+
+def test_query_f1_database_tool():
+    from src.services.langchain_service import query_f1_database
+    from unittest.mock import MagicMock
+    
+    # Mock db_instance and its run method
+    mock_db = MagicMock()
+    mock_db.run.return_value = "[(1, 'VER', 'Max Verstappen')]"
+    
+    # Temporarily patch db_instance
+    with patch("src.services.langchain_service.db_instance", mock_db):
+        res = query_f1_database.invoke("SELECT * FROM drivers WHERE code = 'VER';")
+        assert res == "[(1, 'VER', 'Max Verstappen')]"
+        mock_db.run.assert_called_once_with("SELECT * FROM drivers WHERE code = 'VER';")
+

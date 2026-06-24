@@ -14,10 +14,48 @@ from langchain_core.tools import tool
 from langchain.agents import create_agent
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
+from langchain_community.utilities import SQLDatabase
+
+# Initialize SQLDatabase if DATABASE_URL is set
+db_instance = None
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    try:
+        db_instance = SQLDatabase.from_uri(db_url)
+        print("SQLDatabase helper initialized successfully.")
+    except Exception as e:
+        print(f"WARNING: Failed to connect SQLDatabase: {e}")
 
 # ============================================================================
 # AGENT TOOLS
 # ============================================================================
+
+@tool
+def query_f1_database(sql_query: str) -> str:
+    """
+    Executes a read-only SQL SELECT query against the F1 historical database to fetch structured telemetry, results, and records.
+    Use this tool to answer quantitative questions, such as listing lap times, driver information, circuit details, pit stop durations, constructor standings, or race results.
+    
+    The database schema includes the following tables and fields:
+    - circuits (id, name, location, country, first_gp, length_km, corners)
+    - seasons (year, rounds)
+    - races (id, season, round, circuit_id, date, name)
+    - drivers (id, code, name, dob, nationality)
+    - constructors (id, name, nationality)
+    - results (race_id, driver_id, constructor_id, grid, position, points, status, fastest_lap)
+    - lap_times (race_id, driver_id, lap, time_ms, position)
+    - qualifying (race_id, driver_id, constructor_id, q1_ms, q2_ms, q3_ms, position)
+    - pit_stops (race_id, driver_id, lap, stop_number, duration_ms)
+    
+    Ensure that the input is a valid SQL SELECT query. Do not execute any write, update, or schema alteration queries.
+    """
+    if not db_instance:
+        return "Database connection is not available."
+    try:
+        # Run the query using SQLDatabase utility
+        return db_instance.run(sql_query)
+    except Exception as e:
+        return f"Error executing database query: {str(e)}"
 
 @tool
 def retrieve_f1_documents(query: str) -> str:
@@ -156,7 +194,7 @@ class LangChainService:
             print("Successfully initialized fallback in-memory vector store.")
 
     def _init_tools(self):
-        self.tools = [retrieve_f1_documents, query_apex_api, call_ml_prediction]
+        self.tools = [retrieve_f1_documents, query_apex_api, call_ml_prediction, query_f1_database]
 
     def _init_agent_graph(self):
         # Determine LLM configuration (pointing to Nvidia Nemotron or Groq Llama)
@@ -165,8 +203,8 @@ class LangChainService:
 
         if nvidia_key:
             api_key = nvidia_key
-            base_url = os.getenv("OPENAI_API_BASE", "https://integrate.api.nvidia.com/v1")
-            model_name = os.getenv("LLM_MODEL", "nvidia/llama-3-nemotron-70b-instruct")
+            base_url = os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1")
+            model_name = os.getenv("NVIDIA_MODEL", "nvidia/llama-3-nemotron-70b-instruct")
         else:
             api_key = openai_key
             base_url = os.getenv("OPENAI_API_BASE", "https://api.groq.com/openai/v1")
