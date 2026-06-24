@@ -254,6 +254,33 @@ APEX is equipped with fully active Python-based machine learning pipelines (`app
 
 ---
 
+## APEX Bot: Agentic RAG & AI Assistant
+
+APEX is equipped with **APEX Bot**, an intelligent conversational assistant powered by an Agentic Retrieval-Augmented Generation (RAG) router utilizing **Nvidia Llama-3-Nemotron-70B-Instruct** (or Groq Llama-3-8B-8192 fallback) as its core reasoning engine. 
+
+### 1. Agentic Tool Routing
+The assistant determines the optimal path to answer user queries using a dynamic tool suite:
+*   **Text-to-SQL (`query_f1_database`):** Automatically translates natural language statistical queries into read-only SQL SELECT statements executed directly against the Neon PostgreSQL database (e.g. *“List Verstappen's lap times in Monaco lap 10 to 15”*).
+*   **Document Retrieval (`retrieve_f1_documents`):** Queries the `pgvector` knowledge base (falling back to an in-memory vector store in local development) to retrieve racing regulations, circuit specs, and summaries.
+*   **Structured APEX API (`query_apex_api`):** Accesses Hono backend API endpoints for circuit geometry, schedules, and standings.
+*   **ML Prediction (`call_ml_prediction`):** Interfaces with live Python ML prediction endpoints to fetch driver Elo ratings or stint strategy recommendations.
+
+### 2. Frontend Conversational Interface
+Located at `/bot`, the React-based chat window features:
+*   **Context Control Switches:** Toggles to inject live driver Elo ratings and stint/pit strategy outputs directly into the prompt context.
+*   **Interactive System Glossary:** Guarantees proper terminology translation for motorsport slang (e.g., mapping *“box”* to pit stops, *“undercut”* to early stint strategies).
+
+### 3. Agent Environment Variables
+To enable the AI Assistant, configure the following inside your `apps/ml/.env`:
+```bash
+NVIDIA_API_KEY="your_nvidia_api_key_here"  # Triggers Nemotron scaling
+# Optional overrides:
+NVIDIA_API_BASE="https://integrate.api.nvidia.com/v1"
+NVIDIA_MODEL="nvidia/llama-3-nemotron-70b-instruct"
+```
+
+---
+
 ## Machine Learning Data Synchronization Pipeline
 
 The monorepo features an automated data synchronization script in the API package. It queries database standings and stint lap times, pushes actual timings to the ML microservice cache, trains the regression models, and runs championship simulations.
