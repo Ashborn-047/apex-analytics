@@ -26,6 +26,14 @@ app.add_middleware(
 app.include_router(prediction_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
 
+@app.on_event("startup")
+def startup_event():
+    import threading
+    from src.services.document_ingestion import sync_document_library
+    # Run sync in background to not block startup
+    threading.Thread(target=sync_document_library, daemon=True).start()
+
+
 @app.get("/health")
 def health_check():
     return {

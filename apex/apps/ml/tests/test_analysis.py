@@ -26,6 +26,18 @@ def test_ingest_endpoint():
     assert "chunks_created" in data
     assert data["chunks_created"] >= 2
 
+@patch("src.services.document_ingestion.sync_document_library")
+def test_sync_documents_endpoint(mock_sync):
+    mock_sync.return_value = 10
+    
+    response = client.post("/api/analysis/sync-documents")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["chunks_created"] == 10
+    mock_sync.assert_called_once()
+
 @patch("src.services.langchain_service.LangChainService.analyze_query")
 def test_chat_endpoint_no_context(mock_analyze):
     mock_analyze.return_value = "Mocked LLM analysis response."

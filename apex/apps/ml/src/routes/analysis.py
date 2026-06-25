@@ -62,6 +62,24 @@ def ingest_documents(data: IngestionInput):
         raise HTTPException(status_code=500, detail=f"Failed to ingest documents: {str(e)}") from e
 
 
+@router.post("/sync-documents")
+def sync_document_library_endpoint():
+    """
+    Trigger a sync of the markdown document library into the RAG vector store.
+    """
+    from src.services.document_ingestion import sync_document_library
+    try:
+        chunks_added = sync_document_library()
+        return {
+            "status": "success",
+            "message": "Successfully synchronized document library.",
+            "chunks_created": chunks_added
+        }
+    except Exception as e:
+        logger.exception("Failed to sync document library")
+        raise HTTPException(status_code=500, detail=f"Failed to sync documents: {str(e)}") from e
+
+
 @router.post("/chat")
 def chat_with_assistant(data: ChatQueryInput):
     """

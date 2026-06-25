@@ -244,6 +244,19 @@ F1 GLOSSARY (always apply these definitions):
             self.agent_executor = None
             print("WARNING: Neither NVIDIA_API_KEY nor OPENAI_API_KEY is set. LLM features will not work until it is provided.")
 
+    def ingest_documents(self, documents: List[Document]) -> int:
+        """
+        Ingests a list of Document objects into the RAG vector store.
+        
+        :param documents: A list of Document objects (already loaded and potentially header-split).
+        :return: Number of split chunks added to the vector store.
+        """
+        split_docs = self.text_splitter.split_documents(documents)
+        if split_docs and self.vector_store:
+            self.vector_store.add_documents(split_docs)
+            print(f"Successfully added {len(split_docs)} document chunks to vector store.")
+        return len(split_docs)
+
     def ingest_texts(self, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None) -> int:
         """
         Ingests a list of raw text strings into the RAG vector store.
@@ -260,10 +273,7 @@ F1 GLOSSARY (always apply these definitions):
             meta = metadatas[i] if metadatas else {}
             docs.append(Document(page_content=text, metadata=meta))
 
-        split_docs = self.text_splitter.split_documents(docs)
-        if split_docs and self.vector_store:
-            self.vector_store.add_documents(split_docs)
-        return len(split_docs)
+        return self.ingest_documents(docs)
 
     def analyze_query(self, query: str, context_data: Optional[Dict[str, Any]] = None) -> str:
         """
