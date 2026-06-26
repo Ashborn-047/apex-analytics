@@ -256,12 +256,38 @@ APEX is equipped with fully active Python-based machine learning pipelines (`app
 
 ## APEX Bot: Agentic RAG & AI Assistant
 
-APEX is equipped with **APEX Bot**, an intelligent conversational assistant powered by an Agentic Retrieval-Augmented Generation (RAG) router utilizing **Nvidia Llama-3-Nemotron-70B-Instruct** (or Groq Llama-3-8B-8192 fallback) as its core reasoning engine. 
+APEX is equipped with **APEX Bot**, an intelligent conversational assistant powered by an Agentic Retrieval-Augmented Generation (RAG) router utilizing **Nvidia Nemotron-3-Super-120B-a12b** (or Groq Llama-3-8B-8192 fallback) as its core reasoning engine. 
 
-### 1. Agentic Tool Routing
+### 1. Hybrid RAG Architecture
+
+```mermaid
+graph TD
+    Docs[F1 document library<br>driver_profiles.md · circuit_profiles.md<br>regulations · tyre_strategy]
+
+    Docs --> PG_Ingest[pgvector ingestion<br>chunk → embed MiniLM-L6 → store]
+    Docs --> Graph_Ingest[Graphify indexer<br>graphify update data/documents/]
+
+    PG_Ingest --> PG_DB[(Neon pgvector<br>semantic similarity chunks)]
+    Graph_Ingest --> Graph_DB[(Graphify graph index<br>data/documents/graphify-out/)]
+    
+    PG_DB -->|query time| Tool1[retrieve_f1_documents<br>semantic / narrative queries<br>'explain undercut strategy']
+    Graph_DB -->|query time| Tool2[query_f1_knowledge_graph<br>relationship traversal<br>'who drove for Ferrari 2017-19']
+    
+    Tool3[query_f1_database<br>structured / lap data<br>'Verstappen's 2023 lap times'] --> Router
+
+    Tool1 --> Router
+    Tool2 --> Router
+    
+    Router[LangChain agentic router<br>Nemotron 120B decides which tools to call]
+    
+    Router --> LLM[Nvidia Nemotron-3-Super-120B-a12b<br>synthesises all tool payloads → F1 expert response]
+```
+
+### 2. Agentic Tool Routing
 The assistant determines the optimal path to answer user queries using a dynamic tool suite:
-*   **Text-to-SQL (`query_f1_database`):** Automatically translates natural language statistical queries into read-only SQL SELECT statements executed directly against the Neon PostgreSQL database (e.g. *“List Verstappen's lap times in Monaco lap 10 to 15”*).
-*   **Document Retrieval (`retrieve_f1_documents`):** Queries the `pgvector` knowledge base (falling back to an in-memory vector store in local development) to retrieve racing regulations, circuit specs, and summaries.
+*   **Text-to-SQL (`query_f1_database`):** Automatically translates natural language statistical queries into read-only SQL SELECT statements executed directly against the Neon PostgreSQL database.
+*   **Knowledge Graph Retrieval (`query_f1_knowledge_graph`):** Queries a dedicated **Graphify Knowledge Graph** built from F1 regulations and documentation. Traverses entities and relationships (e.g. `Tyre_Regulation → affects → PitStrategy → used_by → RedBull`).
+*   **Vector Retrieval (`retrieve_f1_documents`):** Queries the `pgvector` knowledge base for narrative, philosophical, or "what is" regulation summaries.
 *   **Structured APEX API (`query_apex_api`):** Accesses Hono backend API endpoints for circuit geometry, schedules, and standings.
 *   **ML Prediction (`call_ml_prediction`):** Interfaces with live Python ML prediction endpoints to fetch driver Elo ratings or stint strategy recommendations.
 
@@ -276,7 +302,7 @@ To enable the AI Assistant, configure the following inside your `apps/ml/.env`:
 NVIDIA_API_KEY="your_nvidia_api_key_here"  # Triggers Nemotron scaling
 # Optional overrides:
 NVIDIA_API_BASE="https://integrate.api.nvidia.com/v1"
-NVIDIA_MODEL="nvidia/llama-3-nemotron-70b-instruct"
+NVIDIA_MODEL="nvidia/nemotron-3-super-120b-a12b"
 ```
 
 ---
