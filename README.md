@@ -28,7 +28,7 @@ APEX is the analytical and historical brain that sits alongside Silverwall (the 
 The diagram below details the integration between **Silverwall** (Real-Time Pitwall) and **APEX** (Analytical Platform & ML Engine), demonstrating how data flows from external APIs through our ingestion pipeline into our cloud databases and out to the client browser:
 
 ```mermaid
-graph TD
+flowchart TD
     subgraph Client [Client / Browser]
         UI[Silverwall Web App - React/Vite]
     end
@@ -53,22 +53,22 @@ graph TD
     end
 
     %% Data Flow Connections
-    OpenF1 -->|Telemetry / Weather / Location| Ingestor
-    Ergast -->|Historical Stats / Standings| Ingestor
-    ApexAPI -->|High-Fidelity SVG Geometry| Ingestor
+    OpenF1 -->|"Telemetry / Weather / Location"| Ingestor
+    Ergast -->|"Historical Stats / Standings"| Ingestor
+    ApexAPI -->|"High-Fidelity SVG Geometry"| Ingestor
 
-    Ingestor -->|Seed / Write Real-Time State| SDB
-    Ingestor -->|Sync Standings / Schedules| API
+    Ingestor -->|"Seed / Write Real-Time State"| SDB
+    Ingestor -->|"Sync Standings / Schedules"| API
 
-    SDB -->|WebSocket Subscription / Live Telemetry| UI
-    API -->|REST Queries / Circuit Data / History| UI
+    SDB -->|"WebSocket Subscription / Live Telemetry"| UI
+    API -->|"REST Queries / Circuit Data / History"| UI
 
-    API -->|Write metadata / schema migration| DB
-    API -->|Job Scheduling| Queue
-    Queue -->|State store| Cache
+    API -->|"Write metadata / schema migration"| DB
+    API -->|"Job Scheduling"| Queue
+    Queue -->|"State store"| Cache
 
-    ML -->|Read session statistics / lap times| DB
-    ML -->|Predictive models / Elo / Strategy| API
+    ML -->|"Read session statistics / lap times"| DB
+    ML -->|"Predictive models / Elo / Strategy"| API
 ```
 
 ---
@@ -261,7 +261,7 @@ APEX is equipped with **APEX Bot**, an intelligent conversational assistant powe
 ### 1. Hybrid RAG Architecture
 
 ```mermaid
-graph TD
+flowchart TD
     Docs[F1 document library<br>driver_profiles.md · circuit_profiles.md<br>regulations · tyre_strategy]
 
     Docs --> PG_Ingest[pgvector ingestion<br>chunk → embed MiniLM-L6 → store]
