@@ -13,6 +13,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from src.routes.analysis import limiter
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,

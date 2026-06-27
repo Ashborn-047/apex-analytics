@@ -67,4 +67,19 @@ def sync_document_library(docs_dir: str = None) -> int:
     # It will further chunk them with RecursiveCharacterTextSplitter if they are too large
     chunks_added = langchain_service.ingest_documents(all_docs)
     print(f"Ingested {len(all_docs)} parsed sections into {chunks_added} chunks in vector store.")
+    
+    # Run Graphify Knowledge Graph indexer
+    try:
+        import subprocess
+        graphify_path = r"C:\Users\PUSHAN\.local\bin\graphify.exe"
+        if os.path.exists(graphify_path):
+            print(f"Updating Graphify index for {docs_dir}...")
+            # Run graphify update inside the docs directory so graphify-out is created there
+            subprocess.run([graphify_path, "update", "."], cwd=docs_dir, check=True)
+            print("Graphify index updated.")
+        else:
+            print(f"WARNING: Graphify executable not found at {graphify_path}.")
+    except Exception as e:
+        print(f"Failed to update Graphify index: {e}")
+
     return chunks_added

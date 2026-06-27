@@ -3,9 +3,14 @@ Service layer implementation for RAG (Retrieval-Augmented Generation) using Lang
 """
 
 import os
+import sys
 import json
 import httpx
 from typing import List, Dict, Any, Optional
+
+if sys.platform == 'win32':
+    import asyncio
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from langchain_core.prompts import PromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -70,6 +75,34 @@ def retrieve_f1_documents(query: str) -> str:
         f"Source: {d.metadata.get('source', 'unknown')}\nContent: {d.page_content}"
         for d in docs
     )
+
+@tool
+def query_f1_knowledge_graph(query: str, mode: str = "query", entity_a: Optional[str] = None, entity_b: Optional[str] = None) -> str:
+    """
+    Queries the Graphify Knowledge Graph. 
+    Use mode='query' for general semantic/graph searches about regulations or concepts, passing the question as 'query'.
+    Use mode='explain' for focused concept explanations, passing the concept as 'query'.
+    Use mode='path' to find relationships between two concepts, passing them as 'entity_a' and 'entity_b'.
+    """
+    try:
+        import subprocess
+        graphify_path = r"C:\Users\PUSHAN\.local\bin\graphify.exe"
+        cwd = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "documents")
+        
+        args = [graphify_path]
+        if mode == "path" and entity_a and entity_b:
+            args.extend(["path", entity_a, entity_b])
+        elif mode == "explain":
+            args.extend(["explain", query])
+        else:
+            args.extend(["query", query])
+            
+        result = subprocess.run(
+            args, capture_output=True, text=True, cwd=cwd
+        )
+        return result.stdout if result.returncode == 0 else result.stderr
+    except Exception as e:
+        return f"Error querying Graphify: {e}"
 
 @tool
 def query_apex_api(endpoint: str, params: Optional[Dict[str, Any]] = None) -> str:
@@ -194,7 +227,7 @@ class LangChainService:
             print("Successfully initialized fallback in-memory vector store.")
 
     def _init_tools(self):
-        self.tools = [retrieve_f1_documents, query_apex_api, call_ml_prediction, query_f1_database]
+        self.tools = [retrieve_f1_documents, query_f1_knowledge_graph, query_apex_api, call_ml_prediction, query_f1_database]
 
     def _init_agent_graph(self):
         # Determine LLM configuration (pointing to Nvidia Nemotron or Groq Llama)
@@ -204,7 +237,7 @@ class LangChainService:
         if nvidia_key:
             api_key = nvidia_key
             base_url = os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1")
-            model_name = os.getenv("NVIDIA_MODEL", "nvidia/llama-3-nemotron-70b-instruct")
+            model_name = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-super-120b-a12b")
         else:
             api_key = openai_key
             base_url = os.getenv("OPENAI_API_BASE", "https://api.groq.com/openai/v1")
@@ -231,7 +264,14 @@ F1 GLOSSARY (always apply these definitions):
                 api_key=api_key,
                 base_url=base_url,
                 temperature=0.2,
-                max_tokens=1024
+                model_kwargs={
+                    "top_p": 0.95,
+                    "extra_body": {
+                        "chat_template_kwargs": {"enable_thinking": True},
+                        "reasoning_budget": 1024
+                    }
+                },
+                max_tokens=2048
             )
             self.agent_executor = create_agent(
                 model=self.llm,

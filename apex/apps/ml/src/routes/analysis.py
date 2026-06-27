@@ -3,7 +3,7 @@ FastAPI router definition for F1 analytics and ingestion endpoints powered by La
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
@@ -21,6 +21,11 @@ router = APIRouter(
 
 elo_system = EloRatingSystem()
 strategy_engine = PitStopStrategy()
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 # --- Schemas ---
 
@@ -81,7 +86,8 @@ def sync_document_library_endpoint():
 
 
 @router.post("/chat")
-def chat_with_assistant(data: ChatQueryInput):
+@limiter.limit("5/minute")
+def chat_with_assistant(request: Request, data: ChatQueryInput):
     """
     Send a query to the LangChain RAG assistant, optionally including real-time
     context from our backend ML models.
