@@ -63,7 +63,7 @@ webhooksRouter.post('/silverwall', async (c) => {
 
       // Background Fetch: Trigger ML to generate a dynamic race report and update the RAG KB
       // We don't await this so it doesn't block the Silverwall webhook response
-      fetch('http://localhost:8000/analysis/generate-report', {
+      fetch('http://localhost:8000/api/analysis/generate-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,6 +73,32 @@ webhooksRouter.post('/silverwall', async (c) => {
         })
       }).catch(err => {
         logger.error('Failed to trigger background ML race report generation', err);
+      });
+
+      // Background Fetch: Trigger ML to update Elo Ratings dynamically
+      const eloPayload = {
+        results: raceResults.map((res: any, index: number) => ({
+          driver_id: res.driver_name.substring(0, 3).toUpperCase(),
+          driver_name: res.driver_name,
+          constructor_name: res.team,
+          position: res.position || (index + 1),
+          status: res.dnf ? 'DNF' : 'CLASSIFIED',
+          lap_time: 0.0,
+          is_rookie: false
+        })),
+        session_type: 'RACE',
+        round_id: `${season_year}_${race_key}`,
+        rounds_completed: 12 // Using a placeholder for now
+      };
+
+      fetch('http://localhost:8000/api/predict/elo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eloPayload)
+      }).catch(err => {
+        logger.error('Failed to trigger background ML Elo update', err);
       });
 
       return c.json({ status: 'success' });

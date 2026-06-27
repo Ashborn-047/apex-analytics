@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple, Any, Optional
 
+import json
+import os
+import pathlib
+
 class EloRatingSystem:
     """
     Teammate-Weighted Elo Rating System for F1 Drivers.
@@ -12,16 +16,17 @@ class EloRatingSystem:
         self.base_rating = base_rating
         self.history: Dict[str, Dict[str, float]] = {}
         
-        # Current driver ratings: driver_id -> rating
-        self.ratings: Dict[str, float] = {
-            "ANT": 1885.0, "VER": 1847.0, "NOR": 1791.0, "LEC": 1773.0, "HAM": 1761.0,
-            "RUS": 1748.0, "PIA": 1739.0, "SAI": 1722.0, "ALO": 1715.0,
-            "PER": 1620.0, "STR": 1605.0, "GAS": 1612.0, "OCO": 1618.0,
-            "ALB": 1640.0, "SAR": 1490.0, "TSU": 1608.0, "RIC": 1585.0,
-            "HUL": 1635.0, "MAG": 1590.0, "BOT": 1595.0, "ZHO": 1540.0
-        }
+        self.state_file = pathlib.Path(__file__).parent.parent.parent / "data" / "elo_state.json"
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
         
-        # Driver metadata mapping
+        # Will be populated dynamically or from disk
+        self.ratings: Dict[str, float] = {}
+        self.uncertainties: Dict[str, float] = {}
+        self.recent_deltas: Dict[str, List[float]] = {}
+        self.h2h_records: Dict[Tuple[str, str], Dict[str, int]] = {}
+        self.matchups_history: List[Dict[str, Any]] = []
+
+        # Driver metadata mapping (Can remain as lookup fallback)
         self.driver_names = {
             "ANT": "Kimi Antonelli", "VER": "Max Verstappen", "NOR": "Lando Norris",
             "LEC": "Charles Leclerc", "HAM": "Lewis Hamilton", "RUS": "George Russell",
@@ -57,34 +62,31 @@ class EloRatingSystem:
             "OCO": "🇫🇷", "ALB": "🇹🇭", "SAR": "🇺🇸", "TSU": "🇯🇵", "RIC": "🇦🇺", "HUL": "🇩🇪",
             "MAG": "🇩🇰", "BOT": "🇫🇮", "ZHO": "🇨🇳"
         }
-        
-        # Uncertainty tracking: driver_id -> rolling uncertainty
-        self.uncertainties: Dict[str, float] = {d: 20.0 for d in self.ratings}
-        # Trend tracking: driver_id -> list of recent changes
-        self.recent_deltas: Dict[str, List[float]] = {d: [2.5, 3.0, -1.0, 4.0, 3.6] for d in self.ratings}
-        
-        # Head-to-Head records: (driver_a, driver_b) -> {wins, losses, ties}
-        self.h2h_records: Dict[Tuple[str, str], Dict[str, int]] = {}
-        self._init_mock_h2h()
-        
-        # Matchups history store
-        self.matchups_history: List[Dict[str, Any]] = []
 
-    def _init_mock_h2h(self):
-        # Setup mock H2H records for teammates
-        teammates = [
-            ("VER", "PER", 18, 4), ("NOR", "PIA", 14, 8), ("LEC", "HAM", 13, 9),
-            ("RUS", "ANT", 10, 12), ("ALO", "STR", 17, 5), ("GAS", "OCO", 11, 11),
-            ("ALB", "SAI", 12, 10), ("TSU", "RIC", 12, 10), ("HUL", "MAG", 14, 8),
-            ("BOT", "ZHO", 15, 7)
-        ]
-        for d1, d2, w1, w2 in teammates:
-            key = tuple(sorted([d1, d2]))
-            self.h2h_records[key] = {
-                "wins": w1 if key[0] == d1 else w2,
-                "losses": w2 if key[0] == d1 else w1,
-                "ties": 0
-            }
+        self.load_state()
+
+    def save_state(self):
+        state = {
+            "ratings": self.ratings,
+            "uncertainties": self.uncertainties,
+            "recent_deltas": self.recent_deltas,
+            "h2h_records": {f"{k[0]}-{k[1]}": v for k, v in self.h2h_records.items()},
+            "matchups_history": self.matchups_history
+        }
+        with open(self.state_file, "w") as f:
+            json.dump(state, f)
+
+    def load_state(self):
+        if self.state_file.exists():
+            with open(self.state_file, "r") as f:
+                state = json.load(f)
+            self.ratings = state.get("ratings", {})
+            self.uncertainties = state.get("uncertainties", {})
+            self.recent_deltas = state.get("recent_deltas", {})
+            
+            raw_h2h = state.get("h2h_records", {})
+            self.h2h_records = {tuple(k.split("-")): v for k, v in raw_h2h.items()}
+            self.matchups_history = state.get("matchups_history", [])
 
     def get_driver_rating(self, driver_id: str) -> float:
         return self.ratings.get(driver_id, self.base_rating)
@@ -396,5 +398,8 @@ class EloRatingSystem:
 
         # Save snapshot
         self.history[round_id] = self.ratings.copy()
+        
+        # Save to disk
+        self.save_state()
 
         return self.ratings

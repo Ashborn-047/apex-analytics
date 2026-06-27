@@ -1,1 +1,41 @@
-{"event": "race_result_updated", "season_year": 2026, "race_key": 9999, "results": [{"driver_name": "Max Verstappen", "team": "Red Bull Racing", "position": 1, "points": 25, "dnf": false, "fastest_lap": true}]}
+{
+  "telemetry": {
+    "event": "race_result_updated",
+    "season_year": 2026,
+    "race_key": "belgian_gp",
+    "results": [
+      {
+        "driver_name": "Kimi Antonelli",
+        "team": "Mercedes",
+        "position": 1,
+        "points": 25,
+        "dnf": false,
+        "fastest_lap": true
+      },
+      {
+        "driver_name": "Max Verstappen",
+        "team": "Red Bull Racing",
+        "position": 2,
+        "points": 18,
+        "dnf": false,
+        "fastest_lap": false
+      },
+      {
+        "driver_name": "Lando Norris",
+        "team": "McLaren",
+        "position": 3,
+        "points": 15,
+        "dnf": false,
+        "fastest_lap": false
+      },
+      {
+        "driver_name": "Charles Leclerc",
+        "team": "Ferrari",
+        "position": 4,
+        "points": 12,
+        "dnf": false,
+        "fastest_lap": false
+      }
+    ]
+  }
+}
