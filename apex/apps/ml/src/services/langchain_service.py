@@ -20,6 +20,7 @@ from langchain.agents import create_agent
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_community.utilities import SQLDatabase
+from langchain_community.tools import DuckDuckGoSearchRun
 
 # Initialize SQLDatabase if DATABASE_URL is set
 db_instance = None
@@ -34,6 +35,18 @@ if db_url:
 # ============================================================================
 # AGENT TOOLS
 # ============================================================================
+
+@tool
+def search_f1_news(query: str) -> str:
+    """
+    Searches the internet for recent news, race reports, strategies, and F1 updates using DuckDuckGo.
+    Use this tool to find information about races that occurred recently, driver quotes, crashes, or any context not in the telemetry database.
+    """
+    try:
+        search = DuckDuckGoSearchRun()
+        return search.invoke(query)
+    except Exception as e:
+        return f"Failed to search web: {str(e)}"
 
 @tool
 def query_f1_database(sql_query: str) -> str:
@@ -227,7 +240,7 @@ class LangChainService:
             print("Successfully initialized fallback in-memory vector store.")
 
     def _init_tools(self):
-        self.tools = [retrieve_f1_documents, query_f1_knowledge_graph, query_apex_api, call_ml_prediction, query_f1_database]
+        self.tools = [retrieve_f1_documents, query_f1_knowledge_graph, query_apex_api, call_ml_prediction, query_f1_database, search_f1_news]
 
     def _init_agent_graph(self):
         # Determine LLM configuration (pointing to Nvidia Nemotron or Groq Llama)
@@ -344,5 +357,37 @@ F1 GLOSSARY (always apply these definitions):
                 return str(last_message)
         except Exception as e:
             return f"Failed to generate analysis: {str(e)}"
+
+    def generate_race_report(self, raw_telemetry: dict, template: str) -> str:
+        """
+        Generates a detailed race report by analyzing raw telemetry and performing web searches for context.
+        """
+        if not self.llm or not self.agent_executor:
+            return "Error: LLM not initialized. Please set OPENAI_API_KEY or NVIDIA_API_KEY environment variable."
+
+        telemetry_str = json.dumps(raw_telemetry, indent=2)
+        
+        prompt = (
+            f"You are an expert F1 journalist. The latest race has just concluded. "
+            f"Here is the raw telemetry data:\n{telemetry_str}\n\n"
+            f"Your task is to write a highly detailed, engaging race report. "
+            f"You MUST use the `search_f1_news` tool to search the internet for news articles about this race to find out "
+            f"what caused DNFs, strategy masterclasses, crashes, and other nuances not visible in the raw numbers.\n\n"
+            f"You MUST output your final report strictly following this Markdown template:\n\n"
+            f"{template}\n\n"
+            f"Do not include any conversational filler outside of the template."
+        )
+
+        try:
+            result = self.agent_executor.invoke({"messages": [{"role": "user", "content": prompt}]})
+            last_message = result["messages"][-1]
+            if hasattr(last_message, "content"):
+                return last_message.content
+            elif isinstance(last_message, dict) and "content" in last_message:
+                return last_message["content"]
+            else:
+                return str(last_message)
+        except Exception as e:
+            return f"Failed to generate race report: {str(e)}"
 
 langchain_service = LangChainService()

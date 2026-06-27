@@ -11,6 +11,8 @@ from src.services.langchain_service import langchain_service
 # We can pull some real data from our models to pass into the prompt!
 from src.models.elo import EloRatingSystem
 from src.models.strategy import PitStopStrategy
+from src.services.kb_manager import append_race_report
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,12 @@ class ChatQueryInput(BaseModel):
     include_strategy: bool = Field(False, description="Whether to include a sample strategy recommendation as context.")
     driver_id_context: Optional[str] = Field(None, description="A specific driver ID (e.g. VER) to gather targeted realtime context for.")
     page_context: Optional[str] = Field(None, description="The URL or page the user is currently looking at to provide context.")
+
+class RaceReportInput(BaseModel):
+    """
+    Input schema for generating a dynamic race report.
+    """
+    telemetry: Dict[str, Any] = Field(..., description="Raw race telemetry from Silverwall.")
 
 # --- Routes ---
 
@@ -145,3 +153,23 @@ def chat_with_assistant(request: Request, data: ChatQueryInput):
         logger.exception("Assistant chat failed to process query")
         raise HTTPException(status_code=500, detail=f"Assistant chat failed: {str(e)}") from e
 
+@router.post("/generate-report")
+def generate_report_endpoint(data: RaceReportInput):
+    """
+    Generates a race report using LLM and DuckDuckGo Web Search, appends it to the 2026 season log, and triggers re-ingestion.
+    """
+    try:
+        template_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "templates", "race_report_template.md")
+        with open(template_path, "r", encoding="utf-8") as f:
+            template = f.read()
+
+        # Run report generation
+        report = langchain_service.generate_race_report(raw_telemetry=data.telemetry, template=template)
+        
+        # Append and trigger ingestion
+        append_race_report(report)
+        
+        return {"status": "success", "message": "Race report generated and Knowledge Base updated."}
+    except Exception as e:
+        logger.exception("Failed to generate race report")
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}") from e

@@ -60,6 +60,21 @@ webhooksRouter.post('/silverwall', async (c) => {
              });
          }
       }
+
+      // Background Fetch: Trigger ML to generate a dynamic race report and update the RAG KB
+      // We don't await this so it doesn't block the Silverwall webhook response
+      fetch('http://localhost:8000/analysis/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          telemetry: payload
+        })
+      }).catch(err => {
+        logger.error('Failed to trigger background ML race report generation', err);
+      });
+
       return c.json({ status: 'success' });
     }
     
