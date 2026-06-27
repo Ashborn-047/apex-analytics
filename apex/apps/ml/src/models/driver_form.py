@@ -25,19 +25,8 @@ class DriverFormIndex:
       d: [val - 4.0, val - 2.0, val] for d, val in self.form_indices.items()
     }
     
-    # Teammate mappings for qualifying margin calculations
-    self.teammates = {
-      "VER": "PER", "PER": "VER",
-      "NOR": "PIA", "PIA": "NOR",
-      "LEC": "SAI", "SAI": "LEC",
-      "HAM": "RUS", "RUS": "HAM",
-      "ALO": "STR", "STR": "ALO",
-      "GAS": "OCO", "OCO": "GAS",
-      "ALB": "SAR", "SAR": "ALB",
-      "TSU": "RIC", "RIC": "TSU",
-      "HUL": "MAG", "MAG": "HUL",
-      "BOT": "ZHO", "ZHO": "BOT"
-    }
+    # Dynamic teammate mappings will be populated from race entry lists
+    self.teammates = {}
 
   def calculate_ewma(self, history: List[float]) -> float:
     if not history:
@@ -72,19 +61,8 @@ class DriverFormIndex:
     }
 
   def get_mock_teammate_delta(self, driver_id: str) -> float:
-    # Average qualifying / pace delta vs teammate in seconds (negative is faster)
-    deltas = {
-      "VER": -0.28, "PER": 0.28,
-      "NOR": -0.15, "PIA": 0.15,
-      "LEC": -0.12, "SAI": 0.12,
-      "HAM": 0.05, "RUS": -0.05,
-      "ALO": -0.22, "STR": 0.22,
-      "ALB": -0.35, "SAR": 0.35,
-      "TSU": -0.08, "RIC": 0.08,
-      "HUL": -0.18, "MAG": 0.18,
-      "BOT": -0.14, "ZHO": 0.14
-    }
-    return deltas.get(driver_id, 0.0)
+    # This will be replaced with dynamic SQL aggregation of qualifying times
+    return 0.0
 
   def update_form(
     self,

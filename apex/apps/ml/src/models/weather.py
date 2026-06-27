@@ -9,24 +9,9 @@ class WeatherImpactModel:
   wet-weather capability rankings.
   """
   def __init__(self):
-    # Historical wet-weather driver performance multipliers (higher is better in the wet)
-    self.wet_weather_multipliers: Dict[str, float] = {
-      "HAM": 1.09, "VER": 1.08, "ALO": 1.06, "LEC": 1.04,
-      "RUS": 1.02, "NOR": 1.03, "SAI": 1.01, "PIA": 0.99,
-      "GAS": 0.98, "OCO": 0.97, "HUL": 0.99, "BOT": 0.98,
-      "TSU": 0.95, "PER": 0.94, "STR": 0.92, "ALB": 0.96,
-      "RIC": 0.93, "MAG": 0.94, "SAR": 0.85, "ZHO": 0.90
-    }
-    
-    self.driver_names = {
-      "VER": "Max Verstappen", "NOR": "Lando Norris", "LEC": "Charles Leclerc",
-      "HAM": "Lewis Hamilton", "RUS": "George Russell", "PIA": "Oscar Piastri",
-      "SAI": "Carlos Sainz", "ALO": "Fernando Alonso", "PER": "Sergio Perez",
-      "STR": "Lance Stroll", "GAS": "Pierre Gasly", "OCO": "Esteban Ocon",
-      "ALB": "Alexander Albon", "SAR": "Logan Sargeant", "TSU": "Yuki Tsunoda",
-      "RIC": "Daniel Ricciardo", "HUL": "Nico Hulkenberg", "MAG": "Kevin Magnussen",
-      "BOT": "Valtteri Bottas", "ZHO": "Guanyu Zhou"
-    }
+    # Historical wet-weather driver performance multipliers (populated dynamically)
+    self.wet_weather_multipliers: Dict[str, float] = {}
+    self.driver_names: Dict[str, str] = {}
 
   def calculate_impact(
     self,

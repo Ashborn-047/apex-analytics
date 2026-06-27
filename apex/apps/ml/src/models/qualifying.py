@@ -19,12 +19,9 @@ class QualifyingPredictor:
     self.is_trained = False
     self.model = None
     
-    # Base expected qualifying positions per constructor layout
-    self.constructor_quali_base = {
-      "red_bull": 2.5, "mclaren": 2.2, "ferrari": 3.8, "mercedes": 4.5,
-      "aston_martin": 8.5, "rb": 11.2, "haas": 12.0, "alpine": 13.5,
-      "williams": 14.2, "sauber": 17.5
-    }
+    # Base expected qualifying positions per constructor layout (populated dynamically during training)
+    self.constructor_quali_base = {}
+    self.driver_quali_offsets = {}
     
     # Track base lap times for Q3 reference (seconds)
     self.track_base_times = {
@@ -60,17 +57,14 @@ class QualifyingPredictor:
     expected_pos = self.constructor_quali_base.get(constructor_id, 10.0)
     
     # 2. Driver skill adjustment
-    # Use dynamic driver Elo if provided, else fallback to static offset
+    # Use dynamic driver Elo if provided, else fallback to trained dynamic offset
     if driver_elo is not None:
         # Assuming average Elo ~ 1600. Higher Elo reduces expected position.
         # Scale: every 100 Elo points is worth ~1.5 grid slots
         driver_offset = (1650.0 - driver_elo) / 60.0
     else:
-        # Top drivers (VER, NOR, LEC, HAM, RUS) get a boost, lower Elo gets penalty
-        driver_offset = {
-          "VER": -1.8, "NOR": -1.5, "LEC": -1.6, "HAM": -1.2, "RUS": -1.3,
-          "PIA": -0.8, "SAI": -0.7, "ALO": -0.9, "PER": 1.2, "STR": 2.0
-        }.get(driver_id, 1.5)
+        # Fallback to dynamically trained offset, or 0.0 if totally unknown
+        driver_offset = self.driver_quali_offsets.get(driver_id, 0.0)
 
     expected_pos += driver_offset
     
@@ -137,13 +131,15 @@ class QualifyingPredictor:
 
         # Calculate dynamic features if they don't exist
         if 'constructor_quali_base' not in df.columns:
+            # Dynamically calculate average constructor position
+            self.constructor_quali_base = df.groupby('constructor_id')['qualifying_position'].mean().to_dict()
             df['constructor_quali_base'] = df['constructor_id'].apply(lambda x: self.constructor_quali_base.get(str(x).lower(), 10.0))
 
         if 'driver_offset' not in df.columns:
-            df['driver_offset'] = df['driver_id'].apply(lambda x: {
-              "VER": -1.8, "NOR": -1.5, "LEC": -1.6, "HAM": -1.2, "RUS": -1.3,
-              "PIA": -0.8, "SAI": -0.7, "ALO": -0.9, "PER": 1.2, "STR": 2.0
-            }.get(str(x).upper(), 1.5))
+            # Dynamically calculate driver offset from their constructor average
+            df['calc_offset'] = df['qualifying_position'] - df['constructor_quali_base']
+            self.driver_quali_offsets = df.groupby('driver_id')['calc_offset'].mean().to_dict()
+            df['driver_offset'] = df['driver_id'].apply(lambda x: self.driver_quali_offsets.get(str(x).upper(), 0.0))
 
         x = df[['constructor_quali_base', 'driver_offset', 'track_temp_c', 'air_temp_c']].values
         y = df['qualifying_position'].values

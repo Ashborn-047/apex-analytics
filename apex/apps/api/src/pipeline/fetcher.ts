@@ -9,26 +9,31 @@ export class JolpicaFetcher {
       url.searchParams.append(key, String(val));
     });
 
-    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-    await sleep(1500); // 1.5 second throttling delay
+    let attempt = 0;
+    while (attempt < 5) {
+      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+      await sleep(2500 * (attempt + 1)); // Backoff throttling delay
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
 
-    if (response.status === 429) {
-      logger.warn(`⚠️ Jolpica API Rate Limit Hit (429) on: ${url}`);
-      throw new Error(`Rate limit hit: 429`);
+      if (response.status === 429) {
+        logger.warn(`⚠️ Jolpica API Rate Limit Hit (429) on: ${url}. Retrying...`);
+        attempt++;
+        continue;
+      }
+
+      if (!response.ok) {
+        logger.error(`❌ Jolpica API Request failed [${response.status}] for: ${url}`);
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      return response.json() as Promise<T>;
     }
-
-    if (!response.ok) {
-      logger.error(`❌ Jolpica API Request failed [${response.status}] for: ${url}`);
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    return response.json() as Promise<T>;
+    throw new Error(`Rate limit hit: 429 repeatedly for ${url}`);
   }
 
   async fetchSeasons(limit = 100, offset = 0): Promise<any> {
