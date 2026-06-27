@@ -1,11 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { API_BASE } from "../config";
-
-interface Message {
-  sender: "user" | "bot";
-  text: string;
-  timestamp: Date;
-}
+import { useChat, Message } from "../context/ChatContext";
 
 const SUGGESTED_QUERIES = [
   "If Verstappen boxes on lap 18 in Monaco GP, does he clear the mid-field DRS train?",
@@ -26,15 +21,8 @@ const DRIVERS = [
 ];
 
 export default function ApexBot() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      sender: "bot",
-      text: "System initialized. I am APEX Bot, your elite F1 Race Strategy and Analytics Assistant. Ask me any analytical question, and I will compile telemetry, historical database schemas, and predictions to assist you.",
-      timestamp: new Date(),
-    },
-  ]);
+  const { messages, addMessage, loading, setLoading, clearChat } = useChat();
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
   
   // RAG Context Parameters
   const [includeElo, setIncludeElo] = useState(false);
@@ -57,7 +45,7 @@ export default function ApexBot() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    addMessage(userMsg);
     setQuery("");
     setLoading(true);
 
@@ -87,7 +75,7 @@ export default function ApexBot() {
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, botMsg]);
+      addMessage(botMsg);
     } catch (error) {
       console.error("Chat API error:", error);
       const errorMsg: Message = {
@@ -95,7 +83,7 @@ export default function ApexBot() {
         text: `⚠️ Telemetry Feed Interrupted. Failed to communicate with ML assistant: ${error instanceof Error ? error.message : String(error)}`,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      addMessage(errorMsg);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;700&family=Instrument+Serif:ital@1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;700&family=Instrument+Serif:ital@1&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -359,6 +359,8 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  text-decoration: none;
+  color: inherit;
   transition: background var(--transition), border-color var(--transition);
 }
 
@@ -413,7 +415,7 @@ h1, h2, h3, h4, h5, h6 {
 .nav-sublabel {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
-  color: var(--text-dim);
+  color: var(--text-muted);
   letter-spacing: 0.07em;
   white-space: nowrap;
   overflow: hidden;
@@ -422,7 +424,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-button.active .nav-sublabel {
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 /* â”€â”€â”€ Sidebar footer â”€â”€â”€ */

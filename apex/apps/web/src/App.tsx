@@ -9,6 +9,8 @@ import DriverCompare from "./pages/DriverCompare";
 import RacePreview from "./pages/RacePreview";
 import DocsWiki from "./pages/DocsWiki";
 import ApexBot from "./pages/ApexBot";
+import { ChatProvider } from "./context/ChatContext";
+import ChatDrawer from "./components/ChatDrawer";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -227,8 +229,9 @@ export default function App() {
   }, [currentTheme]);
 
   return (
-    <div className="app-viewport">
-      {/* Mobile drawer trigger */}
+    <ChatProvider>
+      <div className="app-viewport">
+        {/* Mobile drawer trigger */}
       <button 
         className="mobile-toggle"
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -410,6 +413,10 @@ export default function App() {
           </PageErrorBoundary>
         </div>
       </main>
+      
+      {/* Global Sliding Chat Drawer (only conditionally handles its own visibility, but always mounted) */}
+      <ChatDrawer />
     </div>
+    </ChatProvider>
   );
 }

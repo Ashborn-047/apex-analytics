@@ -44,6 +44,7 @@ class ChatQueryInput(BaseModel):
     include_elo: bool = Field(False, description="Whether to include current Elo data as context.")
     include_strategy: bool = Field(False, description="Whether to include a sample strategy recommendation as context.")
     driver_id_context: Optional[str] = Field(None, description="A specific driver ID (e.g. VER) to gather targeted realtime context for.")
+    page_context: Optional[str] = Field(None, description="The URL or page the user is currently looking at to provide context.")
 
 # --- Routes ---
 
@@ -126,6 +127,10 @@ def chat_with_assistant(request: Request, data: ChatQueryInput):
                 context_data["Sample Live Strategy Recommendation"] = rec
             except Exception as e:
                 logger.warning(f"Failed to inject live strategy recommendation context for driver {data.driver_id_context}: {e!r}")
+
+        # Inject page context if provided
+        if data.page_context:
+            context_data["User Current View Context"] = data.page_context
 
         # Call LangChain
         response = langchain_service.analyze_query(query=data.query, context_data=context_data)
