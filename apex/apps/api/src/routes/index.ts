@@ -5,6 +5,7 @@ import { racesRouter } from './races';
 import { driversRouter } from './drivers';
 import { constructorsRouter } from './constructors';
 import { adminRouter } from './admin';
+import { webhooksRouter } from './webhooks';
 
 export const apiRouter = new Hono();
 
@@ -14,4 +15,5 @@ apiRouter.route('/races', racesRouter);
 apiRouter.route('/drivers', driversRouter);
 apiRouter.route('/constructors', constructorsRouter);
 apiRouter.route('/admin', adminRouter);
+apiRouter.route('/webhooks', webhooksRouter);
 
