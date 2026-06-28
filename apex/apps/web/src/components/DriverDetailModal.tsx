@@ -1,4 +1,5 @@
-﻿import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { useMemo } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import Modal from "./Modal";
 
 import type { EloRanking } from "../types";
@@ -99,11 +100,17 @@ function CustomBarTooltip({ active, payload }: any) {
 }
 
 export default function DriverDetailModal({ isOpen, onClose, driver }: DriverDetailModalProps) {
+  // ⚡ Bolt: [performance improvement] Wrap mock data generation in useMemo to prevent
+  // unnecessary recalculation and UI jumps on re-renders, as it uses Math.random()
+  const eloProgression = useMemo(() => {
+    if (!driver) return [];
+    return driver.history && driver.history.length > 0
+      ? driver.history.map(h => ({ round: h.round, rating: h.elo }))
+      : generateEloProgression(driver.elo_rating);
+  }, [driver]);
+
   if (!driver) return null;
 
-  const eloProgression = driver.history && driver.history.length > 0
-    ? driver.history.map(h => ({ round: h.round, rating: h.elo }))
-    : generateEloProgression(driver.elo_rating);
   const h2hWins = driver.h2h_record?.wins || 0;
   const h2hLosses = driver.h2h_record?.losses || 0;
   const h2hDominance = (h2hWins + h2hLosses) > 0 ? (h2hWins / (h2hWins + h2hLosses)) * 100 : 0;
