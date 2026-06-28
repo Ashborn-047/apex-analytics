@@ -3,7 +3,9 @@ node_modules/
 dist/
 .env
 .env.local
+.env.development
 .env.production
+*.env*
 *.log
 .bun/
 .vscode/
@@ -35,4 +37,7 @@ test-results/
 # Graphify
 graphify-out/
 .graphifyignore
+
+# Pipeline scratch/test scripts
+apex/apps/api/src/pipeline/test-*.ts
 
