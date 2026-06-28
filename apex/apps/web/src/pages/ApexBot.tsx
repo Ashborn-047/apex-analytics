@@ -21,7 +21,7 @@ const DRIVERS = [
 ];
 
 export default function ApexBot() {
-  const { messages, addMessage, loading, setLoading, clearChat } = useChat();
+  const { messages, addMessage, loading, setLoading } = useChat();
   const [query, setQuery] = useState("");
   
   // RAG Context Parameters
