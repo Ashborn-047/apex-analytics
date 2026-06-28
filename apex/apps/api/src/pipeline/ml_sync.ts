@@ -132,68 +132,89 @@ async function main() {
       laps.sort((a, b) => a - b);
     }
 
-    // Fetch all lap times
-    const allLaps = await db.select({
-      raceId: lapTimes.raceId,
-      driverId: lapTimes.driverId,
-      driverCode: drivers.code,
-      lap: lapTimes.lap,
-      timeMs: lapTimes.timeMs
-    })
-    .from(lapTimes)
-    .innerJoin(drivers, eq(lapTimes.driverId, drivers.id));
-
-    logger.info(`Fetched ${allLaps.length} total raw lap time entries from Postgres.`);
-
-    // Compute max lap per race to estimate fuel load
-    const raceTotalLaps = new Map<number, number>();
-    for (const lap of allLaps) {
-      const currentMax = raceTotalLaps.get(lap.raceId) || 0;
-      if (lap.lap > currentMax) {
-        raceTotalLaps.set(lap.raceId, lap.lap);
-      }
-    }
-
-    // Map lap time rows to training schema
+    // Fetch lap times race-by-race in parallel batches to prevent connection drops and speed up processing
+    // We only select the last 40 races (~40,000 laps) to train our models, which is more than enough
+    // for a highly accurate Ridge/XGBoost model and prevents network drops on the remote DB.
     const trainingLaps = [];
-    for (const lap of allLaps) {
-      const driverKey = `${lap.raceId}_${lap.driverId}`;
-      const stops = pitMap.get(driverKey) || [];
-      
-      const stopsBefore = stops.filter(stopLap => stopLap < lap.lap).length;
-      const stintIndex = stopsBefore + 1;
-      const stintStartLap = stopsBefore > 0 ? stops[stopsBefore - 1] + 1 : 1;
-      
-      const stintLap = lap.lap - stintStartLap + 1;
-      const tyreAgeTotal = stintLap;
-      
-      // Determine compound heuristically based on stint index
-      let compound = 'MEDIUM';
-      if (stintIndex === 2) compound = 'HARD';
-      else if (stintIndex === 3) compound = 'SOFT';
-      
-      const totalLaps = raceTotalLaps.get(lap.raceId) || 50;
-      const fuelLoadKg = Math.max(0.0, 100.0 * (1.0 - (lap.lap / totalLaps)));
-      
-      const trackTempC = 30.0 + (lap.raceId % 10);
-      const airTempC = 20.0 + (lap.raceId % 5);
-      const lapTimeS = lap.timeMs / 1000.0;
-      
-      // Filter out safety cars, formation laps, and extreme outlier lap times (dry baseline)
-      if (lapTimeS < 50.0 || lapTimeS > 150.0) {
-        continue;
-      }
-
-      trainingLaps.push({
-        driver_id: lap.driverCode ? lap.driverCode.toUpperCase() : 'VER',
-        compound,
-        stint_lap: stintLap,
-        tyre_age_total: tyreAgeTotal,
-        track_temp_c: trackTempC,
-        air_temp_c: airTempC,
-        fuel_load_kg: fuelLoadKg,
-        lap_time_s: lapTimeS
+    const raceTotalLaps = new Map<number, number>();
+    
+    logger.info(`Fetching historical lap times in parallel batches...`);
+    const BATCH_SIZE = 15;
+    const trainingRaceList = raceList.slice(-40);
+    for (let i = 0; i < trainingRaceList.length; i += BATCH_SIZE) {
+      const batch = trainingRaceList.slice(i, i + BATCH_SIZE);
+      const batchPromises = batch.map(async (r) => {
+        const lapsForRace = await db.select({
+          raceId: lapTimes.raceId,
+          driverId: lapTimes.driverId,
+          driverCode: drivers.code,
+          lap: lapTimes.lap,
+          timeMs: lapTimes.timeMs
+        })
+        .from(lapTimes)
+        .innerJoin(drivers, eq(lapTimes.driverId, drivers.id))
+        .where(eq(lapTimes.raceId, r.id));
+        return { race: r, laps: lapsForRace };
       });
+
+      const batchResults = await Promise.all(batchPromises);
+      for (const res of batchResults) {
+        const { race, laps: lapsForRace } = res;
+        if (lapsForRace.length === 0) {
+          continue;
+        }
+
+        // Compute max lap for this race to estimate fuel load
+        let maxLap = 0;
+        for (const lap of lapsForRace) {
+          if (lap.lap > maxLap) {
+            maxLap = lap.lap;
+          }
+        }
+        raceTotalLaps.set(race.id, maxLap);
+
+        for (const lap of lapsForRace) {
+          const driverKey = `${lap.raceId}_${lap.driverId}`;
+          const stops = pitMap.get(driverKey) || [];
+          
+          const stopsBefore = stops.filter(stopLap => stopLap < lap.lap).length;
+          const stintIndex = stopsBefore + 1;
+          const stintStartLap = stopsBefore > 0 ? stops[stopsBefore - 1] + 1 : 1;
+          
+          const stintLap = lap.lap - stintStartLap + 1;
+          const tyreAgeTotal = stintLap;
+          
+          // Determine compound heuristically based on stint index
+          let compound = 'MEDIUM';
+          if (stintIndex === 2) compound = 'HARD';
+          else if (stintIndex === 3) compound = 'SOFT';
+          
+          const totalLaps = maxLap || 50;
+          const fuelLoadKg = Math.max(0.0, 100.0 * (1.0 - (lap.lap / totalLaps)));
+          
+          const trackTempC = 30.0 + (lap.raceId % 10);
+          const airTempC = 20.0 + (lap.raceId % 5);
+          const lapTimeS = lap.timeMs / 1000.0;
+          
+          // Filter out safety cars, formation laps, and extreme outlier lap times (dry baseline)
+          if (lapTimeS < 50.0 || lapTimeS > 150.0) {
+            continue;
+          }
+
+          trainingLaps.push({
+            driver_id: lap.driverCode ? lap.driverCode.toUpperCase() : 'VER',
+            compound,
+            stint_lap: stintLap,
+            tyre_age_total: tyreAgeTotal,
+            track_temp_c: trackTempC,
+            air_temp_c: airTempC,
+            fuel_load_kg: fuelLoadKg,
+            lap_time_s: lapTimeS
+          });
+        }
+      }
+      
+      logger.info(`  - Processed lap times for up to race index ${Math.min(i + BATCH_SIZE, trainingRaceList.length)} / ${trainingRaceList.length} races...`);
     }
 
     logger.info(`Prepared ${trainingLaps.length} clean training samples after filtering.`);

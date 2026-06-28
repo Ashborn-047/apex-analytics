@@ -27,7 +27,10 @@ db_instance = None
 db_url = os.getenv("DATABASE_URL")
 if db_url:
     try:
-        db_instance = SQLDatabase.from_uri(db_url)
+        db_instance = SQLDatabase.from_uri(
+            db_url,
+            include_tables=['circuits', 'seasons', 'races', 'drivers', 'constructors', 'results', 'lap_times', 'qualifying', 'pit_stops']
+        )
         print("SQLDatabase helper initialized successfully.")
     except Exception as e:
         print(f"WARNING: Failed to connect SQLDatabase: {e}")
@@ -215,10 +218,16 @@ class LangChainService:
                 VECTOR_SIZE = 384
 
                 # Auto-initialize the table and vector size
-                self.engine.init_vectorstore_table(
-                    table_name=TABLE_NAME,
-                    vector_size=VECTOR_SIZE
-                )
+                try:
+                    self.engine.init_vectorstore_table(
+                        table_name=TABLE_NAME,
+                        vector_size=VECTOR_SIZE
+                    )
+                except Exception as e:
+                    if "already exists" in str(e) or "DuplicateTable" in str(e):
+                        pass
+                    else:
+                        raise
 
                 # Create sync vector store
                 self.vector_store = PGVectorStore.create_sync(

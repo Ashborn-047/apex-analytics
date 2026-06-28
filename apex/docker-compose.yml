@@ -29,7 +29,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/apex
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/apex}
       - REDIS_URL=redis://redis:6379
       - DEFAULT_API_KEY=f1_apex_super_secret_dev_key
       - INGEST_SEASONS_LIMIT=5
@@ -51,6 +51,8 @@ services:
     environment:
       - PORT=8000
       - ENV=development
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/apex}
+      - APEX_API_URL=http://api:3000
     depends_on:
       - postgres
       - redis

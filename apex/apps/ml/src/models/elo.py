@@ -71,7 +71,8 @@ class EloRatingSystem:
             "uncertainties": self.uncertainties,
             "recent_deltas": self.recent_deltas,
             "h2h_records": {f"{k[0]}-{k[1]}": v for k, v in self.h2h_records.items()},
-            "matchups_history": self.matchups_history
+            "matchups_history": self.matchups_history,
+            "history": self.history
         }
         with open(self.state_file, "w") as f:
             json.dump(state, f)
@@ -83,6 +84,7 @@ class EloRatingSystem:
             self.ratings = state.get("ratings", {})
             self.uncertainties = state.get("uncertainties", {})
             self.recent_deltas = state.get("recent_deltas", {})
+            self.history = state.get("history", {})
             
             raw_h2h = state.get("h2h_records", {})
             self.h2h_records = {tuple(k.split("-")): v for k, v in raw_h2h.items()}

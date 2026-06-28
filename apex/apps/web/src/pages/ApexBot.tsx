@@ -130,9 +130,28 @@ export default function ApexBot() {
                 CONSOLE: APEX-BOT-SESSION
               </span>
             </div>
-            <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>
-              NEMOTRON-70B // ACTIVE
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <span className="text-mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>
+                NEMOTRON-70B // ACTIVE
+              </span>
+              <button
+                onClick={clearChat}
+                className="text-mono"
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "2px",
+                  padding: "0.25rem 0.5rem",
+                  color: "var(--accent-primary)",
+                  fontSize: "0.6rem",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  letterSpacing: "0.05em"
+                }}
+              >
+                [ RESET SESSION ]
+              </button>
+            </div>
           </div>
 
           {/* Messages Panel */}
