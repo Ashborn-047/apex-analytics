@@ -99,7 +99,7 @@ apex/
 *   **Database ORM:** Drizzle
 *   **Database:** Neon Serverless PostgreSQL (ap-south-1 Mumbai region)
 *   **Cache & Queue:** Upstash Redis + BullMQ
-*   **ML Microservice:** Python 3.12 + FastAPI + scikit-learn + XGBoost + pandas + statsmodels
+*   **ML Microservice:** Python 3.12 + FastAPI + scikit-learn + XGBoost + pandas + statsmodels + LangChain + pgvector + sentence-transformers
 *   **3D Geometry Renderer:** Three.js (vanilla ES module embed)
 *   **Dashboard Web App:** React + Vite + Tailwind CSS + Recharts + D3 + Zustand
 *   **E2E Testing:** Playwright (Desktop Chromium & Mobile Pixel 5 Chrome simulation)
@@ -210,7 +210,8 @@ APEX is equipped with fully active Python-based machine learning pipelines (`app
 ### 1. Driver ELO Ratings (`apps/ml/src/models/elo.py`)
 *   **Core Logic:** Isolates driver skill from constructor performance by weighting same-car teammate qualifying and race comparisons.
 *   **Features:** Implements continuous qualifying outcomes scaled via sigmoid lap time differences, rookie cold-starts, and mechanical DNF filtering.
-*   **UI Dashboard:** Displays teammate Elo matchups, head-to-head dominance gauges, and a round-by-round Elo progression sparkline line chart.
+*   **Persistence:** Elo state (ratings + round-by-round history) is now serialized to `elo_state.json` on every sync and reloaded on service boot — ratings no longer reset between restarts.
+*   **UI Dashboard:** Displays teammate Elo matchups, head-to-head dominance gauges, and a round-by-round Elo progression sparkline line chart. Season selector dynamically filters rankings per year.
 
 ### 2. Tyre degradation & Lap Time Predictor (`apps/ml/src/models/lap_time.py`)
 *   **Core Logic:** Trains dynamic Ridge and XGBoost regression models on historical timings grouped by stints, excluding safety cars and pace outliers.
@@ -295,6 +296,7 @@ The assistant determines the optimal path to answer user queries using a dynamic
 Located at `/bot`, the React-based chat window features:
 *   **Context Control Switches:** Toggles to inject live driver Elo ratings and stint/pit strategy outputs directly into the prompt context.
 *   **Interactive System Glossary:** Guarantees proper terminology translation for motorsport slang (e.g., mapping *“box”* to pit stops, *“undercut”* to early stint strategies).
+*   **Reset Session Button:** A `[ RESET SESSION ]` control in the chat header clears the full conversation log for a clean context restart.
 
 ### 3. Agent Environment Variables
 To enable the AI Assistant, configure the following inside your `apps/ml/.env`:
@@ -309,12 +311,23 @@ NVIDIA_MODEL="nvidia/nemotron-3-super-120b-a12b"
 
 ## Machine Learning Data Synchronization Pipeline
 
-The monorepo features an automated data synchronization script in the API package. It queries database standings and stint lap times, pushes actual timings to the ML microservice cache, trains the regression models, and runs championship simulations.
+The monorepo features an automated data synchronization script (`apps/api/src/pipeline/ml_sync.ts`). It queries database standings and stint lap times, pushes actual timings to the ML microservice cache, trains the regression models, and runs Monte Carlo championship simulations for all seasons.
 
-To trigger the pipeline inside the API container:
+### Pipeline Optimizations
+*   **Parallel lap-time fetching:** Historical lap times are fetched in parallel batches of 15 races, reducing full sync time to under 10 seconds on local Postgres.
+*   **Training data slice:** The model trains on the last 40 races (~28,000–40,000 samples) to prevent Neon DB remote connection timeouts.
+*   **Persistent Elo state:** Ratings are written to `elo_state.json` after each sync and reloaded on service boot.
+
+To trigger the pipeline:
 ```bash
+# Local (recommended for development — fast, no remote timeout risk)
+bun run sync:ml   # inside apps/api
+
+# Inside the API Docker container
 docker exec apex-api bun run --cwd apps/api sync:ml
 ```
+
+> **Note:** When targeting Neon DB remotely, SSL connection drops on large sequential queries can cause hangs. The parallel batching fix mitigates this, but local Postgres is recommended for full reseeds.
 
 ---
 
