@@ -1,16 +1,18 @@
-import { useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
+import { lazy, Suspense, useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
 import { Routes, Route, Navigate, NavLink, useParams, useNavigate } from "react-router-dom";
-import EloDashboard from "./pages/EloDashboard";
-import TyreLapPredictor from "./pages/TyreLapPredictor";
-import PitWallPlanner from "./pages/PitWallPlanner";
-import MonteCarlo from "./pages/MonteCarlo";
-import DriverProfile from "./pages/DriverProfile";
-import DriverCompare from "./pages/DriverCompare";
-import RacePreview from "./pages/RacePreview";
-import DocsWiki from "./pages/DocsWiki";
-import ApexBot from "./pages/ApexBot";
 import { ChatProvider } from "./context/ChatContext";
 import ChatDrawer from "./components/ChatDrawer";
+
+// Lazy-load all page components so each route gets its own JS chunk
+const EloDashboard    = lazy(() => import("./pages/EloDashboard"));
+const TyreLapPredictor = lazy(() => import("./pages/TyreLapPredictor"));
+const PitWallPlanner  = lazy(() => import("./pages/PitWallPlanner"));
+const MonteCarlo      = lazy(() => import("./pages/MonteCarlo"));
+const DriverProfile   = lazy(() => import("./pages/DriverProfile"));
+const DriverCompare   = lazy(() => import("./pages/DriverCompare"));
+const RacePreview     = lazy(() => import("./pages/RacePreview"));
+const DocsWiki        = lazy(() => import("./pages/DocsWiki"));
+const ApexBot         = lazy(() => import("./pages/ApexBot"));
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -353,6 +355,11 @@ export default function App() {
       <main className="detail-viewport">
         <div className="detail-content">
           <PageErrorBoundary>
+            <Suspense fallback={
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.7rem", letterSpacing: "0.1em" }}>
+                LOADING MODULE...
+              </div>
+            }>
             <Routes>
               <Route path="/" element={<Navigate to="/elo" replace />} />
               
@@ -410,6 +417,7 @@ export default function App() {
               <Route path="/docs/sandbox" element={<DocsWiki subTab="sandbox" />} />
               <Route path="/docs/changelog" element={<DocsWiki subTab="changelog" />} />
             </Routes>
+            </Suspense>
           </PageErrorBoundary>
         </div>
       </main>

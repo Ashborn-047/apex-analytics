@@ -23,5 +23,17 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // React core — always needed, load first
+            "vendor-react": ["react", "react-dom", "react-router-dom"],
+            // Recharts is large (~400 kB); only needed on data pages
+            "vendor-recharts": ["recharts"],
+          },
+        },
+      },
+    },
   };
 });

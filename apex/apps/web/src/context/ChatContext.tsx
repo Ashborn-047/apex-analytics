@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface Message {
   sender: "user" | "bot";
   text: string;
   timestamp: Date;
 }
+
+type PersistedMessage = Omit<Message, "timestamp"> & { timestamp: string };
 
 interface ChatContextType {
   messages: Message[];
@@ -29,7 +31,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       try {
         const parsed = JSON.parse(saved);
         // Convert ISO strings back to Date objects
-        return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+        return parsed.map((m: PersistedMessage) => ({ ...m, timestamp: new Date(m.timestamp) }));
       } catch (e) {
         console.error("Failed to parse chat history from localStorage", e);
       }
