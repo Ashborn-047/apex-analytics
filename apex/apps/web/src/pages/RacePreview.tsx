@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../config";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -54,6 +54,14 @@ export default function RacePreview({ season }: { season: number }) {
   const [qualGrid, setQualGrid] = useState<QualifyingPrediction[]>([]);
   const [raceOutcomes, setRaceOutcomes] = useState<RaceOutcomePrediction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // ⚡ Bolt: [performance improvement] Pre-compute DRIVERS lookup map to avoid O(N^2) Array.find calls inside render loops
+  const driverMetaMap = useMemo(() => {
+    return DRIVERS.reduce((acc, driver) => {
+      acc[driver.id] = driver;
+      return acc;
+    }, {} as Record<string, DriverMeta>);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -129,17 +137,20 @@ export default function RacePreview({ season }: { season: number }) {
       });
   }, [circuitId, circuitType, trackTemp, airTemp, season]);
 
-  const activeDriver = DRIVERS.find(d => d.id === selectedDriverId) || DRIVERS[0];
-  const activeQual = qualGrid.find(q => q.driver_id === selectedDriverId);
-  const activeRace = raceOutcomes.find(r => r.driver_id === selectedDriverId);
+  // ⚡ Bolt: [performance improvement] Wrap expensive find operations and array mapping in useMemo to avoid recalculation on unrelated render cycles
+  const activeDriver = useMemo(() => driverMetaMap[selectedDriverId] || DRIVERS[0], [selectedDriverId, driverMetaMap]);
+  const activeQual = useMemo(() => qualGrid.find(q => q.driver_id === selectedDriverId), [qualGrid, selectedDriverId]);
+  const activeRace = useMemo(() => raceOutcomes.find(r => r.driver_id === selectedDriverId), [raceOutcomes, selectedDriverId]);
 
   // Format Recharts data for the clicked driver's finishing position distribution
-  const chartData = activeRace && activeRace.position_probabilities
-    ? Object.entries(activeRace.position_probabilities).map(([pos, prob]) => ({
-        position: pos,
-        probability: prob * 100
-      }))
-    : [];
+  const chartData = useMemo(() => {
+    return activeRace && activeRace.position_probabilities
+      ? Object.entries(activeRace.position_probabilities).map(([pos, prob]) => ({
+          position: pos,
+          probability: prob * 100
+        }))
+      : [];
+  }, [activeRace]);
 
   const formatLapTime = (s: number) => {
     if (isNaN(s) || s <= 0) return "--:--.---";
@@ -254,7 +265,7 @@ export default function RacePreview({ season }: { season: number }) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {qualGrid.map((driver, index) => {
-                const meta = DRIVERS.find(d => d.id === driver.driver_id) || DRIVERS[0];
+                const meta = driverMetaMap[driver.driver_id] || DRIVERS[0];
                 const isSelected = selectedDriverId === driver.driver_id;
                 
                 return (
