@@ -20,13 +20,6 @@ class RaceOutcomePredictor:
     
     # Standard F1 points distribution: P1 -> 25, P2 -> 18, etc.
     self.points_table = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
-    
-    # Driver names/ids for metadata
-    self.driver_names = {
-      "VER": "Max Verstappen", "NOR": "Lando Norris", "LEC": "Charles Leclerc",
-      "HAM": "Lewis Hamilton", "RUS": "George Russell", "PIA": "Oscar Piastri",
-      "SAI": "Carlos Sainz", "ALO": "Fernando Alonso", "PER": "Sergio Perez"
-    }
 
   def calculate_outcome(
     self,
