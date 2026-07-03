@@ -216,16 +216,22 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
     const mediumCurve = compoundsData.find(d => d.compound === "MEDIUM")?.degradation_curve;
     const hardCurve = compoundsData.find(d => d.compound === "HARD")?.degradation_curve;
 
+    // ⚡ Bolt: Pre-compute maps for O(1) lookups instead of O(N) Array.find calls inside the render loop
+    const softMap = new Map(softCurve?.map(p => [p.stint_lap, p]) || []);
+    const mediumMap = new Map(mediumCurve?.map(p => [p.stint_lap, p]) || []);
+    const hardMap = new Map(hardCurve?.map(p => [p.stint_lap, p]) || []);
+    const simMap = new Map(simulatedLaps.map(sl => [sl.lap, sl]));
+
     return Array.from({ length: 25 }, (_, idx) => {
       const lap = idx + 1;
-      const softPt = softCurve?.find(p => p.stint_lap === lap);
-      const mediumPt = mediumCurve?.find(p => p.stint_lap === lap);
-      const hardPt = hardCurve?.find(p => p.stint_lap === lap);
+      const softPt = softMap.get(lap);
+      const mediumPt = mediumMap.get(lap);
+      const hardPt = hardMap.get(lap);
 
       const activePredicted = selectedCompound === "soft" ? softPt?.predicted_s
         : (selectedCompound === "medium" ? mediumPt?.predicted_s : hardPt?.predicted_s);
 
-      const simLap = simulatedLaps.find(sl => sl.lap === lap);
+      const simLap = simMap.get(lap);
 
       return {
         lap,
