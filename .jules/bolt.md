@@ -12,3 +12,6 @@
 **Learning:** Generating arrays of random mock data directly within component render bodies (e.g. `generateEloComparisonHistory`) without `useMemo` triggers expensive re-evaluations and causes charts to redraw/jump on completely unrelated state updates (like hovering or toggling sub-tabs).
 **Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo` to ensure visual stability and prevent wasted computational cycles during normal UI interactions.
 
+## 2025-06-28 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
+**Learning:** Found an unmemoized mock data generation `generateEloProgression` in `DriverDetailModal.tsx` that uses `Math.random()`. Without memoization, any re-render triggers recalculation, resulting in unnecessary layout shifts and wasted CPU cycles. Also learned to be mindful of early returns in React components when adding hooks.
+**Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo`. When applying `useMemo`, remember to place it before early returns (like `if (!driver) return null;`) to avoid violating the Rules of Hooks. Add safe fallbacks inside the `useMemo` block if needed.
