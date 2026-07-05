@@ -107,7 +107,7 @@ export default function DriverDetailModal({ isOpen, onClose, driver }: DriverDet
     return driver.history && driver.history.length > 0
       ? driver.history.map(h => ({ round: h.round, rating: h.elo }))
       : generateEloProgression(driver.elo_rating);
-  }, [driver?.history, driver?.elo_rating]);
+  }, [driver]);
 
   if (!driver) return null;
 
