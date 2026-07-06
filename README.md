@@ -103,7 +103,7 @@ apex/
 *   **3D Geometry Renderer:** Three.js (vanilla ES module embed)
 *   **Dashboard Web App:** React + Vite + Tailwind CSS + Recharts + D3 + Zustand
 *   **E2E Testing:** Playwright (Desktop Chromium & Mobile Pixel 5 Chrome simulation)
-*   **Hosting:** Fly.io (bom Mumbai region) for API/ML, Vercel for Dashboard, Upstash / Neon for databases.
+*   **Hosting:** Fly.io (bom Mumbai region) for API/ML, **GitHub Pages** for the Dashboard, Upstash / Neon for databases.
 
 ---
 
@@ -182,6 +182,16 @@ To help manage the ingestion queue and local database state during development, 
 *   `bun run reset-pipeline` — Safely drains/cleans the BullMQ queue and truncates the database tables in order of foreign key dependencies before queueing a fresh, clean `ingest-all` job.
 *   `bun run check-queue` — Queries the Redis cache and prints the current BullMQ job counts (`active`, `delayed`, `failed`, `waiting`).
 
+### 7. Running the ML Service Locally
+The ML microservice must be running separately for all prediction endpoints and APEX Bot to function in development:
+```bash
+# Inside apex/apps/ml
+python -m uvicorn src.main:app --reload --port 8000
+```
+The FastAPI service will start on `http://localhost:8000`. Interactive Swagger UI is available at `http://localhost:8000/docs`. The frontend proxy in `vite.config.ts` automatically routes `/api/*` calls to `:8000` in development.
+
+> **Note:** On first startup, the service loads XGBoost weights and initializes the pgvector store on Neon — expect ~5–10 seconds before the `/health` endpoint responds.
+
 ---
 
 ## Cloud Deployment (Fly.io)
@@ -257,7 +267,9 @@ APEX is equipped with fully active Python-based machine learning pipelines (`app
 
 ## APEX Bot: Agentic RAG & AI Assistant
 
-APEX is equipped with **APEX Bot**, an intelligent conversational assistant powered by an Agentic Retrieval-Augmented Generation (RAG) router utilizing **Nvidia Nemotron-3-Super-120B-a12b** (or Groq Llama-3-8B-8192 fallback) as its core reasoning engine. 
+APEX is equipped with **APEX Bot**, an intelligent conversational assistant powered by an Agentic Retrieval-Augmented Generation (RAG) router utilizing **Nvidia Nemotron-3-Super-120B-a12b** (or Groq Llama-3-8B-8192 fallback) as its core reasoning engine.
+
+> The vector knowledge base has been migrated from an in-memory FAISS index to a **persistent pgvector store on Neon PostgreSQL**, enabling cross-restart document memory and scalable semantic search.
 
 ### 1. Hybrid RAG Architecture
 
@@ -336,5 +348,13 @@ docker exec apex-api bun run --cwd apps/api sync:ml
 *   **Continuous Integration (`ci.yml`):** Automatically triggers lint checks (`eslint`), typecheck validation (`tsc`), and workspaces build testing on all pushes and pull requests to ensure monorepo integrity.
 *   **E2E Browser Tests (`e2e.yml`):** Runs Playwright end-to-end tests validating layout responsiveness (desktop and mobile viewports), dynamic compound selectors, simulated vs actual metrics, API failure resilience (error boundaries and reconnection recovery), and live simulation tickers.
 *   **Continuous Deployment:** On commits to `main`, automatically builds and deploys:
+    *   **Dashboard (`deploy.yml`):** Runs `vite build` and deploys the static output to **GitHub Pages** at `https://ashborn-047.github.io/apex-analytics/`.
     *   **API Service (`deploy-api.yml`):** Deploys to Fly.io using the monorepo root context.
     *   **ML Service (`deploy-ml.yml`):** Deploys to Fly.io.
+
+---
+
+## Live Demo
+
+> 🌐 **Dashboard:** [https://ashborn-047.github.io/apex-analytics/](https://ashborn-047.github.io/apex-analytics/)
+> ⚠️ The live demo connects to the production Fly.io ML backend. Some prediction endpoints may have cold-start latency on the free tier.
