@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { API_BASE } from "../config";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -24,6 +24,13 @@ const DRIVERS: DriverMeta[] = [
   { id: "ALO", name: "Fernando Alonso", team: "Aston Martin", teamId: "aston_martin", color: "#229971" },
   { id: "PER", name: "Sergio Perez", team: "Red Bull Racing", teamId: "red_bull", color: "#3671C6" },
 ];
+
+// ⚡ Bolt: [performance improvement] Convert static array to O(1) lookup dictionary outside the component
+// This prevents having to run `.find` lookups repeatedly during renders
+const DRIVER_MAP: Record<string, DriverMeta> = DRIVERS.reduce((acc, d) => {
+  acc[d.id] = d;
+  return acc;
+}, {} as Record<string, DriverMeta>);
 
 interface QualifyingPrediction {
   driver_id: string;
@@ -129,17 +136,18 @@ export default function RacePreview({ season }: { season: number }) {
       });
   }, [circuitId, circuitType, trackTemp, airTemp, season]);
 
-  const activeDriver = DRIVERS.find(d => d.id === selectedDriverId) || DRIVERS[0];
-  const activeQual = qualGrid.find(q => q.driver_id === selectedDriverId);
-  const activeRace = raceOutcomes.find(r => r.driver_id === selectedDriverId);
+  // ⚡ Bolt: [performance improvement] Use O(1) dictionary lookup instead of O(N) `.find`
+  const activeDriver = DRIVER_MAP[selectedDriverId] || DRIVERS[0];
+  const activeQual = React.useMemo(() => qualGrid.find(q => q.driver_id === selectedDriverId), [qualGrid, selectedDriverId]);
+  const activeRace = React.useMemo(() => raceOutcomes.find(r => r.driver_id === selectedDriverId), [raceOutcomes, selectedDriverId]);
 
   // Format Recharts data for the clicked driver's finishing position distribution
-  const chartData = activeRace && activeRace.position_probabilities
+  const chartData = React.useMemo(() => activeRace && activeRace.position_probabilities
     ? Object.entries(activeRace.position_probabilities).map(([pos, prob]) => ({
         position: pos,
         probability: prob * 100
       }))
-    : [];
+    : [], [activeRace]);
 
   const formatLapTime = (s: number) => {
     if (isNaN(s) || s <= 0) return "--:--.---";
@@ -254,7 +262,8 @@ export default function RacePreview({ season }: { season: number }) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {qualGrid.map((driver, index) => {
-                const meta = DRIVERS.find(d => d.id === driver.driver_id) || DRIVERS[0];
+                // ⚡ Bolt: [performance improvement] Replace O(N) array search inside .map loop with O(1) dictionary lookup
+                const meta = DRIVER_MAP[driver.driver_id] || DRIVERS[0];
                 const isSelected = selectedDriverId === driver.driver_id;
                 
                 return (
