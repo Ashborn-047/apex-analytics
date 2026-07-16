@@ -25,6 +25,9 @@ const DRIVERS: DriverMeta[] = [
   { id: "PER", name: "Sergio Perez", team: "Red Bull Racing", teamId: "red_bull", color: "#3671C6" },
 ];
 
+// ⚡ Bolt: [performance improvement] Pre-compute O(1) lookup map for driver metadata to replace O(N) Array.find calls
+const DRIVER_MAP: Record<string, DriverMeta> = Object.fromEntries(DRIVERS.map(d => [d.id, d]));
+
 interface QualifyingPrediction {
   driver_id: string;
   constructor_id: string;
@@ -129,7 +132,8 @@ export default function RacePreview({ season }: { season: number }) {
       });
   }, [circuitId, circuitType, trackTemp, airTemp, season]);
 
-  const activeDriver = DRIVERS.find(d => d.id === selectedDriverId) || DRIVERS[0];
+  // ⚡ Bolt: [performance improvement] Use O(1) map lookup instead of O(N) Array.find for active driver
+  const activeDriver = DRIVER_MAP[selectedDriverId] || DRIVERS[0];
   const activeQual = qualGrid.find(q => q.driver_id === selectedDriverId);
   const activeRace = raceOutcomes.find(r => r.driver_id === selectedDriverId);
 
@@ -254,7 +258,8 @@ export default function RacePreview({ season }: { season: number }) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {qualGrid.map((driver, index) => {
-                const meta = DRIVERS.find(d => d.id === driver.driver_id) || DRIVERS[0];
+                // ⚡ Bolt: [performance improvement] Use O(1) map lookup instead of O(N) Array.find inside render loop
+                const meta = DRIVER_MAP[driver.driver_id] || DRIVERS[0];
                 const isSelected = selectedDriverId === driver.driver_id;
                 
                 return (
