@@ -216,16 +216,27 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
     const mediumCurve = compoundsData.find(d => d.compound === "MEDIUM")?.degradation_curve;
     const hardCurve = compoundsData.find(d => d.compound === "HARD")?.degradation_curve;
 
+    // ⚡ Bolt: [performance improvement] Replace inner array.find calls with O(1) map lookups
+    const softMap: Record<number, any> = {};
+    const mediumMap: Record<number, any> = {};
+    const hardMap: Record<number, any> = {};
+    const simMap: Record<number, any> = {};
+
+    softCurve?.forEach(p => { softMap[p.stint_lap] = p; });
+    mediumCurve?.forEach(p => { mediumMap[p.stint_lap] = p; });
+    hardCurve?.forEach(p => { hardMap[p.stint_lap] = p; });
+    simulatedLaps.forEach(sl => { simMap[sl.lap] = sl; });
+
     return Array.from({ length: 25 }, (_, idx) => {
       const lap = idx + 1;
-      const softPt = softCurve?.find(p => p.stint_lap === lap);
-      const mediumPt = mediumCurve?.find(p => p.stint_lap === lap);
-      const hardPt = hardCurve?.find(p => p.stint_lap === lap);
+      const softPt = softMap[lap];
+      const mediumPt = mediumMap[lap];
+      const hardPt = hardMap[lap];
 
       const activePredicted = selectedCompound === "soft" ? softPt?.predicted_s
         : (selectedCompound === "medium" ? mediumPt?.predicted_s : hardPt?.predicted_s);
 
-      const simLap = simulatedLaps.find(sl => sl.lap === lap);
+      const simLap = simMap[lap];
 
       return {
         lap,
