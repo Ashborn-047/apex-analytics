@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { NavLink } from "react-router-dom";
 import type { EloRanking } from "../types";
 import { API_BASE } from "../config";
@@ -45,7 +45,7 @@ interface DriverRowProps {
   /** Flag indicating if the driver is selected for comparison */
   isCompareChecked: boolean;
   /** Callback triggered when toggling the compare checkbox */
-  onCompareToggle: (e: React.MouseEvent) => void;
+  onCompareToggle: (driverId: string, e: React.MouseEvent) => void;
   /** The performance form percentage index */
   formIndex: number;
   /** The performance form trend direction ("UP" or "DOWN") */
@@ -56,7 +56,8 @@ interface DriverRowProps {
  * Renders a single row in the Elo standings table, displaying driver info, team color,
  * rating value, a visual progression bar, performance form badge, and historic sparkline.
  */
-function DriverRow({
+// ⚡ Bolt: [performance improvement] Wrap DriverRow in memo to prevent re-rendering all rows on EloDashboard state changes
+const DriverRow = memo(function DriverRow({
   driver,
   rank,
   isSelected,
@@ -97,7 +98,7 @@ function DriverRow({
       }}
     >
       {/* Compare Checkbox */}
-      <div style={{ textAlign: "center" }} onClick={onCompareToggle}>
+      <div style={{ textAlign: "center" }} onClick={(e) => onCompareToggle(driver.driver_id, e)}>
         <input
           type="checkbox"
           checked={isCompareChecked}
@@ -212,7 +213,7 @@ function DriverRow({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Props for the EloDashboard component.
@@ -289,7 +290,8 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
       });
   }, [season, scope]);
 
-  const handleCompareToggle = (driverId: string, e: React.MouseEvent) => {
+  // ⚡ Bolt: [performance improvement] Wrap event handler in useCallback to preserve referential equality for memoized row components
+  const handleCompareToggle = useCallback((driverId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Stop row click trigger
     setCompareList(prev => {
       if (prev.includes(driverId)) {
@@ -302,7 +304,7 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
         return [...prev, driverId];
       }
     });
-  };
+  }, []);
 
   const activeDriver = selected || rankings[0];
 
@@ -507,7 +509,7 @@ export default function EloDashboard({ season, onViewProfile, onViewCompare, sub
                     rank={i}
                     isSelected={activeDriver.driver_id === driver.driver_id}
                     isCompareChecked={compareList.includes(driver.driver_id)}
-                    onCompareToggle={(e) => handleCompareToggle(driver.driver_id, e)}
+                    onCompareToggle={handleCompareToggle}
                     formIndex={form.val}
                     formTrend={form.trend}
                   />
