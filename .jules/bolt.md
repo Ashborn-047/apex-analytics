@@ -15,3 +15,11 @@
 ## 2025-06-28 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
 **Learning:** Found an unmemoized mock data generation `generateEloProgression` in `DriverDetailModal.tsx` that uses `Math.random()`. Without memoization, any re-render triggers recalculation, resulting in unnecessary layout shifts and wasted CPU cycles. Also learned to be mindful of early returns in React components when adding hooks.
 **Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo`. When applying `useMemo`, remember to place it before early returns (like `if (!driver) return null;`) to avoid violating the Rules of Hooks. Add safe fallbacks inside the `useMemo` block if needed.
+
+## 2024-03-24 - [Avoid React Micro-Optimizations]
+**Learning:** In the React frontend, avoid O(N^2) rendering bottlenecks by pre-computing O(1) Object/Map lookups to replace O(N) `Array.find` calls inside render loops. However, avoid micro-optimizations: do not create Map/Object lookups for very small arrays (e.g., <25 items) as the memory allocation overhead outweighs using `find()`, and do not wrap simple O(1) property lookups in `useMemo` due to hook overhead.
+**Action:** Always check the size of the array before optimizing `Array.find` calls. If the array is small, leave it as is.
+
+## 2024-03-24 - [Replace inner loop predictions with pre-computed slices]
+**Learning:** In backend predictive loops (`PitStopStrategy.recommend_pit_window` searching across laps), recalculating lap times from zero creates O(N^2) inference bottleneck. The `lap_predictor.predict` calls can be extremely slow if connected to an ML model or doing deep regression. We replaced O(N^2) inside the loop with an O(N) pre-computed array of baseline predictions, generating huge performance gains when iterating over lap strategies.
+**Action:** Whenever iterating over laps where values are just cumulative sums of single-lap predictions, always hoist the prediction loop outside to precompute the maximum range, and use array slicing inside the loop.

@@ -116,15 +116,18 @@ class PitStopStrategy:
         min_search_lap = current_lap + 1
         max_search_lap = min(total_laps - 4, current_lap + 25)
         
+        # Precompute lap times for the current compound to avoid O(N^2) predictor calls
+        max_laps_to_simulate = (max_search_lap - current_lap) + 15
+        precomputed_baseline = [
+            self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
+            for i in range(max_laps_to_simulate)
+        ]
+
         for p in range(min_search_lap, max_search_lap + 1):
             laps_on_old = p - current_lap
             
-            # Predict times for remaining stint laps on old compound
-            old_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old)
-            ]
-            total_old = sum(old_times)
+            # Predict times for remaining stint laps on old compound using precomputed array
+            total_old = sum(precomputed_baseline[:laps_on_old])
             
             # Predict times for new compound
             new_compound = self.recommend_compound(p, total_laps, position, current_compound)
@@ -136,12 +139,8 @@ class PitStopStrategy:
             ]
             total_new = sum(new_times)
             
-            # Estimate baseline: stay out on old compound
-            baseline_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old + len(new_times))
-            ]
-            total_baseline = sum(baseline_times)
+            # Estimate baseline: stay out on old compound using precomputed array
+            total_baseline = sum(precomputed_baseline[:laps_on_old + len(new_times)])
             
             # Net time gain (negative = faster)
             net_delta_s = (total_old + total_new + effective_pit_loss) - total_baseline
