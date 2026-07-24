@@ -116,14 +116,18 @@ class PitStopStrategy:
         min_search_lap = current_lap + 1
         max_search_lap = min(total_laps - 4, current_lap + 25)
         
+        # Pre-compute baseline times to avoid O(N^2) inference bottleneck in the loop below
+        max_laps_needed = (max_search_lap - current_lap) + 15
+        precomputed_baseline = [
+            self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
+            for i in range(max_laps_needed)
+        ]
+
         for p in range(min_search_lap, max_search_lap + 1):
             laps_on_old = p - current_lap
             
             # Predict times for remaining stint laps on old compound
-            old_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old)
-            ]
+            old_times = precomputed_baseline[:laps_on_old]
             total_old = sum(old_times)
             
             # Predict times for new compound
@@ -137,10 +141,7 @@ class PitStopStrategy:
             total_new = sum(new_times)
             
             # Estimate baseline: stay out on old compound
-            baseline_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old + len(new_times))
-            ]
+            baseline_times = precomputed_baseline[:laps_on_old + len(new_times)]
             total_baseline = sum(baseline_times)
             
             # Net time gain (negative = faster)

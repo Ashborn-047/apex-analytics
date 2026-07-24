@@ -15,3 +15,7 @@
 ## 2025-06-28 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
 **Learning:** Found an unmemoized mock data generation `generateEloProgression` in `DriverDetailModal.tsx` that uses `Math.random()`. Without memoization, any re-render triggers recalculation, resulting in unnecessary layout shifts and wasted CPU cycles. Also learned to be mindful of early returns in React components when adding hooks.
 **Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo`. When applying `useMemo`, remember to place it before early returns (like `if (!driver) return null;`) to avoid violating the Rules of Hooks. Add safe fallbacks inside the `useMemo` block if needed.
+
+## 2025-10-25 - Avoid O(N^2) inference bottleneck in Python predictive loops
+**Learning:** Found an O(N^2) performance bottleneck in `apex/apps/ml/src/models/strategy.py` where a `lap_predictor.predict` list comprehension generated `old_times` and `baseline_times` arrays starting from index 0 inside every iteration of a loop searching for pit stop windows. Calling the predictor repeatedly for the same early laps on every iteration caused huge redundancy.
+**Action:** In Python backend predictive loops, avoid O(N^2) bottlenecks by pre-computing arrays of maximum needed values outside the iteration loop, and using O(1) Python list slicing inside the loop, rather than recalculating values from zero.
