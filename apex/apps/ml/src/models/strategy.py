@@ -116,32 +116,36 @@ class PitStopStrategy:
         min_search_lap = current_lap + 1
         max_search_lap = min(total_laps - 4, current_lap + 25)
         
+        # Precompute baseline times for the old compound to avoid O(N^2) inner loop recalculations
+        max_possible_laps_on_old = (max_search_lap - current_lap) + 15
+        precomputed_baseline_times = [
+            self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
+            for i in range(max_possible_laps_on_old)
+        ]
+
+        baseline_cumulative = [0.0] * (len(precomputed_baseline_times) + 1)
+        for i in range(len(precomputed_baseline_times)):
+            baseline_cumulative[i+1] = baseline_cumulative[i] + precomputed_baseline_times[i]
+
         for p in range(min_search_lap, max_search_lap + 1):
             laps_on_old = p - current_lap
             
-            # Predict times for remaining stint laps on old compound
-            old_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old)
-            ]
-            total_old = sum(old_times)
+            # ⚡ Bolt: Use O(1) precomputed sums for old compound predictions
+            total_old = baseline_cumulative[laps_on_old]
             
             # Predict times for new compound
             new_compound = self.recommend_compound(p, total_laps, position, current_compound)
             laps_on_new = total_laps - p
             
+            new_times_len = min(laps_on_new + 1, 15) - 1 # limit projection for latency
             new_times = [
                 self.lap_predictor.predict(i, track_temp, max(0.0, fuel_load - ((laps_on_old + i) * 1.55)), new_compound)
-                for i in range(1, min(laps_on_new + 1, 15)) # limit projection for latency
+                for i in range(1, new_times_len + 1)
             ]
             total_new = sum(new_times)
             
             # Estimate baseline: stay out on old compound
-            baseline_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old + len(new_times))
-            ]
-            total_baseline = sum(baseline_times)
+            total_baseline = baseline_cumulative[laps_on_old + len(new_times)]
             
             # Net time gain (negative = faster)
             net_delta_s = (total_old + total_new + effective_pit_loss) - total_baseline
