@@ -116,14 +116,22 @@ class PitStopStrategy:
         min_search_lap = current_lap + 1
         max_search_lap = min(total_laps - 4, current_lap + 25)
         
+        # ⚡ Bolt: [performance improvement] Pre-compute array of maximum needed old compound lap times outside the loop
+        # to avoid O(N^2) recalculation overhead, using O(1) Python list slicing inside the loop
+        max_laps_to_sim = max_search_lap - current_lap
+        max_projection = 15 # limit projection for latency
+        max_total_laps = max_laps_to_sim + max_projection
+
+        precomputed_old_times = [
+            self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
+            for i in range(max_total_laps)
+        ]
+
         for p in range(min_search_lap, max_search_lap + 1):
             laps_on_old = p - current_lap
             
-            # Predict times for remaining stint laps on old compound
-            old_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old)
-            ]
+            # Predict times for remaining stint laps on old compound using O(1) list slicing
+            old_times = precomputed_old_times[:laps_on_old]
             total_old = sum(old_times)
             
             # Predict times for new compound
@@ -132,15 +140,12 @@ class PitStopStrategy:
             
             new_times = [
                 self.lap_predictor.predict(i, track_temp, max(0.0, fuel_load - ((laps_on_old + i) * 1.55)), new_compound)
-                for i in range(1, min(laps_on_new + 1, 15)) # limit projection for latency
+                for i in range(1, min(laps_on_new + 1, max_projection)) # limit projection for latency
             ]
             total_new = sum(new_times)
             
-            # Estimate baseline: stay out on old compound
-            baseline_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old + len(new_times))
-            ]
+            # Estimate baseline: stay out on old compound using O(1) list slicing
+            baseline_times = precomputed_old_times[:laps_on_old + len(new_times)]
             total_baseline = sum(baseline_times)
             
             # Net time gain (negative = faster)
