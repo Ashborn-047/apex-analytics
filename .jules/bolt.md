@@ -15,3 +15,7 @@
 ## 2025-06-28 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
 **Learning:** Found an unmemoized mock data generation `generateEloProgression` in `DriverDetailModal.tsx` that uses `Math.random()`. Without memoization, any re-render triggers recalculation, resulting in unnecessary layout shifts and wasted CPU cycles. Also learned to be mindful of early returns in React components when adding hooks.
 **Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo`. When applying `useMemo`, remember to place it before early returns (like `if (!driver) return null;`) to avoid violating the Rules of Hooks. Add safe fallbacks inside the `useMemo` block if needed.
+
+## 2023-10-25 - Python pre-computed slicing over redundant loop calculations
+**Learning:** Found a loop inside `recommend_pit_window` that was re-evaluating baseline lap times array completely on every iteration causing O(N^2) overhead.
+**Action:** By precomputing the maximum range of lap times needed outside the loop and using O(1) Python list slicing inside the loop, execution time can be massively improved without architectural changes.
