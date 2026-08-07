@@ -15,3 +15,7 @@
 ## 2025-06-28 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
 **Learning:** Found an unmemoized mock data generation `generateEloProgression` in `DriverDetailModal.tsx` that uses `Math.random()`. Without memoization, any re-render triggers recalculation, resulting in unnecessary layout shifts and wasted CPU cycles. Also learned to be mindful of early returns in React components when adding hooks.
 **Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo`. When applying `useMemo`, remember to place it before early returns (like `if (!driver) return null;`) to avoid violating the Rules of Hooks. Add safe fallbacks inside the `useMemo` block if needed.
+
+## 2025-02-23 - Optimize driver lookup in RacePreview.tsx render loop
+**Learning:** Found a case where `Array.find` on a static array (`DRIVERS`) was repeatedly called inside a map loop (`qualGrid.map`) during a render pass. This generated unnecessary O(N^2) search overhead. Since `DRIVERS` is completely static, it should be pre-computed once as a map.
+**Action:** Always extract static array lookups out of loops. If an array needs to be searched repeatedly, pre-compute an `Object.fromEntries(arr.map(...))` dictionary outside the React component (if data is static) or in a `useMemo` (if data changes) to allow fast O(1) lookups.

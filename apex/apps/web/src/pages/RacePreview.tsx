@@ -25,6 +25,9 @@ const DRIVERS: DriverMeta[] = [
   { id: "PER", name: "Sergio Perez", team: "Red Bull Racing", teamId: "red_bull", color: "#3671C6" },
 ];
 
+// ⚡ Bolt: [performance improvement] Pre-compute DRIVERS as a dictionary for O(1) lookups instead of O(N) Array.find calls in render loops
+const DRIVERS_MAP = Object.fromEntries(DRIVERS.map(d => [d.id, d]));
+
 interface QualifyingPrediction {
   driver_id: string;
   constructor_id: string;
@@ -129,7 +132,7 @@ export default function RacePreview({ season }: { season: number }) {
       });
   }, [circuitId, circuitType, trackTemp, airTemp, season]);
 
-  const activeDriver = DRIVERS.find(d => d.id === selectedDriverId) || DRIVERS[0];
+  const activeDriver = DRIVERS_MAP[selectedDriverId] || DRIVERS[0];
   const activeQual = qualGrid.find(q => q.driver_id === selectedDriverId);
   const activeRace = raceOutcomes.find(r => r.driver_id === selectedDriverId);
 
@@ -254,7 +257,7 @@ export default function RacePreview({ season }: { season: number }) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {qualGrid.map((driver, index) => {
-                const meta = DRIVERS.find(d => d.id === driver.driver_id) || DRIVERS[0];
+                const meta = DRIVERS_MAP[driver.driver_id] || DRIVERS[0];
                 const isSelected = selectedDriverId === driver.driver_id;
                 
                 return (
