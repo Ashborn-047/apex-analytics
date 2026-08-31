@@ -212,20 +212,32 @@ export default function TyreLapPredictor({ season, subTab = "predictor" }: { sea
   // Build combined chart data
   // ⚡ Bolt: [performance improvement] Wrap chartData in useMemo and extract curve lookups outside the loop to reduce O(N^2) behavior during simulation re-renders
   const chartData = useMemo(() => {
-    const softCurve = compoundsData.find(d => d.compound === "SOFT")?.degradation_curve;
-    const mediumCurve = compoundsData.find(d => d.compound === "MEDIUM")?.degradation_curve;
-    const hardCurve = compoundsData.find(d => d.compound === "HARD")?.degradation_curve;
+    const softCurve = compoundsData.find(d => d.compound === "SOFT")?.degradation_curve || [];
+    const mediumCurve = compoundsData.find(d => d.compound === "MEDIUM")?.degradation_curve || [];
+    const hardCurve = compoundsData.find(d => d.compound === "HARD")?.degradation_curve || [];
+
+    const softCurveByLap: Record<number, (typeof softCurve)[0]> = {};
+    for (const pt of softCurve) softCurveByLap[pt.stint_lap] = pt;
+
+    const mediumCurveByLap: Record<number, (typeof mediumCurve)[0]> = {};
+    for (const pt of mediumCurve) mediumCurveByLap[pt.stint_lap] = pt;
+
+    const hardCurveByLap: Record<number, (typeof hardCurve)[0]> = {};
+    for (const pt of hardCurve) hardCurveByLap[pt.stint_lap] = pt;
+
+    const simLapByLap: Record<number, (typeof simulatedLaps)[0]> = {};
+    for (const sl of simulatedLaps) simLapByLap[sl.lap] = sl;
 
     return Array.from({ length: 25 }, (_, idx) => {
       const lap = idx + 1;
-      const softPt = softCurve?.find(p => p.stint_lap === lap);
-      const mediumPt = mediumCurve?.find(p => p.stint_lap === lap);
-      const hardPt = hardCurve?.find(p => p.stint_lap === lap);
+      const softPt = softCurveByLap[lap];
+      const mediumPt = mediumCurveByLap[lap];
+      const hardPt = hardCurveByLap[lap];
 
       const activePredicted = selectedCompound === "soft" ? softPt?.predicted_s
         : (selectedCompound === "medium" ? mediumPt?.predicted_s : hardPt?.predicted_s);
 
-      const simLap = simulatedLaps.find(sl => sl.lap === lap);
+      const simLap = simLapByLap[lap];
 
       return {
         lap,
