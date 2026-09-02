@@ -109,6 +109,15 @@ class PitStopStrategy:
         sc_prob_10 = self.sc_probability_next_n_laps(circuit_id, 10)
         effective_pit_loss = pit_loss * (1.0 - 0.5 * sc_prob_10)
 
+        # ⚡ Bolt: [performance improvement]
+        # What: Precompute lap times for the current compound up to the theoretical maximum bounds.
+        # Why: Prevents an O(N^2) bottleneck by replacing repeated predictor calculations inside the loop with O(1) list slicing.
+        max_laps_ahead = total_laps - current_lap
+        precomputed_old_times = [
+            self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
+            for i in range(max_laps_ahead)
+        ]
+
         # Brute-force window search over remaining laps (O(N^2) tractable at F1 scale)
         candidates = []
         
@@ -119,11 +128,8 @@ class PitStopStrategy:
         for p in range(min_search_lap, max_search_lap + 1):
             laps_on_old = p - current_lap
             
-            # Predict times for remaining stint laps on old compound
-            old_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old)
-            ]
+            # Predict times for remaining stint laps on old compound using precomputed array
+            old_times = precomputed_old_times[:laps_on_old]
             total_old = sum(old_times)
             
             # Predict times for new compound
@@ -136,11 +142,8 @@ class PitStopStrategy:
             ]
             total_new = sum(new_times)
             
-            # Estimate baseline: stay out on old compound
-            baseline_times = [
-                self.lap_predictor.predict(stint_laps + i, track_temp, max(0.0, fuel_load - (i * 1.55)), current_compound)
-                for i in range(laps_on_old + len(new_times))
-            ]
+            # Estimate baseline: stay out on old compound using precomputed array
+            baseline_times = precomputed_old_times[:laps_on_old + len(new_times)]
             total_baseline = sum(baseline_times)
             
             # Net time gain (negative = faster)
