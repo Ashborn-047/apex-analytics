@@ -15,3 +15,6 @@
 ## 2025-06-28 - Unmemoized randomized mock data causes UI jumps and unnecessary layout recalculations
 **Learning:** Found an unmemoized mock data generation `generateEloProgression` in `DriverDetailModal.tsx` that uses `Math.random()`. Without memoization, any re-render triggers recalculation, resulting in unnecessary layout shifts and wasted CPU cycles. Also learned to be mindful of early returns in React components when adding hooks.
 **Action:** When working with mock data generation that uses `Math.random` or involves looping, always wrap the generated data array in `useMemo`. When applying `useMemo`, remember to place it before early returns (like `if (!driver) return null;`) to avoid violating the Rules of Hooks. Add safe fallbacks inside the `useMemo` block if needed.
+## 2025-02-12 - Avoid committing dummy test data to production files
+**Learning:** Running backend test suites locally without properly mocked file system interfaces can result in tests writing dummy data (e.g. mock drivers "A" and "B") directly into production datastores (like `elo_state.json`).
+**Action:** Always verify `git status` for unintended modifications to data files (like JSON, CSV) or the presence of temporary artifacts (`test_opt.py`, `patch.diff`) after running test suites, and explicitly `git restore` or `rm` them before initiating code review or committing changes.
